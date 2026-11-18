@@ -405,9 +405,9 @@ proptest! {
             vec![0.0]
         };
         let (turned, items) = items(&sheet, &parts, &angles, gap);
-        let layout = fill(&sheet, &items, Goal::Compact, &Cancel::new()).unwrap();
+        let layout = fill(&sheet, &items, Goal::Compact, None, &Cancel::new()).unwrap().layout;
         check_layout(&sheet, &turned, &items, &keep_out, gap, &layout)?;
-        let again = fill(&sheet, &items, Goal::Compact, &Cancel::new()).unwrap();
+        let again = fill(&sheet, &items, Goal::Compact, None, &Cancel::new()).unwrap().layout;
         prop_assert_eq!(again, layout);
     }
 }
@@ -454,7 +454,9 @@ fn full_sheet_of_fifty_instances() {
     let start = std::time::Instant::now();
     let (turned, items) = items(&sheet, &parts, &angles, 3.0);
     let prepared = start.elapsed();
-    let layout = fill(&sheet, &items, Goal::Compact, &Cancel::new()).unwrap();
+    let layout = fill(&sheet, &items, Goal::Compact, None, &Cancel::new())
+        .unwrap()
+        .layout;
     let total = start.elapsed();
     println!(
         "cell {cell} mm: footprints {prepared:?}, all {total:?}; placed {} of 50, used {:.0} mm",

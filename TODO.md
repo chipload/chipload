@@ -169,7 +169,7 @@ to a program you trust. It was about four per operation; with the defaults and s
     review**: three goals (*Compact* default, *Keep the top free*, *Keep the right side
     free*), a local search over order and turns (late acceptance, seeded, a budget counted
     in layouts), *Nest again* searching on from the board and never worse; four steps.
-    Approved 2026-11-18; steps 1 (goals, placer) and 2 (search) built.
+    Approved 2026-11-18; steps 1 (goals, placer), 2 (search) and 3 (Nest again) built.
     **Found meanwhile:** moulding's property test `the_dropped_tool_is_never_below_the_section`
     fails for kind = 3, size = 13.829946424301163, r = 3.1686539346469025, ball = true,
     c = 11.899209077975268 (0.008 mm below the section at d 13.83); seed not saved, to fix

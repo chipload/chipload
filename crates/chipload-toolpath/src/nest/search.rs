@@ -66,17 +66,21 @@ impl Random {
     }
 }
 
-/// The best layout for `items` on `sheet`: the starts placed (§4.1), then `budget` more
-/// candidates, each one move from the current one (§4.2), taken by late acceptance (§4.3).
-/// None when there are no starts (no items). Progress is reported on `cancel`.
+/// The best layout for `items` on `sheet`: the starts placed (§4.1), `extra` among them
+/// (the board as it is, §5), then `budget` more candidates, each one move from the current
+/// one (§4.2), taken by late acceptance (§4.3), the random moves from [`SEED`] mixed with
+/// `seed`. None when there are no starts (no items). Progress is reported on `cancel`.
 pub(super) fn search(
     sheet: &Sheet,
     items: &[Item],
     goal: Goal,
     budget: usize,
+    extra: Option<Candidate>,
+    seed: u64,
     cancel: &Cancel,
 ) -> Result<Option<Decoded>, ToolpathError> {
-    let starts = starts(items);
+    let mut starts = starts(items);
+    starts.extend(extra);
     let total = (starts.len() + budget).max(1) as f64;
     let mut best: Option<(Candidate, Decoded)> = None;
     for (k, candidate) in starts.into_iter().enumerate() {
@@ -94,7 +98,7 @@ pub(super) fn search(
     let mut current_score = decoded.score;
     let mut best = decoded;
     let mut late: Vec<Key> = vec![current_score; LATE];
-    let mut random = Random(SEED);
+    let mut random = Random(SEED ^ seed);
     let done = total - budget as f64;
     for step in 0..budget {
         cancel.check()?;

@@ -16,7 +16,7 @@ mod grid;
 mod search;
 mod sweep;
 
-pub use fill::{Goal, Item, Layout, Lie, Put, Sheet, fill};
+pub use fill::{Filled, Goal, Item, Layout, Lie, Now, Put, Sheet, fill};
 pub use footprint::{Dilated, Footprint, Frame};
 pub use grid::Grid;
 pub use sweep::{Capsule, Sweep};

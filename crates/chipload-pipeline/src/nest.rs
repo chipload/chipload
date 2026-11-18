@@ -5,12 +5,12 @@
 //! switched off (decision 10).
 
 use chipload_core::Point;
-use chipload_core::tolerances::PLACEMENT_ROUNDING_MM;
+use chipload_core::tolerances::{ANGLE_TOL_RAD, PLACEMENT_ROUNDING_MM};
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{
     Instance, Job, Mirror, Nest, Operation, StockCorner, StockOrigin, Turns, WorkZero,
 };
-use chipload_toolpath::nest::{Footprint, Goal, Item, Sheet, Sweep, cell_size, fill};
+use chipload_toolpath::nest::{Footprint, Goal, Item, Now, Sheet, Sweep, cell_size, fill};
 use chipload_toolpath::plan::OpSpan;
 use chipload_toolpath::{Cancel, plan_job};
 
@@ -89,6 +89,9 @@ pub struct NestResult {
     pub travel: Vec<TravelLimit>,
     /// The boards that took what didn't fit, in order; empty without overflow.
     pub overflow: Vec<OverflowBoard>,
+    /// Nested again and nothing better found (docs/specs/nesting-search.md §5): the board
+    /// is as it was, but for what doesn't fit there, switched off.
+    pub unchanged: bool,
 }
 
 impl NestResult {
@@ -104,6 +107,9 @@ impl NestResult {
 
     /// "8 of 8 placed, the board used to 742 mm of 1220 mm (61 %)".
     pub fn summary(&self) -> Message {
+        if self.unchanged {
+            return Message::new("pipeline-nest-no-better");
+        }
         let share = if self.length > 0.0 {
             (100.0 * self.used / self.length).round()
         } else {
@@ -214,18 +220,20 @@ pub fn nest_setup(
     request: &NestRequest,
     cancel: &Cancel,
 ) -> Result<NestResult, PipelineError> {
-    let first = nest_one(job, request, cancel)?;
+    let first = nest_one(job, request, false, cancel)?;
     if !request.overflow || first.unplaced.is_empty() {
         return Ok(first);
     }
     overflow(first, cancel)
 }
 
-/// One board nested, with its parts whose stock isn't its own left out when `by_stock`
-/// (they go to a board of their stock, §4).
+/// One board nested, with its parts whose stock isn't its own left out with overflow
+/// (they go to a board of their stock, §4). A board nested before is searched from as it
+/// is, unless `afresh` (a board taking what didn't fit on another).
 fn nest_one(
     job: &Job,
     request: &NestRequest,
+    afresh: bool,
     cancel: &Cancel,
 ) -> Result<NestResult, PipelineError> {
     let id = request
@@ -241,6 +249,10 @@ fn nest_one(
     if setup.back_of.is_some() || job.back_of(id).is_some() {
         return Err(refused("pipeline-nest-two-sided"));
     }
+    // Nested before: the board as it is is one of the search's starts, and is kept unless
+    // the search does better (nesting-search.md §5).
+    // A board that takes what didn't fit on another is nested afresh.
+    let again = setup.nest.is_some() && !afresh;
     let mut job = job.clone();
     let gap = request
         .gap
@@ -326,7 +338,19 @@ fn nest_one(
         }
     }
     let plain: Vec<Item> = items.iter().map(|(_, _, item)| item.clone()).collect();
-    let layout = fill(&sheet, &plain, Goal::Compact, cancel)?;
+    let now: Vec<Option<Now>> = items
+        .iter()
+        .map(|(part, number, item)| lying_now(&one, *part, *number, item))
+        .collect();
+    let filled = fill(
+        &sheet,
+        &plain,
+        Goal::Compact,
+        again.then_some(&now[..]),
+        cancel,
+    )?;
+    let unchanged = !filled.better;
+    let layout = filled.layout;
     let mut placed = Vec::new();
     for put in &layout.placed {
         let Some((part, number, item)) = items.get(put.item) else {
@@ -359,8 +383,11 @@ fn nest_one(
     }
     // In part and number order, as reported.
     unplaced.sort_unstable();
-    for put in &placed {
-        place(&mut job, put.part, put.instance, put.angle, put.at);
+    // Unchanged, the placements stay exactly as they were: nothing is written back.
+    if !unchanged {
+        for put in &placed {
+            place(&mut job, put.part, put.instance, put.angle, put.at);
+        }
     }
     for &(part, number) in &unplaced {
         switch_off(&mut job, part, number);
@@ -384,6 +411,27 @@ fn nest_one(
         board_fixed,
         travel,
         overflow: Vec::new(),
+        unchanged,
+    })
+}
+
+/// Where instance `number` of part `part` lies now, as one of `item`'s lies (the one of its
+/// turn) and its footprint's low corner; None when it is off or turned otherwise than its
+/// part's turns allow.
+fn lying_now(one: &Job, part: u64, number: u32, item: &Item) -> Option<Now> {
+    let instance = one
+        .instances_here(part)
+        .into_iter()
+        .find(|i| i.id == number && i.enabled)?;
+    let tau = std::f64::consts::TAU;
+    let lie = item.lies.iter().position(|lie| {
+        let d = (lie.angle - instance.angle).rem_euclid(tau);
+        d <= ANGLE_TOL_RAD || tau - d <= ANGLE_TOL_RAD
+    })?;
+    let f = &item.lies.get(lie)?.footprint;
+    Some(Now {
+        lie,
+        low: (instance.at[0] + f.low.0, instance.at[1] + f.low.1),
     })
 }
 
@@ -466,7 +514,7 @@ fn overflow(first: NestResult, cancel: &Cancel) -> Result<NestResult, PipelineEr
             overflow: true,
             ..NestRequest::default()
         };
-        let next = nest_one(&job, &request, cancel)?;
+        let next = nest_one(&job, &request, true, cancel)?;
         let took = next
             .placed
             .iter()
@@ -497,6 +545,7 @@ fn overflow(first: NestResult, cancel: &Cancel) -> Result<NestResult, PipelineEr
     Ok(NestResult {
         job,
         unplaced,
+        unchanged: first.unchanged && boards.is_empty(),
         overflow: boards,
         ..first
     })

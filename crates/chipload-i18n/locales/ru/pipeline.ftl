@@ -564,6 +564,7 @@ pipeline-nest-no-room = На заготовке не осталось места
 pipeline-nest-count = { $part } режется хотя бы раз: вместо этого выключите деталь
 pipeline-nest-not-verified = Раскрой не прошёл проверки — это ошибка раскроя, ничего не изменено: { $reason }
 pipeline-nest-done = Размещено { $placed } из { $count }, заготовка занята до { $used } из { $length } ({ $share } %)
+pipeline-nest-no-better = Лучший раскрой не найден; заготовка осталась как была.
 pipeline-nest-unplaced = { $part }, экземпляр { $instance } не поместился: выключен
 pipeline-nest-overflow = Ещё { $count } на { $board }
 pipeline-nest-overflow-made = Ещё { $count } на { $board }, новой заготовке как первая

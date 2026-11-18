@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-use super::fill::{Candidate, decode};
+use super::fill::{Candidate, Key, decode};
 use super::*;
 use crate::arcs::Circle;
 use crate::model::{Move, MoveKind};
@@ -195,7 +195,9 @@ fn run(sheet: &Sheet, items: &[Item]) -> Layout {
 }
 
 fn run_for(sheet: &Sheet, items: &[Item], goal: Goal) -> Layout {
-    fill(sheet, items, goal, &crate::Cancel::new()).unwrap()
+    fill(sheet, items, goal, None, &crate::Cancel::new())
+        .unwrap()
+        .layout
 }
 
 #[test]
@@ -348,7 +350,7 @@ fn a_cancelled_fill_stops() {
     cancel.cancel();
     let items = [item(&sheet, &rect(10.0, 10.0), &[0.0], 3.0)];
     assert!(matches!(
-        fill(&sheet, &items, Goal::Compact, &cancel),
+        fill(&sheet, &items, Goal::Compact, None, &cancel),
         Err(crate::ToolpathError::Cancelled)
     ));
 }
@@ -385,11 +387,11 @@ fn search_report() {
         for goal in [Goal::Compact, Goal::Low, Goal::Left] {
             let cancel = crate::Cancel::new();
             let start = std::time::Instant::now();
-            let starts = super::search::search(&sheet, &items, goal, 0, &cancel)
+            let starts = super::search::search(&sheet, &items, goal, 0, None, 0, &cancel)
                 .unwrap()
                 .unwrap();
             let budget = super::search::budget(items.len());
-            let found = super::search::search(&sheet, &items, goal, budget, &cancel)
+            let found = super::search::search(&sheet, &items, goal, budget, None, 0, &cancel)
                 .unwrap()
                 .unwrap();
             println!(
@@ -408,7 +410,7 @@ fn the_search_places_a_part_the_starts_leave_off() {
     let sheet = Sheet::new((0.0, 0.0), (1200.0, 600.0), 0.5, &[]).unwrap();
     let items = mixed(&sheet, 24);
     let cancel = crate::Cancel::new();
-    let starts = super::search::search(&sheet, &items, Goal::Compact, 0, &cancel)
+    let starts = super::search::search(&sheet, &items, Goal::Compact, 0, None, 0, &cancel)
         .unwrap()
         .unwrap();
     let found = run(&sheet, &items);
@@ -465,7 +467,7 @@ fn no_single_move_betters_a_small_search() {
     let items = mixed(&sheet, 5);
     let cancel = crate::Cancel::new();
     for goal in [Goal::Compact, Goal::Low, Goal::Left] {
-        let found = super::search::search(&sheet, &items, goal, 600, &cancel)
+        let found = super::search::search(&sheet, &items, goal, 600, None, 0, &cancel)
             .unwrap()
             .unwrap();
         let mut order: Vec<usize> = found.layout.placed.iter().map(|p| p.item).collect();
@@ -482,4 +484,93 @@ fn no_single_move_betters_a_small_search() {
             assert!(moved.score >= found.score, "{goal:?}: {next:?} betters it");
         }
     }
+}
+
+// -- Nest again (nesting-search.md §5)
+
+fn now_of(layout: &Layout, count: usize) -> Vec<Option<Now>> {
+    let mut now = vec![None; count];
+    for put in &layout.placed {
+        now[put.item] = Some(Now {
+            lie: put.lie,
+            low: put.low,
+        });
+    }
+    now
+}
+
+fn score_of(sheet: &Sheet, items: &[Item], goal: Goal, layout: &Layout) -> Key {
+    super::fill::as_it_is(sheet, items, goal, &now_of(layout, items.len()))
+        .0
+        .score
+}
+
+#[test]
+fn nesting_again_never_makes_it_worse() {
+    let sheet = Sheet::new((0.0, 0.0), (1200.0, 600.0), 0.5, &[]).unwrap();
+    let items = mixed(&sheet, 12);
+    let cancel = crate::Cancel::new();
+    for goal in [Goal::Compact, Goal::Low, Goal::Left] {
+        let mut layout = run_for(&sheet, &items, goal);
+        for _ in 0..2 {
+            let before = score_of(&sheet, &items, goal, &layout);
+            let now = now_of(&layout, items.len());
+            let again = fill(&sheet, &items, goal, Some(&now), &cancel).unwrap();
+            let after = score_of(&sheet, &items, goal, &again.layout);
+            if again.better {
+                assert!(after < before, "{goal:?}");
+            } else {
+                assert_eq!(again.layout.placed.len(), layout.placed.len());
+                assert_eq!(after, before, "{goal:?}");
+            }
+            layout = again.layout;
+        }
+    }
+}
+
+#[test]
+fn a_board_at_its_best_is_left_as_it_is() {
+    let sheet = Sheet::new((0.0, 0.0), (600.0, 300.0), 0.5, &[]).unwrap();
+    let items = [item(&sheet, &rect(100.0, 50.0), &[0.0], 3.0)];
+    let now = [Some(Now {
+        lie: 0,
+        low: (0.0, 0.0),
+    })];
+    let again = fill(
+        &sheet,
+        &items,
+        Goal::Compact,
+        Some(&now),
+        &crate::Cancel::new(),
+    )
+    .unwrap();
+    assert!(!again.better);
+    assert_eq!(again.layout.placed[0].low, (0.0, 0.0));
+}
+
+#[test]
+fn a_board_placed_by_hand_on_top_of_itself_is_replaced() {
+    let sheet = Sheet::new((0.0, 0.0), (600.0, 300.0), 0.5, &[]).unwrap();
+    let part = rect(100.0, 50.0);
+    let items = [
+        item(&sheet, &part, &[0.0], 3.0),
+        item(&sheet, &part, &[0.0], 3.0),
+    ];
+    let here = Some(Now {
+        lie: 0,
+        low: (40.0, 40.0),
+    });
+    let again = fill(
+        &sheet,
+        &items,
+        Goal::Compact,
+        Some(&[here, here]),
+        &crate::Cancel::new(),
+    )
+    .unwrap();
+    assert!(again.better);
+    assert_eq!(again.layout.placed.len(), 2);
+    // Kept as it was, only one of the two would count: the other doesn't fit there.
+    let (as_it_is, _) = super::fill::as_it_is(&sheet, &items, Goal::Compact, &[here, here]);
+    assert_eq!(as_it_is.layout.unplaced, vec![1]);
 }

@@ -719,6 +719,7 @@ pipeline-nest-no-room = Det finns ingen plats kvar på skivan att nästla på: e
 pipeline-nest-count = { $part } fräses minst en gång: stäng av detaljen i stället
 pipeline-nest-not-verified = Nästlingen klarade inte kontrollerna, ett fel i nästlingen, och ingenting ändrades: { $reason }
 pipeline-nest-done = { $placed } av { $count } placerade, skivan använd till { $used } av { $length } ({ $share } %)
+pipeline-nest-no-better = Ingen bättre nästling hittades; skivan är som den var.
 pipeline-nest-unplaced = { $part }, instans { $instance } fick inte plats: avstängd
 pipeline-nest-overflow = { $count } till på { $board }
 pipeline-nest-overflow-made = { $count } till på { $board }, ett nytt ämne som det första

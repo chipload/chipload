@@ -1,6 +1,6 @@
 # Spec: a better nest, by search and with a goal
 
-Status: **approved 2026-11-18** (the user: "go ahead"), being built: steps 1 and 2 done. It changes how the nester of docs/specs/nesting.md
+Status: **approved 2026-11-18** (the user: "go ahead"), being built: steps 1 to 3 done. It changes how the nester of docs/specs/nesting.md
 chooses places (its §4, decisions 3 and 6), not what it places or what it writes. The user,
 2026-11-18: "the nesting should start from the lower left corner and try to minimize the
 total area occupied", "I don't think we should place the parts in a fixed order, that could
@@ -159,6 +159,17 @@ first for *keep the right side free*), each in its turn now. It is scored like a
 So pressing *Nest again* repeatedly can only improve the board, and each press searches on
 from where the last one ended. No *try harder* setting is needed.
 
+**As built (step 3):** the search's random numbers are seeded from the board as it is
+(FNV-1a over each instance's lie and corner), so a search from a better board takes new
+steps. After "No better nest found" the board hasn't changed, so pressing again gives the
+same answer: there is no hidden state to search on from. An instance turned by hand to an
+angle its part's turns don't allow, or one that meets another or lies off the usable area,
+counts as not placed (its place is rounded to the nearest cell to be scored). A board that
+takes what didn't fit on another (overflow) is nested afresh, though it carries the first
+board's settings. Unchanged, the placements are not written back, and the window makes no
+undo step for no change; what doesn't fit there is switched off as in any nest. `--json`
+says `unchanged`.
+
 The layout now is scored from the instances' footprints where they are (§2), so a board
 placed or adjusted by hand is compared fairly. A hand-placed board whose parts overlap, or
 lie off the usable area, scores as having placed only those that don't, so the search will
@@ -225,7 +236,7 @@ Each step a commit with its tests, the guide and translations with the step that
    2440 × 1220 board: 20 starts in 1.5 s, about 75 ms a layout with the placer picking the
    turns, a quarter of that with them given.
 2. **The search** (§4), with its generator, progress and Cancel. **Built 2026-11-18.**
-3. **Nest again from the board as it is** (§5).
+3. **Nest again from the board as it is** (§5). **Built 2026-11-18.**
 4. **The goal in the file, the window and the command line** (§6, §7), the summary line, the
    setup sheet's fact, the guide (nesting page) and translations.
 

@@ -724,6 +724,7 @@ pipeline-nest-no-room = Sulla tavola non resta spazio per annidare: un margine d
 pipeline-nest-count = { $part } si taglia almeno una volta: disattiva invece il pezzo
 pipeline-nest-not-verified = L’annidamento non ha superato i controlli, un difetto dell’annidamento, e nulla è stato cambiato: { $reason }
 pipeline-nest-done = { $placed } su { $count } posizionati, la tavola usata fino a { $used } su { $length } ({ $share } %)
+pipeline-nest-no-better = Nessun annidamento migliore trovato; la tavola resta com’era.
 pipeline-nest-unplaced = { $part }, istanza { $instance } non è entrata: disattivata
 pipeline-nest-overflow = { $count } in più su { $board }
 pipeline-nest-overflow-made = { $count } in più su { $board }, un nuovo grezzo come il primo

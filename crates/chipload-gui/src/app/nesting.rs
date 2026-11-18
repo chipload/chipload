@@ -329,8 +329,11 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return;
         };
-        edit.job = result.job.clone();
-        self.commit();
+        // Nothing better found and nothing switched off: no undo step for no change.
+        if edit.job != result.job {
+            edit.job = result.job.clone();
+            self.commit();
+        }
         self.set_status(result.summary().render(lang, units), STATUS_SECONDS);
         for note in result.notes() {
             self.report.push(Tone::Warning, note.render(lang, units));

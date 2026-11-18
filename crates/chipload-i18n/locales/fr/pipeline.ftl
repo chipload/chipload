@@ -727,6 +727,7 @@ pipeline-nest-no-room = Il ne reste pas de place sur la planche pour imbriquer :
 pipeline-nest-count = { $part } est usinée au moins une fois : désactivez plutôt la pièce
 pipeline-nest-not-verified = L’imbrication n’a pas passé les vérifications, un défaut de l’imbrication, et rien n’a été changé : { $reason }
 pipeline-nest-done = { $placed } sur { $count } placées, la planche utilisée jusqu’à { $used } sur { $length } ({ $share } %)
+pipeline-nest-no-better = Aucune meilleure imbrication trouvée ; la planche reste telle quelle.
 pipeline-nest-unplaced = { $part }, instance { $instance } n’a pas trouvé place : désactivée
 pipeline-nest-overflow = { $count } de plus sur { $board }
 pipeline-nest-overflow-made = { $count } de plus sur { $board }, un nouveau brut comme le premier

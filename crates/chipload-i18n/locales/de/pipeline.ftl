@@ -722,6 +722,7 @@ pipeline-nest-no-room = Auf dem Brett bleibt kein Platz zum Verschachteln: ein R
 pipeline-nest-count = { $part } wird mindestens einmal gefräst: schalte das Teil stattdessen aus
 pipeline-nest-not-verified = Das Verschachteln hat die Prüfungen nicht bestanden, ein Fehler beim Verschachteln, und nichts wurde geändert: { $reason }
 pipeline-nest-done = { $placed } von { $count } platziert, das Brett bis { $used } von { $length } genutzt ({ $share } %)
+pipeline-nest-no-better = Keine bessere Verschachtelung gefunden; das Brett bleibt, wie es war.
 pipeline-nest-unplaced = { $part }, Instanz { $instance } passte nicht: ausgeschaltet
 pipeline-nest-overflow = { $count } weitere auf { $board }
 pipeline-nest-overflow-made = { $count } weitere auf { $board }, einem neuen Rohteil wie dem ersten

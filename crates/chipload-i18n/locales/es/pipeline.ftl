@@ -727,6 +727,7 @@ pipeline-nest-no-room = No queda sitio en el tablero para anidar: un margen de {
 pipeline-nest-count = { $part } se corta al menos una vez: desactiva la pieza en su lugar
 pipeline-nest-not-verified = El anidado no pasó las comprobaciones, un fallo del anidado, y no se cambió nada: { $reason }
 pipeline-nest-done = { $placed } de { $count } colocadas, el tablero usado hasta { $used } de { $length } ({ $share } %)
+pipeline-nest-no-better = No se encontró un anidado mejor; el tablero queda como estaba.
 pipeline-nest-unplaced = { $part }, instancia { $instance } no cupo: desactivada
 pipeline-nest-overflow = { $count } más en { $board }
 pipeline-nest-overflow-made = { $count } más en { $board }, un material en bruto nuevo como el primero

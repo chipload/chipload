@@ -23,7 +23,10 @@ In the window:
   switched off in the Report. *Apply* before a preview nests and applies in one go.
 - **Nest again**, in the setup's right-click menu once it has been nested, nests it again
   with the same gap and margin and each part's turns, the instances there are now, without
-  the window: after you change a part, or moved instances by hand.
+  the window: after you change a part, or moved instances by hand. It searches on from the
+  board as it is and never makes it worse: when it finds nothing better, nothing moves and
+  the status says "No better nest found; the board is as it was." Press it again after a
+  better nest and it searches on from there.
 
 On the command line:
 
@@ -36,9 +39,12 @@ chipload nest part.chipload --dry-run               # say what would go where, w
 chipload part set part.chipload 2 --turns half      # part 2 turned 180° at most, kept for the next nest
 ```
 
-- **How it fills:** the largest parts first, each as far toward the start of the board's
-  longer side as it fits, then as low across it as it fits, so what is left of the board is
-  one strip across its far end. Each part is tried at every turn it allows.
+- **How it fills:** from the board's lower-left corner, as a compact block: each part where
+  the box round everything placed grows least. It tries many orders of the parts and turns
+  of each, for a moment (the window shows how far it has got), and keeps the layout that
+  places the most and uses the smallest box. The same project always gives the same
+  layout. Nesting a setup that was nested before searches on from the board as it is
+  and keeps it unless it finds better.
 - **Turns:** `none`, `half` (0° or 180°), `quarter` (the default) or `every-15`, for every
   part (`--turns quarter`) or one (`--turns 2=none`). They are kept in the project.
 - **Counts:** `--count ID=N` cuts part ID N times: instances are added (not mirrored), or

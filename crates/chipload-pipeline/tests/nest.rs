@@ -446,3 +446,56 @@ fn a_part_of_another_stock_goes_to_a_board_of_its_own_stock() {
     assert_eq!(board.placed.len(), 2);
     assert_eq!(nested.job.setups_of_part(1), [board.setup]);
 }
+
+#[test]
+fn nesting_again_keeps_the_board_unless_it_finds_better() {
+    let job = part_on_board(1000.0, 600.0);
+    let first = nest(
+        &job,
+        NestRequest {
+            counts: vec![(1, 5)],
+            ..Default::default()
+        },
+    );
+    assert!(!first.unchanged);
+    // Nested again: searched from the board as it is (docs/specs/nesting-search.md §5).
+    let mut board = first.job;
+    for _ in 0..3 {
+        let again = nest(&board, NestRequest::default());
+        assert!(again.unplaced.is_empty());
+        if again.unchanged {
+            // Nothing moved, nothing written back, and the status says so.
+            assert_eq!(again.job, board);
+            assert_eq!(
+                again.summary().english(),
+                "No better nest found; the board is as it was."
+            );
+            return;
+        }
+        assert_cut_inside(&again.job, 10.0);
+        board = again.job;
+    }
+}
+
+#[test]
+fn a_board_placed_on_top_of_itself_is_nested_afresh() {
+    let job = part_on_board(1000.0, 600.0);
+    let mut nested = nest(
+        &job,
+        NestRequest {
+            counts: vec![(1, 3)],
+            ..Default::default()
+        },
+    )
+    .job;
+    // Every instance moved by hand onto the first.
+    let first = *nested.setups[0].instances.first().unwrap();
+    for i in &mut nested.setups[0].instances {
+        i.at = first.at;
+        i.angle = first.angle;
+    }
+    let again = nest(&nested, NestRequest::default());
+    assert!(!again.unchanged);
+    assert_eq!(again.placed.len(), 3);
+    assert_cut_inside(&again.job, 10.0);
+}

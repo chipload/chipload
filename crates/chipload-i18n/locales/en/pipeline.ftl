@@ -729,6 +729,7 @@ pipeline-nest-no-room = No room is left on the board to nest on: a margin of { $
 pipeline-nest-count = { $part } is cut at least once: switch the part off instead
 pipeline-nest-not-verified = The nest didn't pass the checks, a fault in nesting, and nothing was changed: { $reason }
 pipeline-nest-done = { $placed } of { $count } placed, the board used to { $used } of { $length } ({ $share } %)
+pipeline-nest-no-better = No better nest found; the board is as it was.
 pipeline-nest-unplaced = { $part }, instance { $instance } didn't fit: switched off
 pipeline-nest-overflow = { $count } more on { $board }
 pipeline-nest-overflow-made = { $count } more on { $board }, a new board like the first

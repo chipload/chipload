@@ -330,6 +330,26 @@ impl<'a> Filling<'a> {
         best
     }
 
+    /// Whether `lie` fits with its cell (0, 0) at (`col`, `row`): within the sheet, its
+    /// footprint grown by the gap meeting nothing placed.
+    fn fits_at(&self, lie: &Lie, col: i64, row: i64) -> bool {
+        let Some((last_col, last_row)) = self.sheet.limits(lie) else {
+            return false;
+        };
+        if !(0..=last_col).contains(&col) || !(0..=last_row).contains(&row) {
+            return false;
+        }
+        lie.by_col.grown.iter().enumerate().all(|(i, runs)| {
+            let line = usize::try_from(col + i as i64 - lie.margin).ok();
+            let Some(line) = line.and_then(|l| self.cols.get(l)) else {
+                return true;
+            };
+            runs.iter().all(|&(first, end)| {
+                meeting(line, row + first - lie.margin, row + end - lie.margin).is_none()
+            })
+        })
+    }
+
     /// `lie` placed with its cell (0, 0) at (`col`, `row`): its plain runs occupied.
     fn occupy(&mut self, lie: &Lie, col: i64, row: i64) {
         mark(&mut self.cols, &lie.by_col.plain, (col, row));
@@ -435,19 +455,7 @@ pub(super) fn decode(
         });
     }
     unplaced.sort_unstable();
-    let (right, top) = (filling.right, filling.top);
-    let measures = match goal {
-        Goal::Compact => [right * top, top, right],
-        Goal::Low => [top, right * top, right],
-        Goal::Left => [right, right * top, top],
-    };
-    let score = [
-        -(placed.len() as i64),
-        -area,
-        measures[0],
-        measures[1],
-        measures[2],
-    ];
+    let score = score(goal, placed.len(), area, (filling.right, filling.top));
     let extent = extent(sheet, items, &placed);
     Ok(Decoded {
         layout: Layout {
@@ -458,6 +466,23 @@ pub(super) fn decode(
         turns,
         score,
     })
+}
+
+/// A layout's score (nesting-search.md §2): the most placed, the most area placed, then
+/// the goal's measures of the box (`right`, `top`, in cells); the smaller the better.
+fn score(goal: Goal, placed: usize, area: i64, (right, top): (i64, i64)) -> Key {
+    let measures = match goal {
+        Goal::Compact => [right * top, top, right],
+        Goal::Low => [top, right * top, right],
+        Goal::Left => [right, right * top, top],
+    };
+    [
+        -(placed as i64),
+        -area,
+        measures[0],
+        measures[1],
+        measures[2],
+    ]
 }
 
 /// The lie and place for `item`: `given`'s best place, else the first other lie's; with
@@ -533,21 +558,154 @@ pub(super) fn starts(items: &[Item]) -> Vec<Candidate> {
     out
 }
 
+/// Where an item lies now (nesting-search.md §5): one of its lies, and its footprint's low
+/// corner, mm.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Now {
+    pub lie: usize,
+    pub low: Point,
+}
+
+/// A nest: the layout, and whether it is better than the board as it was. When it isn't,
+/// the layout is the board as it was, with what doesn't fit there unplaced.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Filled {
+    pub layout: Layout,
+    pub better: bool,
+}
+
 /// Fill `sheet` with `items` (nesting-search.md): the starts placed, then the search
-/// (§4) from the best of them; the best layout seen. Deterministic: the same items and
-/// goal give the same layout.
+/// (§4) from the best of them; the best layout seen. With `now` (where each item lies,
+/// §5), the board as it is is scored too and is one of the starts, the search's random
+/// numbers seeded from it; the search's layout is taken only when it scores better.
+/// Deterministic: the same items, goal and board give the same layout.
 pub fn fill(
     sheet: &Sheet,
     items: &[Item],
     goal: Goal,
+    now: Option<&[Option<Now>]>,
     cancel: &Cancel,
-) -> Result<Layout, ToolpathError> {
-    let best = super::search::search(sheet, items, goal, budget(items), cancel)?;
-    Ok(best.map(|b| b.layout).unwrap_or(Layout {
+) -> Result<Filled, ToolpathError> {
+    let empty = Layout {
         placed: Vec::new(),
         unplaced: Vec::new(),
         extent: (0.0, 0.0),
-    }))
+    };
+    let Some(now) = now else {
+        let best = super::search::search(sheet, items, goal, budget(items), None, 0, cancel)?;
+        return Ok(Filled {
+            layout: best.map_or(empty, |b| b.layout),
+            better: true,
+        });
+    };
+    let (as_it_is, candidate) = as_it_is(sheet, items, goal, now);
+    let seed = seed_of(now);
+    let best = super::search::search(
+        sheet,
+        items,
+        goal,
+        budget(items),
+        Some(candidate),
+        seed,
+        cancel,
+    )?;
+    Ok(match best {
+        Some(b) if b.score < as_it_is.score => Filled {
+            layout: b.layout,
+            better: true,
+        },
+        _ => Filled {
+            layout: as_it_is.layout,
+            better: false,
+        },
+    })
+}
+
+/// The board as it is (nesting-search.md §5), scored: each item that lies in one of its
+/// lies, on the sheet, its footprint grown by the gap meeting none placed before it, is
+/// placed where it is (taken lowest first, or leftmost first for left); the rest are
+/// unplaced. And the candidate that gives about the same layout: those placed in that
+/// order, in their lies, then the rest.
+pub(super) fn as_it_is(
+    sheet: &Sheet,
+    items: &[Item],
+    goal: Goal,
+    now: &[Option<Now>],
+) -> (Decoded, Candidate) {
+    let cell_of = |mm: f64, from: f64| ((mm - from) / sheet.cell).round() as i64;
+    let mut lying: Vec<(usize, usize, i64, i64, Point)> = Vec::new();
+    for (k, n) in now.iter().enumerate() {
+        let Some(n) = n else { continue };
+        if items.get(k).and_then(|i| i.lies.get(n.lie)).is_none() {
+            continue;
+        }
+        let (col, row) = (cell_of(n.low.0, sheet.low.0), cell_of(n.low.1, sheet.low.1));
+        lying.push((k, n.lie, col, row, n.low));
+    }
+    lying.sort_by_key(|&(k, _, col, row, _)| match goal {
+        Goal::Left => (col, row, k),
+        Goal::Compact | Goal::Low => (row, col, k),
+    });
+    let mut filling = Filling::new(sheet);
+    let mut turns: Vec<Option<usize>> = vec![None; items.len()];
+    let (mut placed, mut order) = (Vec::new(), Vec::new());
+    let mut area = 0_i64;
+    for &(k, l, col, row, low) in &lying {
+        let Some(lie) = items.get(k).and_then(|i| i.lies.get(l)) else {
+            continue;
+        };
+        if let Some(t) = turns.get_mut(k) {
+            *t = Some(l);
+        }
+        if !filling.fits_at(lie, col, row) {
+            continue;
+        }
+        filling.occupy(lie, col, row);
+        area += lie.area;
+        order.push(k);
+        placed.push(Put {
+            item: k,
+            lie: l,
+            low,
+        });
+    }
+    let unplaced: Vec<usize> = (0..items.len()).filter(|k| !order.contains(k)).collect();
+    order.extend(&unplaced);
+    let extent = extent(sheet, items, &placed);
+    let score = score(goal, placed.len(), area, (filling.right, filling.top));
+    let decoded = Decoded {
+        layout: Layout {
+            placed,
+            unplaced,
+            extent,
+        },
+        turns: turns.clone(),
+        score,
+    };
+    (decoded, Candidate { order, turns })
+}
+
+/// A number from where the items lie now (FNV-1a over their lies and corners), so that a
+/// search from another board takes other random steps.
+fn seed_of(now: &[Option<Now>]) -> u64 {
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    let mut add = |v: u64| {
+        for byte in v.to_le_bytes() {
+            hash ^= u64::from(byte);
+            hash = hash.wrapping_mul(0x0100_0000_01b3);
+        }
+    };
+    for n in now {
+        match n {
+            Some(n) => {
+                add(n.lie as u64);
+                add(n.low.0.to_bits());
+                add(n.low.1.to_bits());
+            }
+            None => add(u64::MAX),
+        }
+    }
+    hash
 }
 
 /// How many layouts the search places after its starts (nesting-search.md §4.5): none when

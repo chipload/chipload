@@ -228,6 +228,7 @@ pub(crate) fn nest(out: &mut Out, args: NestArgs) -> ExitCode {
     out.set("length", json!(nested.length));
     out.set("used_pct", json!(share));
     out.set("board_fixed", json!(nested.board_fixed));
+    out.set("unchanged", json!(nested.unchanged));
     out.set(
         "travel",
         json!(
