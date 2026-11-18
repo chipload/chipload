@@ -41,7 +41,8 @@ pub enum SetupAction {
         #[arg(long, value_parser = crate::lengths::length, conflicts_with = "back_of")]
         thickness: Option<f64>,
         /// The back of this setup: the same board turned over, its cuts mirrored
-        /// (docs/specs/two-sided.md). Its name defaults to "<that setup> back".
+        /// (docs/specs/two-sided.md). Its name defaults to that setup's name and "back"
+        /// ("Setup 1 back").
         #[arg(long)]
         back_of: Option<u64>,
         /// How the board is turned over: left-right (default) or top-bottom.

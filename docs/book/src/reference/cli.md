@@ -2664,7 +2664,7 @@ chipload setup add <PROJECT> [OPTIONS]
 | `<PROJECT>` | The project (.chipload) |
 | `--name <NAME>` | Its name; default: "Setup N". |
 | `--thickness <THICKNESS>` | Its board's thickness; default: the active setup's. |
-| `--back-of <BACK_OF>` | The back of this setup: the same board turned over, its cuts mirrored (docs/specs/two-sided.md). Its name defaults to "<that setup> back". |
+| `--back-of <BACK_OF>` | The back of this setup: the same board turned over, its cuts mirrored (docs/specs/two-sided.md). Its name defaults to that setup's name and "back" ("Setup 1 back") |
 | `--turn <TURN>` | How the board is turned over: left-right (default) or top-bottom. |
 | `--register <REGISTER>` | How the turned board is put back: pins (default) or corner. |
 | `--pins <PINS>` | Dowel holes for pins of this diameter too (8 mm without a value), in the same step (docs/specs/two-sided-wizard.md §6) |
