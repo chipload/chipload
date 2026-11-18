@@ -70,6 +70,31 @@ exact arcs, so the G-code has G2/G3 at every rounded corner. The calculation mov
 - **The Fillet tool on a polyline corner** sets that corner's radius, and Shift sets every
   corner's. On other kinds it works as today. Chamfer is unchanged (decision 3).
 
+## 4a. Rectangles and polygons too (the user, the same day: "a closed shape could be
+modelled this way")
+
+- **A closed polyline** already takes a radius at every point, its first included (the
+  corner where it closes).
+- **Rectangles and regular polygons** get the same per-corner radii and keep their kind, so
+  their size, angle and sides stay editable:
+  - **Rectangle:** `corner_radius` (all four alike) becomes `radii`, one per corner,
+    counter-clockwise from the (−length/2, −width/2) corner, as its segments run.
+    Migration: `corner_radius` r becomes `[r, r, r, r]`; a file written that way cuts the
+    same. A slot stays a slot: all four at half its width.
+  - **Polygon:** optional `radii`, one per corner from its first, left out when all are 0.
+- **The form:** under the shape's own values, a *Corners* row:
+  - *Same radius* (one field, as the rectangle's today);
+  - or *Each corner*, which opens a small table of the corners with a radius each.
+- **The canvas:** a corner's handle sits at its sharp point, as for a polyline.
+- **Command line:** `--corner-radius 5` sets every corner as today; `--radii "0 5 5 0"`
+  sets each.
+- **Tool:** Fillet on a rectangle's or polygon's corner sets that corner's radius.
+- **Format:** the rectangle's change of field needs the migration above, but it lands in
+  schema 42, still unreleased, with a frozen v41 rectangle sample migrating to the same
+  G-code.
+
+Circles, splines and slots have no corners: nothing changes for them.
+
 ## 5. Everything else
 
 - **Editing tools:** offset, trim, union and the rest work on the segments, arcs included,
@@ -119,3 +144,6 @@ chipload shape fillet P 9 --radius 5 --corner 1     # now sets corner 1's radius
 3. **Fillet on a polyline sets the radius**, keeping it editable. Chamfer stays as it is.
 4. **A *Radius* field on the status bar while drawing a polyline.**
 5. **The field joins schema 42**, which isn't released yet, rather than a schema 43.
+6. **Rectangles and polygons get per-corner radii too** (§4a), keeping their kind, a
+   rectangle's single `corner_radius` migrating to four. Alternative: leave them with one
+   radius each, and draw a closed polyline for anything with mixed corners.
