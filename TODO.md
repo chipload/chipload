@@ -320,7 +320,8 @@ to a program you trust. It was about four per operation; with the defaults and s
    about a line with a copy that joins halves, arc slots. Step 2,
    the rest of the review (the user: "then we take the rest in step 2"):
    - fillet and chamfer at line-arc and arc-arc corners, and between two shapes (trim to
-     the round and join);
+     the round and join): spec drafted 2026-11-18 (docs/specs/fillet-between-shapes.md,
+     six decisions for the user);
    - arcs while drawing a polyline (a tangent-arc mode);
    - text on an arc (round plaques, the sign wizard);
    - scale by reference (two points, a new length) and stretching in X and Y;
