@@ -504,3 +504,67 @@ fn a_board_placed_on_top_of_itself_is_nested_afresh() {
     assert_eq!(again.placed.len(), 3);
     assert_cut_inside(&again.job, 10.0);
 }
+
+// -- A board surface and the machine's travel (the user, 2026-11-18)
+
+/// The part on a board that follows the drawing, a machine travelling 800 × 1200, and a
+/// board surface facing the whole board.
+fn surfaced() -> (Job, f64) {
+    let mut job = part_on_board(400.0, 300.0);
+    job.setups[0].stock.fit = Some(5.0);
+    job.setups[0].stock.origin = StockOrigin::Drawing;
+    job.machine.travel = Some(Travel {
+        x: 800.0,
+        y: 1200.0,
+        z: 100.0,
+    });
+    let index = chipload_pipeline::surface::add_surface(&mut job, None, None, None).unwrap();
+    let tool = job.operations[index].tool();
+    let diameter = job.tool(tool).unwrap().diameter;
+    assert!(job.validate().is_empty(), "{:?}", job.validate());
+    (job, diameter)
+}
+
+#[test]
+fn the_board_starts_within_the_travel_less_the_surface_overhang() {
+    let (job, d) = surfaced();
+    let board = chipload_pipeline::nest::default_board(&job, 1);
+    // The facing runs along the longer side, Y, a tool diameter past the board's ends.
+    assert_eq!(board, (800.0, 1200.0 - d));
+    let nested = nest(
+        &job,
+        NestRequest {
+            board: Some(board),
+            counts: vec![(1, 3)],
+            ..Default::default()
+        },
+    );
+    assert!(nested.unplaced.is_empty());
+    run_job(&nested.job).unwrap();
+    // Without a surface, the board is the travel.
+    let plain = part_on_board(400.0, 300.0);
+    let mut plain = plain;
+    plain.machine.travel = job.machine.travel.clone();
+    assert_eq!(
+        chipload_pipeline::nest::default_board(&plain, 1),
+        (800.0, 1200.0)
+    );
+}
+
+#[test]
+fn a_surface_past_the_travel_is_refused_by_name_not_as_a_nesting_fault() {
+    let (job, d) = surfaced();
+    let text = refusal(
+        &job,
+        NestRequest {
+            board: Some((800.0, 1200.0)),
+            ..Default::default()
+        },
+    );
+    let reach = format!("{} mm along Y", 1200.0 + d);
+    assert!(
+        text.contains("The board surface reaches") && text.contains(&reach),
+        "{text}"
+    );
+    assert!(!text.contains("a fault in nesting"), "{text}");
+}

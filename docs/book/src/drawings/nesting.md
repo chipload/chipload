@@ -76,6 +76,10 @@ chipload part set part.chipload 2 --turns half      # part 2 turned 180° at mos
   at the drawing's origin.
 - **The machine's travel**, when it is set in the [machine](../library/machines.md), limits
   how much of a larger board is used, measured from the side where work zero is.
+  A board that follows the drawing starts in the window at the travel; with a board
+  surface, less the surface tool's diameter along the board's longer side, since facing
+  runs from beside the board to beside it. A board whose surface would run past the travel
+  is refused before nesting, naming the surface.
 - **The gap, margin and goal** (3 mm, 10 mm and compact until you choose) are kept with the
   setup, so the next nest uses them.
 - **The result** says how many were placed and the box they take: "8 of 8 placed, in

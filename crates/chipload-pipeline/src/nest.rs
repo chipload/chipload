@@ -290,6 +290,7 @@ fn nest_one(
     set_turns(&mut job, id, request)?;
     set_counts(&mut job, id, &request.counts)?;
     let mut job = checked(job)?;
+    board_checked(&job, id)?;
     let all: Vec<u64> = job
         .parts
         .iter()
@@ -662,6 +663,81 @@ fn fix_board(
         }
         (false, None) => Ok(false),
     }
+}
+
+/// The tool diameter by which a board surface on setup `setup` (one of an enabled part on
+/// it, itself on) runs past the board's ends along its longer side: the facing goes from
+/// beside the board to beside it (docs/specs/surfacing.md). None without one.
+pub fn surface_overhang(job: &Job, setup: u64) -> Option<f64> {
+    job.operations
+        .iter()
+        .filter(|op| op.is_board_surface() && op.enabled())
+        .filter(|op| {
+            job.part(op.part())
+                .is_some_and(|p| p.enabled && job.part_on(p.id, setup))
+        })
+        .filter_map(|op| job.tool(op.tool()).map(|t| t.diameter))
+        .reduce(f64::max)
+}
+
+/// The board the Nest window starts from for setup `setup` when its board follows the
+/// drawing: the machine's travel, less a board surface's overhang along the longer side so
+/// the facing stays within the travel; without a travel, the board's size now.
+pub fn default_board(job: &Job, setup: u64) -> (f64, f64) {
+    let Some(travel) = &job.machine.travel else {
+        return job.for_setup(setup).stock_size();
+    };
+    let (x, y) = (travel.x, travel.y);
+    let Some(d) = surface_overhang(job, setup) else {
+        return (x, y);
+    };
+    // The facing runs along the longer side; a square along X.
+    if x >= y {
+        ((x - d).max(0.0), y)
+    } else {
+        (x, (y - d).max(0.0))
+    }
+}
+
+/// The board itself checked before anything is placed (docs/specs/nesting.md §5): a board
+/// surface that would run past the machine's travel is refused by name; and the setup's
+/// board work (surfaces, dowel holes) alone must pass the checks, so that a failure after
+/// nesting is the nest's.
+fn board_checked(job: &Job, setup: u64) -> Result<(), PipelineError> {
+    let one = job.for_setup(setup);
+    if let (Some(d), Some(travel)) = (surface_overhang(&one, setup), &one.machine.travel) {
+        let (x, y) = one.stock_size();
+        let (axis, reach, limit) = if x >= y {
+            ('X', x + d, travel.x)
+        } else {
+            ('Y', y + d, travel.y)
+        };
+        if reach > limit + PLACEMENT_ROUNDING_MM {
+            return Err(PipelineError::Job(
+                Message::new("pipeline-nest-surface-travel")
+                    .arg("reach", Value::Length(reach, Digits::Shortest))
+                    .arg("axis", Value::Text(axis.to_string()))
+                    .arg("travel", Value::Length(limit, Digits::Shortest)),
+            ));
+        }
+    }
+    let mut board = one;
+    let mut any = false;
+    for op in &mut board.operations {
+        if op.is_board_surface() || op.is_dowels() {
+            any |= op.enabled();
+        } else {
+            op.set_enabled(false);
+        }
+    }
+    if !any {
+        return Ok(());
+    }
+    crate::run_setups(&board, Some(setup))
+        .map(|_| ())
+        .map_err(|e| {
+            PipelineError::Job(Message::new("pipeline-nest-board-fails").arg("reason", e.message()))
+        })
 }
 
 /// The turns asked for, kept on the setup's parts.

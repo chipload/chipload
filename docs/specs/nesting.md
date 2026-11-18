@@ -136,6 +136,14 @@ board, into clamps or the spoilboard. Instead:
     whose program would move farther than the machine travels is never applied;
   - with no travel set, the board alone limits, and the checker's usual warning ("no
     travel set") stands.
+  - **As built (2026-11-18, the user's finding):** a board surface faces the whole board
+    and runs a tool diameter past its ends along the longer side, so a board as long as the
+    travel failed the final check, reported as "a fault in nesting". Now the window's
+    default board (following the drawing) is the travel less that overhang
+    (`nest::default_board`); a board whose surface would run past the travel is refused
+    before nesting, by name (`pipeline-nest-surface-travel`); and the board's own work
+    (surfaces, dowel holes) is checked alone first, so a failure there says the board fails
+    (`pipeline-nest-board-fails`), and "a fault in nesting" is kept for the nest's own.
 - **Refused with a reason:**
   - a setup cut in pieces: pieces refuse instances (pieces.md);
   - a setup with a back, or one that is the back of another (decision 7): the back's parts

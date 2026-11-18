@@ -109,10 +109,11 @@ impl ChiploadApp {
             return;
         };
         let follows = s.stock.fit.is_some() || s.stock.origin == chipload_job::StockOrigin::Drawing;
-        let board = match (follows, &job.machine.travel) {
-            (true, Some(travel)) => (travel.x, travel.y),
-            (true, None) => job.for_setup(id).stock_size(),
-            (false, _) => (s.stock.x, s.stock.y),
+        // Following the drawing: the travel, less a board surface's overhang.
+        let board = if follows {
+            chipload_pipeline::nest::default_board(job, id)
+        } else {
+            (s.stock.x, s.stock.y)
         };
         let rows = job
             .parts

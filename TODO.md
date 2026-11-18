@@ -159,9 +159,10 @@ to a program you trust. It was about four per operation; with the defaults and s
     is gone (§8a; active-part-preview.md superseded); the user tries it, we iterate.
     Waiting for the user's project and error text: (1) an odd nest on a tall board (a part
     turned and put right of another instead of above it; perhaps the lies compared by
-    where they start rather than how far up the board they reach); (2) a board default in
-    the Nest window larger than the machine's travel gave an error (not reproduced: the
-    board defaults to the travel when the machine has one). Also seen: `part list` says
+    where they start rather than how far up the board they reach; the new nester,
+    nesting-search.md, may have answered it); (2) **fixed 2026-11-18**: the error was a
+    board surface running a tool diameter past a board as long as the travel; the default
+    board now leaves room for it and the refusal names it (nesting.md §5, as built). Also seen: `part list` says
     "0 in all" for a part cut only from another setup. Next: step 7 with the remembered
     overflow choice and the setup/board wording.
     **A better nest** (the user, 2026-11-18: start lower left, minimise the area, no fixed
