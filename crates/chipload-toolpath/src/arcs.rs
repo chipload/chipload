@@ -11,7 +11,9 @@ use std::f64::consts::PI;
 
 use chipload_core::Point;
 use chipload_core::primitives::distance;
-use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM, DEPTH_TOL_MM};
+use chipload_core::tolerances::{
+    ARC_APPROX_TOL_MM, CHAIN_TOL_MM, DEPTH_TOL_MM, SAME_CIRCLE_TOL_MM,
+};
 use chipload_i18n::{Digits, Message, Value};
 
 use crate::ToolpathError;
@@ -110,6 +112,14 @@ pub fn tag_moves(moves: &mut [Move], table: &ArcTable) {
     }
 }
 
+/// Whether `a` and `b` are one circle: centres and radii within [`SAME_CIRCLE_TOL_MM`], so
+/// float noise from the offset library never splits an arc on one platform and not another.
+fn same_circle(a: Circle, b: Circle) -> bool {
+    (a.center.0 - b.center.0).abs() <= SAME_CIRCLE_TOL_MM
+        && (a.center.1 - b.center.1).abs() <= SAME_CIRCLE_TOL_MM
+        && (a.radius - b.radius).abs() <= SAME_CIRCLE_TOL_MM
+}
+
 /// Signed angle swept from `a` to `b` around `c` (positive counter-clockwise), the short way.
 fn swept(c: Point, a: Point, b: Point) -> f64 {
     let (ax, ay) = (a.0 - c.0, a.1 - c.1);
@@ -151,7 +161,7 @@ pub fn merge_arcs(program: &Program) -> Result<Program, ToolpathError> {
                 let sweep = swept(circle.center, last, (nx, ny));
                 let mut same = n.kind == MoveKind::Feed
                     && n.z.is_some() == helical
-                    && n.circle == Some(circle)
+                    && n.circle.is_some_and(|c| same_circle(c, circle))
                     && n.feed == m.feed
                     && sweeps
                         .first()

@@ -355,7 +355,7 @@ fn corpus(rel: &str) -> PathBuf {
         .join(rel)
 }
 
-fn chipload(args: &[&OsStr]) {
+fn chipload(args: &[&OsStr]) -> String {
     // An empty settings folder: tests never read the user's tool library.
     let settings =
         std::env::temp_dir().join(format!("chipload-golden-settings-{}", std::process::id()));
@@ -369,10 +369,36 @@ fn chipload(args: &[&OsStr]) {
         "{}",
         String::from_utf8_lossy(&out.stderr)
     );
+    String::from_utf8_lossy(&out.stdout).into_owned()
 }
 
 /// Run the project to `dir/<name>.nc`: the files written, as (file name, G-code), in name
 /// order. One file, or one per tool group (`<name>-1-T2.nc`, …).
+/// The first line where `actual` differs from `expected`, with a few lines round it.
+fn first_difference(expected: &str, actual: &str) -> String {
+    let (e, a): (Vec<&str>, Vec<&str>) = (expected.lines().collect(), actual.lines().collect());
+    let at = e
+        .iter()
+        .zip(&a)
+        .position(|(x, y)| x != y)
+        .unwrap_or(e.len().min(a.len()));
+    let from = at.saturating_sub(3);
+    let show = |lines: &[&str]| {
+        lines
+            .get(from..(at + 4).min(lines.len()))
+            .unwrap_or(&[])
+            .join("\n")
+    };
+    format!(
+        "first difference at line {} of {} (expected) and {} (actual)\n--- expected\n{}\n--- actual\n{}",
+        at + 1,
+        e.len(),
+        a.len(),
+        show(&e),
+        show(&a)
+    )
+}
+
 fn run(project: &Path, dir: &Path, name: &str) -> Vec<(String, String)> {
     let out = dir.join(format!("{name}.nc"));
     chipload(&[
@@ -488,6 +514,20 @@ fn golden_nest_gcode() {
             if update {
                 std::fs::write(&expected, text).unwrap();
             } else if std::fs::read_to_string(&expected).ok().as_ref() != Some(text) {
+                // Where it differs, and where the nest put each instance: a platform's
+                // difference shows in the log (the release builds on macOS, 2026-11-18).
+                let wanted = std::fs::read_to_string(&expected).unwrap_or_default();
+                eprintln!("{file}: {}", first_difference(&wanted, text));
+                let nested = base
+                    .join(format!("{name}-a"))
+                    .join(format!("{name}.chipload"));
+                let placed = chipload(&[
+                    "get".as_ref(),
+                    nested.as_os_str(),
+                    "setups".as_ref(),
+                    "--json".as_ref(),
+                ]);
+                eprintln!("{name}: the setups as nested:\n{placed}");
                 mismatches.push(file.clone());
             }
         }

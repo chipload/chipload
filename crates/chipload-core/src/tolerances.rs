@@ -13,6 +13,12 @@ pub const DEPTH_TOL_MM: f64 = 0.001;
 pub const Z_NONZERO_TOL_MM: f64 = 0.001;
 /// Float slack when verifying offset distances.
 pub const OFFSET_CHECK_SLACK_MM: f64 = 1e-6;
+/// Two circles whose centres and radii agree this closely are one circle when chords are
+/// joined into arcs: the offset library computes with the platform's maths, so neighbouring
+/// arc pieces of one circle can differ in their last bits on one platform and not on
+/// another, and that must not decide whether they are cut as one arc (found on macOS,
+/// 2026-11-18).
+pub const SAME_CIRCLE_TOL_MM: f64 = 1e-6;
 /// How much farther than the tool radius a verified profile offset may run: the offset
 /// library's own accuracy (cavalier_contours `offset_dist_eps`). Only the far side: the tool
 /// leaves at most this much material and never cuts into the part (user decision
