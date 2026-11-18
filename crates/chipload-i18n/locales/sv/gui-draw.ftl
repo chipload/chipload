@@ -194,3 +194,12 @@ draw-variant-arc-centre = Centrum, start, slut
 draw-variant-polygon-corner = Centrum och hörn
 draw-variant-polygon-side = Centrum och sida
 draw-variant-polygon-edge = På en kant
+draw-status-spline-start = Ritar en spline med { $count ->
+        [one] { $count } punkt
+       *[other] { $count } punkter
+    }: klicka på första punkten (rutnät { $grid }, Esc avbryter)
+draw-status-spline = Ritar en spline med { $count ->
+        [one] { $count } punkt
+       *[other] { $count } punkter
+    }: klicka på nästa punkt; kurvan går genom varje. Enter eller dubbelklick avslutar den öppen, första punkten sluter den, Backspace tar bort senaste punkten (rutnät { $grid }, Esc avbryter)
+draw-spline-too-short = en spline behöver minst 2 punkter

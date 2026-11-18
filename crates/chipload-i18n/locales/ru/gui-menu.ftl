@@ -146,3 +146,4 @@ menu-bar-library = Библиотека
 menu-bar-help = Справка
 menu-preferences = Настройки…
 menu-preferences-hover = Настройки в дереве проекта, под Библиотекой: единицы, язык, цветовая тема, карта наладки, автоматическое обновление
+menu-draw-spline = Сплайн

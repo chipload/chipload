@@ -132,3 +132,5 @@ header-circle-three-hover = Disegna un cerchio: tre punti sul cerchio
 header-arc-centre-hover = Disegna un arco: il centro, l'inizio, poi la fine
 header-polygon-side-hover = Disegna un poligono regolare: il centro, poi il punto medio di un lato (in chiave)
 header-polygon-edge-hover = Disegna un poligono regolare: i due estremi di un lato; sta alla sua sinistra
+header-spline = Spline
+header-spline-hover = Disegna una spline: fai clic sui punti per cui passa una curva liscia

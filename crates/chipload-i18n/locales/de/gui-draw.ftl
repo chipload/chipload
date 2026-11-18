@@ -194,3 +194,12 @@ draw-variant-arc-centre = Mittelpunkt, Anfang, Ende
 draw-variant-polygon-corner = Mittelpunkt und Ecke
 draw-variant-polygon-side = Mittelpunkt und Seite
 draw-variant-polygon-edge = Auf einer Kante
+draw-status-spline-start = Spline zeichnen, { $count ->
+        [one] { $count } Punkt
+       *[other] { $count } Punkte
+    }: den ersten Punkt anklicken (Raster { $grid }, Esc bricht ab)
+draw-status-spline = Spline zeichnen, { $count ->
+        [one] { $count } Punkt
+       *[other] { $count } Punkte
+    }: den nächsten Punkt anklicken; die Kurve geht durch jeden. Enter oder Doppelklick beendet ihn offen, der erste Punkt schließt ihn, Backspace entfernt den letzten Punkt (Raster { $grid }, Esc bricht ab)
+draw-spline-too-short = ein Spline braucht mindestens 2 Punkte

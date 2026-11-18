@@ -132,3 +132,5 @@ header-circle-three-hover = Draw a circle: three points on it
 header-arc-centre-hover = Draw an arc: its centre, where it starts, then where it ends
 header-polygon-side-hover = Draw a regular polygon: the centre, then the middle of a side (across flats)
 header-polygon-edge-hover = Draw a regular polygon: the two ends of one side; it lies to the side's left
+header-spline = Spline
+header-spline-hover = Draw a spline: click the points a smooth curve passes through

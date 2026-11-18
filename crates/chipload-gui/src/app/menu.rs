@@ -601,6 +601,7 @@ impl ChiploadApp {
                 t!(ui, "menu-draw-polyline"),
                 Action::DrawPolyline,
             ),
+            (Tool::Spline, t!(ui, "menu-draw-spline"), Action::DrawSpline),
             (Tool::Arc, t!(ui, "menu-draw-arc"), Action::DrawArc),
             (Tool::Slot, t!(ui, "menu-draw-slot"), Action::DrawSlot),
             (

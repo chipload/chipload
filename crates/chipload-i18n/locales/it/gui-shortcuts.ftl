@@ -97,3 +97,4 @@ shortcuts-trim = Taglia forme disegnate
 shortcuts-construction = Geometria di costruzione: per le prossime forme disegnate, o la selezione
 shortcuts-group = Raggruppa la selezione
 shortcuts-ungroup = Separa
+shortcuts-draw-spline = Disegna una spline

@@ -168,3 +168,4 @@ menu-bar-library = Libreria
 menu-bar-help = Aiuto
 menu-preferences = Preferenze…
 menu-preferences-hover = Preferenze nel Browser, sotto la Libreria: unità, lingua, tema colori, scheda di preparazione, aggiornamento automatico
+menu-draw-spline = Spline

@@ -132,3 +132,5 @@ header-circle-three-hover = Rita en cirkel: tre punkter på den
 header-arc-centre-hover = Rita en båge: centrum, där den börjar, sedan där den slutar
 header-polygon-side-hover = Rita en regelbunden månghörning: centrum, sedan mitten av en sida (nyckelvidd)
 header-polygon-edge-hover = Rita en regelbunden månghörning: en sidas två ändar; den ligger till vänster om sidan
+header-spline = Spline
+header-spline-hover = Rita en spline: klicka på punkterna som en mjuk kurva går genom

@@ -44,30 +44,48 @@ struct Item {
     contour: usize,
     lo: Point,
     hi: Point,
+    /// A piece of a curve fitted with lines and arcs (a spline): its ends, middle and
+    /// centre are where the fit broke it, not points of the drawing, so they aren't offered.
+    fitted: bool,
 }
 
 /// The segments of a drawing, ready to snap to.
 #[derive(Debug, Clone, Default)]
 pub struct Snapper {
     items: Vec<Item>,
+    /// Points of curves offered as ends: a spline's points (docs/specs/splines.md §2).
+    points: Vec<(usize, Point)>,
 }
 
 impl Snapper {
     /// From each segment and the contour it belongs to, in a fixed order.
     pub fn new(segments: impl IntoIterator<Item = (usize, Primitive)>) -> Self {
+        Snapper::with_curves(segments.into_iter().map(|(c, p)| (c, p, false)), [])
+    }
+
+    /// As [`Snapper::new`], each segment marked when it is a fitted piece of a curve, and
+    /// the curves' own points (contour, point), which snap as ends.
+    pub fn with_curves(
+        segments: impl IntoIterator<Item = (usize, Primitive, bool)>,
+        points: impl IntoIterator<Item = (usize, Point)>,
+    ) -> Self {
         let items = segments
             .into_iter()
-            .map(|(contour, prim)| {
+            .map(|(contour, prim, fitted)| {
                 let (lo, hi) = prim.bounds();
                 Item {
                     prim,
                     contour,
                     lo,
                     hi,
+                    fitted,
                 }
             })
             .collect();
-        Snapper { items }
+        Snapper {
+            items,
+            points: points.into_iter().collect(),
+        }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -123,13 +141,32 @@ impl Snapper {
                     && at.1 <= item.hi.1 + reach
             })
             .collect();
-        let mut list = Vec::new();
+        let mut list: Vec<SnapPoint> = self
+            .points
+            .iter()
+            .filter(|(contour, p)| !skip.contains(contour) && distance(*p, at) <= reach)
+            .map(|&(contour, p)| SnapPoint {
+                at: p,
+                kind: SnapKind::End,
+                contour,
+                other: None,
+            })
+            .collect();
         for item in &near {
             own_points(item, at, from, &mut list);
         }
         for (i, a) in near.iter().enumerate() {
             for b in &near[i + 1..] {
                 for p in intersect::intersections(&a.prim, &b.prim) {
+                    // Two pieces of one fitted curve meet where the fit broke it: no
+                    // crossing.
+                    let at_end = |item: &Item| {
+                        distance(item.prim.start(), p) <= CHAIN_TOL_MM
+                            || distance(item.prim.end(), p) <= CHAIN_TOL_MM
+                    };
+                    if a.fitted && b.fitted && a.contour == b.contour && at_end(a) && at_end(b) {
+                        continue;
+                    }
                     let (first, second) = if a.contour <= b.contour {
                         (a.contour, b.contour)
                     } else {
@@ -169,11 +206,15 @@ fn own_points(item: &Item, at: Point, from: Option<Point>, list: &mut Vec<SnapPo
             other: None,
         });
     };
-    add(prim.start(), SnapKind::End);
-    add(prim.end(), SnapKind::End);
-    add(prim.midpoint(), SnapKind::Middle);
     add(intersect::nearest_on(prim, at), SnapKind::Nearest);
-    if let Primitive::Arc(arc) = prim {
+    if !item.fitted {
+        add(prim.start(), SnapKind::End);
+        add(prim.end(), SnapKind::End);
+        add(prim.midpoint(), SnapKind::Middle);
+    }
+    if let Primitive::Arc(arc) = prim
+        && !item.fitted
+    {
         add(arc.center, SnapKind::Centre);
         for q in intersect::quadrants(arc) {
             add(q, SnapKind::Quadrant);
@@ -312,5 +353,32 @@ mod tests {
         let snapper = Snapper::new(segments);
         let candidates = snapper.candidates((0.5, 0.2), 0.5, None, &none());
         assert!(candidates.iter().all(|p| p.contour == 5000));
+    }
+
+    #[test]
+    fn a_fitted_curve_offers_its_own_points_not_where_the_fit_broke_it() {
+        // Two pieces of one curve meeting at (10, 0), and its own point at (5, 1).
+        let a = Primitive::Line(Line {
+            start: (0.0, 0.0),
+            end: (10.0, 0.0),
+        });
+        let b = Primitive::Line(Line {
+            start: (10.0, 0.0),
+            end: (20.0, 0.0),
+        });
+        let snapper = Snapper::with_curves([(1, a, true), (1, b, true)], [(1, (5.0, 1.0))]);
+        let none = BTreeSet::new();
+        // At the break: only the nearest point of the curve, no end, middle or crossing.
+        let at_break = snapper.candidates((10.0, 0.2), 1.0, None, &none);
+        assert!(
+            at_break.iter().all(|p| p.kind == SnapKind::Nearest),
+            "{at_break:?}"
+        );
+        // At its own point: an end.
+        let own = snapper.find((5.2, 1.1), 1.0, None, &none).unwrap();
+        assert_eq!((own.kind, own.at), (SnapKind::End, (5.0, 1.0)));
+        // Left out with its contour.
+        let skip = BTreeSet::from([1]);
+        assert!(snapper.find((5.2, 1.1), 1.0, None, &skip).is_none());
     }
 }

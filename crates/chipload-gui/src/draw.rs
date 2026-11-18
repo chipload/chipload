@@ -36,6 +36,8 @@ pub enum Tool {
     /// One edge's two ends, then the width across it (docs/specs/drawing-variants.md §2).
     RectangleAligned,
     Polyline,
+    /// Points the smooth curve passes through, as many as it takes (docs/specs/splines.md).
+    Spline,
     /// Start, end, then a point it passes through: an open polyline of arcs.
     Arc,
     /// The centre, the start (the radius), then the end's direction, the way the cursor
@@ -74,6 +76,7 @@ impl Tool {
             ],
             Tool::Circle => &[Tool::Circle, Tool::CircleTwoPoints, Tool::CircleThreePoints],
             Tool::Polyline => &[Tool::Polyline],
+            Tool::Spline => &[Tool::Spline],
             Tool::Arc => &[Tool::Arc, Tool::ArcCentre],
             Tool::Slot => &[Tool::Slot],
             _ => &[Tool::Polygon, Tool::PolygonSide, Tool::PolygonEdge],
@@ -87,6 +90,10 @@ impl Tool {
         variants[(at + 1) % variants.len()]
     }
 }
+
+/// How close the spline's preview follows its curve, mm: fine enough on screen, cheap
+/// enough for every frame (the shape itself is cut within `ARC_APPROX_TOL_MM`).
+const SPLINE_PREVIEW_TOL_MM: f64 = 0.02;
 
 /// A new polygon's sides until the user picks another number.
 pub const POLYGON_SIDES_DEFAULT: u32 = 6;
@@ -123,7 +130,8 @@ pub enum Why {
     /// The shape would have no size (an arc: its three points lie on a line).
     NoSize(Tool),
     /// A polyline finished with fewer than 2 points.
-    TooFewPoints,
+    /// A polyline or spline finished with fewer than 2 points.
+    TooFewPoints(Tool),
 }
 
 impl Why {
@@ -141,12 +149,17 @@ impl Why {
             }
             Why::NoSize(Tool::CircleThreePoints) => t!(lang, "draw-circle-on-a-line"),
             Why::NoSize(
-                Tool::Rectangle | Tool::RectangleCentre | Tool::RectangleAligned | Tool::Polyline,
+                Tool::Rectangle
+                | Tool::RectangleCentre
+                | Tool::RectangleAligned
+                | Tool::Polyline
+                | Tool::Spline,
             ) => t!(lang, "draw-no-size-rectangle"),
             Why::NoSize(Tool::Arc) => t!(lang, "draw-arc-on-a-line"),
             Why::NoSize(Tool::ArcCentre) => t!(lang, "draw-no-size-arc"),
             Why::NoSize(Tool::Slot) => t!(lang, "draw-no-size-slot"),
-            Why::TooFewPoints => t!(lang, "draw-polyline-too-short"),
+            Why::TooFewPoints(Tool::Spline) => t!(lang, "draw-spline-too-short"),
+            Why::TooFewPoints(_) => t!(lang, "draw-polyline-too-short"),
         }
     }
 }
@@ -174,12 +187,9 @@ impl Sketch {
         }
         self.follow(p);
         match self.tool {
-            Tool::Polyline => {
+            Tool::Polyline | Tool::Spline => {
                 if on_first && self.points.len() >= 3 {
-                    return Step::Done(Geometry::straight_polyline(
-                        true,
-                        self.points.iter().map(|&(x, y)| [x, y]).collect(),
-                    ));
+                    return Step::Done(self.open_shape(true));
                 }
                 self.points.push(p);
                 Step::Continue
@@ -210,22 +220,28 @@ impl Sketch {
             | Tool::Slot
             | Tool::RectangleAligned
             | Tool::CircleThreePoints => 3,
-            Tool::Polyline => usize::MAX,
+            Tool::Polyline | Tool::Spline => usize::MAX,
         }
     }
 
-    /// Enter or double-click: finish a polyline open.
+    /// Enter or double-click: finish a polyline or spline open.
     pub fn finish(&mut self) -> Step {
-        if self.tool != Tool::Polyline {
+        if !matches!(self.tool, Tool::Polyline | Tool::Spline) {
             return Step::Ignored(None);
         }
         if self.points.len() < 2 {
-            return Step::Ignored(Some(Why::TooFewPoints));
+            return Step::Ignored(Some(Why::TooFewPoints(self.tool)));
         }
-        Step::Done(Geometry::straight_polyline(
-            false,
-            self.points.iter().map(|&(x, y)| [x, y]).collect(),
-        ))
+        Step::Done(self.open_shape(false))
+    }
+
+    /// The polyline (straight) or spline through the points clicked.
+    fn open_shape(&self, closed: bool) -> Geometry {
+        let points = self.points.iter().map(|&(x, y)| [x, y]).collect();
+        match self.tool {
+            Tool::Spline => Geometry::Spline { closed, points },
+            _ => Geometry::straight_polyline(closed, points),
+        }
     }
 
     /// The last click that a line goes on from (perpendicular and tangent snaps): a
@@ -234,6 +250,7 @@ impl Sketch {
     pub fn last_point(&self) -> Option<Point> {
         match self.tool {
             Tool::Polyline
+            | Tool::Spline
             | Tool::Arc
             | Tool::Slot
             | Tool::RectangleAligned
@@ -368,6 +385,22 @@ impl Sketch {
                 line.push(p);
                 vec![line]
             }
+            // The curve through the points and the cursor.
+            Tool::Spline => {
+                let mut through = self.points.clone();
+                if through
+                    .last()
+                    .is_none_or(|&last| distance(last, p) >= CHAIN_TOL_MM)
+                {
+                    through.push(p);
+                }
+                let pieces = chipload_core::spline::beziers(&through, false);
+                vec![chipload_core::spline::flatten(
+                    &pieces,
+                    false,
+                    SPLINE_PREVIEW_TOL_MM,
+                )]
+            }
         }
     }
 
@@ -447,6 +480,8 @@ impl Sketch {
             (Tool::Polyline, _) => {
                 t!(lang, "draw-status-polyline", count = count, grid = grid)
             }
+            (Tool::Spline, []) => t!(lang, "draw-status-spline-start", count = count, grid = grid),
+            (Tool::Spline, _) => t!(lang, "draw-status-spline", count = count, grid = grid),
             (Tool::Arc, []) => t!(lang, "draw-status-arc-start", grid = grid),
             (Tool::Arc, &[s]) => t!(
                 lang,
@@ -816,6 +851,7 @@ impl Sketch {
             }
             (
                 Tool::Polyline
+                | Tool::Spline
                 | Tool::Arc
                 | Tool::Slot
                 | Tool::RectangleAligned
@@ -989,12 +1025,41 @@ pub fn snap_name(point: &SnapPoint, lang: &impl Lang) -> String {
     }
 }
 
-/// The segments of `contours`, ready to snap to.
-pub fn snapper(contours: &[Contour]) -> Snapper {
-    Snapper::new(
-        contours
-            .iter()
-            .flat_map(|c| c.parts.iter().map(move |part| (c.id, part.segment.prim))),
+/// The segments of `contours`, ready to snap to. A spline's segments are fitted to its
+/// curve: they offer no ends or middles of their own, its points snap as ends instead
+/// (docs/specs/splines.md §2).
+pub fn snapper(contours: &[Contour], shapes: &[Shape]) -> Snapper {
+    let splines: std::collections::BTreeMap<u64, &[[f64; 2]]> = shapes
+        .iter()
+        .filter_map(|s| match &s.geometry {
+            Geometry::Spline { points, .. } => Some((s.id, points.as_slice())),
+            _ => None,
+        })
+        .collect();
+    let is_spline = |part: &chipload_core::chain::OrientedSegment| {
+        part.segment
+            .shape
+            .is_some_and(|id| splines.contains_key(&id))
+    };
+    // Each spline's points once, with the contour it lies in.
+    let mut seen = BTreeSet::new();
+    let mut points = Vec::new();
+    for c in contours {
+        for id in c.parts.iter().filter_map(|p| p.segment.shape) {
+            if let Some(own) = splines.get(&id)
+                && seen.insert(id)
+            {
+                points.extend(own.iter().map(|p| (c.id, (p[0], p[1]))));
+            }
+        }
+    }
+    Snapper::with_curves(
+        contours.iter().flat_map(|c| {
+            c.parts
+                .iter()
+                .map(move |part| (c.id, part.segment.prim, is_spline(part)))
+        }),
+        points,
     )
 }
 

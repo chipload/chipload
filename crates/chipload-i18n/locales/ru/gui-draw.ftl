@@ -184,3 +184,14 @@ draw-variant-arc-centre = Центр, начало, конец
 draw-variant-polygon-corner = Центр и вершина
 draw-variant-polygon-side = Центр и сторона
 draw-variant-polygon-edge = На ребре
+draw-status-spline-start = Сплайн, { $count ->
+        [one] { $count } точка
+        [few] { $count } точки
+       *[other] { $count } точек
+    }: укажите первую точку (сетка { $grid }, Esc — отмена)
+draw-status-spline = Сплайн, { $count ->
+        [one] { $count } точка
+        [few] { $count } точки
+       *[other] { $count } точек
+    }: укажите следующую точку; кривая проходит через каждую. Enter или двойной щелчок — завершить без замыкания, первая точка — замкнуть, Backspace — удалить последнюю точку (сетка { $grid }, Esc — отмена)
+draw-spline-too-short = сплайну нужно хотя бы 2 точки

@@ -107,6 +107,13 @@ fn draw_group(app: &mut ChiploadApp, ui: &mut egui::Ui) {
             t!(ui, "header-polygon-hover"),
             Action::DrawPolygon,
         ),
+        (
+            Tool::Spline,
+            Icon::Spline,
+            t!(ui, "header-spline"),
+            t!(ui, "header-spline-hover"),
+            Action::DrawSpline,
+        ),
     ];
     ui.vertical(|ui| {
         ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
@@ -811,6 +818,7 @@ pub(super) fn variant_name(ui: &egui::Ui, tool: Tool) -> String {
         Tool::CircleTwoPoints => t!(ui, "draw-variant-circle-two"),
         Tool::CircleThreePoints => t!(ui, "draw-variant-circle-three"),
         Tool::Polyline => t!(ui, "header-polyline"),
+        Tool::Spline => t!(ui, "header-spline"),
         Tool::Arc => t!(ui, "draw-variant-arc-three"),
         Tool::ArcCentre => t!(ui, "draw-variant-arc-centre"),
         Tool::Slot => t!(ui, "header-slot"),

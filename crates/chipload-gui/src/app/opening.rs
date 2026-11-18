@@ -74,7 +74,7 @@ impl ChiploadApp {
                     .filter(|c| !self.hidden_contours.contains(&c.id))
                     .map(ContourShape::new)
                     .collect();
-                self.drag.snapper = snapper(&self.contours);
+                self.drag.snapper = snapper(&self.contours, &job.drawing.shapes);
                 self.drawing_facts = Some(DrawingFacts::new(&imported.report, &self.contours));
             }
             Err(err) => {

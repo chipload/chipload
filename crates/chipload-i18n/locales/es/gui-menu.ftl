@@ -168,3 +168,4 @@ menu-bar-library = Biblioteca
 menu-bar-help = Ayuda
 menu-preferences = Preferencias…
 menu-preferences-hover = Preferencias en el Navegador, debajo de la Biblioteca: unidades, idioma, tema de color, hoja de preparación, actualizar automáticamente
+menu-draw-spline = Spline

@@ -157,7 +157,7 @@ fn the_cursor_snaps_to_the_nearest_point_then_the_grid() {
             })],
         ),
     ];
-    let snapper = snapper(&contours);
+    let snapper = snapper(&contours, &[]);
     let none = BTreeSet::new();
     let cursor = |at: Point, skip| Cursor {
         at,
@@ -717,4 +717,48 @@ fn a_polygon_by_its_side_and_on_an_edge() {
     assert_eq!(Tool::Polygon.next_variant(), Tool::PolygonSide);
     assert_eq!(Tool::PolygonEdge.next_variant(), Tool::Polygon);
     assert_eq!(Tool::ArcCentre.next_variant(), Tool::Arc);
+}
+
+#[test]
+fn a_spline_is_points_finished_open_or_closed_on_the_first() {
+    let mut open = Sketch::new(Tool::Spline);
+    assert_eq!(
+        open.finish(),
+        Step::Ignored(Some(Why::TooFewPoints(Tool::Spline)))
+    );
+    assert_eq!(
+        Why::TooFewPoints(Tool::Spline).text(&En),
+        "a spline needs at least 2 points"
+    );
+    for p in [(0.0, 0.0), (20.0, 15.0), (45.0, 5.0)] {
+        assert_eq!(open.click(p, false), Step::Continue);
+    }
+    assert_eq!(open.last_point(), Some((45.0, 5.0)));
+    // The preview is the curve through the points and the cursor: from the first point
+    // to the cursor, bending smoothly, many points.
+    let preview = open.preview((60.0, 20.0));
+    assert_eq!(preview.len(), 1);
+    assert!(preview[0].len() > 10);
+    assert_eq!(preview[0][0], (0.0, 0.0));
+    assert!(distance(*preview[0].last().unwrap(), (60.0, 20.0)) < 1e-9);
+    assert!(
+        open.status((60.0, 20.0), 1.0, Units::Mm, &En)
+            .contains("3 points")
+    );
+    assert_eq!(
+        open.finish(),
+        Step::Done(Geometry::Spline {
+            closed: false,
+            points: vec![[0.0, 0.0], [20.0, 15.0], [45.0, 5.0]],
+        })
+    );
+    // The first point again closes it.
+    let mut closed = Sketch::new(Tool::Spline);
+    for p in [(0.0, 0.0), (20.0, 15.0), (45.0, 5.0)] {
+        closed.click(p, false);
+    }
+    assert!(matches!(
+        closed.click((0.0, 0.0), true),
+        Step::Done(Geometry::Spline { closed: true, ref points }) if points.len() == 3
+    ));
 }

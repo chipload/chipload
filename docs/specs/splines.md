@@ -1,7 +1,7 @@
 # Spec: drawn splines
 
 Status: **approved 2026-11-18** (the user: "start with step 1"; §10 as recommended).
-Step 1 built (see *As built*).
+Steps 1 and 2 built (see *As built*).
 
 User request (2026-11-18): splines as well, after the drawing variants
 (docs/specs/drawing-variants.md); "if possible, research it".
@@ -194,3 +194,12 @@ program gets a real spline. `--segments` would export the lines and arcs instead
     path along an open one) is new, with the frozen v41 sample `nesting_demo` for the
     migration. No other G-code changed; the frozen plan messages gained the new sample's
     lines only.
+- **Step 2 (2026-11-18):**
+  - **The tool:** `Tool::Spline`, key B, in the ribbon (after the polygon), the Draw menu
+    and the shortcut list. It clicks as the polyline does (Enter or double-click open, the
+    first point closes, Backspace). The preview is the curve through the points and the
+    cursor, flattened within 0.02 mm.
+  - **Snapping:** `Snapper::with_curves` marks a spline's fitted pieces, which offer no
+    ends, middles, centres or quadrants, and no crossings where two of them meet. The
+    spline's own points snap as ends, even where it chains with other open geometry;
+    nearest, perpendicular and tangent stay.

@@ -194,3 +194,12 @@ draw-variant-arc-centre = Centro, inizio, fine
 draw-variant-polygon-corner = Centro e vertice
 draw-variant-polygon-side = Centro e lato
 draw-variant-polygon-edge = Su un bordo
+draw-status-spline-start = Disegno di una spline di { $count ->
+        [one] { $count } punto
+       *[other] { $count } punti
+    }: fai clic sul primo punto (griglia { $grid }, Esc annulla)
+draw-status-spline = Disegno di una spline di { $count ->
+        [one] { $count } punto
+       *[other] { $count } punti
+    }: fai clic sul punto successivo; la curva passa per ognuno. Enter o doppio clic la termina aperta, il primo punto la chiude, Backspace rimuove l'ultimo punto (griglia { $grid }, Esc annulla)
+draw-spline-too-short = una spline richiede almeno 2 punti

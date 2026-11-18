@@ -97,3 +97,4 @@ shortcuts-trim = Gezeichnete Formen stutzen
 shortcuts-construction = Hilfsgeometrie: für die nächsten gezeichneten Formen oder die Auswahl
 shortcuts-group = Auswahl gruppieren
 shortcuts-ungroup = Gruppierung aufheben
+shortcuts-draw-spline = Spline zeichnen

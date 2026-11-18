@@ -132,3 +132,5 @@ header-circle-three-hover = Dibujar un círculo: tres puntos en él
 header-arc-centre-hover = Dibujar un arco: su centro, donde empieza y luego donde termina
 header-polygon-side-hover = Dibujar un polígono regular: el centro y luego el medio de un lado (entre caras)
 header-polygon-edge-hover = Dibujar un polígono regular: los dos extremos de un lado; queda a su izquierda
+header-spline = Spline
+header-spline-hover = Dibujar un spline: haz clic en los puntos por los que pasa una curva suave

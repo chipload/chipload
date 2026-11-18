@@ -1042,3 +1042,24 @@ fn the_r_key_cycles_the_rectangles() {
         Some(Tool::RectangleCentre)
     );
 }
+
+#[test]
+fn the_b_key_draws_a_spline() {
+    let mut harness = egui_kittest::Harness::builder()
+        .with_size(egui::vec2(1200.0, 800.0))
+        .build_eframe(|_| drawn_part());
+    harness.run();
+    harness.key_press(egui::Key::B);
+    harness.run();
+    assert_eq!(harness.state().sketch().map(|s| s.tool), Some(Tool::Spline));
+    let app = harness.state_mut();
+    for p in [(200.0, 10.0), (220.0, 30.0), (240.0, 15.0)] {
+        app.draw_click(p, false);
+    }
+    app.finish_drawing();
+    let id = app.selected_shape().unwrap();
+    assert!(matches!(
+        app.shape(id).unwrap().geometry,
+        Geometry::Spline { closed: false, .. }
+    ));
+}

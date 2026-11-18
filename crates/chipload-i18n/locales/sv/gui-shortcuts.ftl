@@ -97,3 +97,4 @@ shortcuts-trim = Trimma ritade former
 shortcuts-construction = Hjälpgeometri: för nästa ritade former, eller markeringen
 shortcuts-group = Gruppera markeringen
 shortcuts-ungroup = Dela upp grupp
+shortcuts-draw-spline = Rita en spline

@@ -132,3 +132,5 @@ header-circle-three-hover = Einen Kreis zeichnen: drei Punkte darauf
 header-arc-centre-hover = Einen Bogen zeichnen: Mittelpunkt, Anfang, dann Ende
 header-polygon-side-hover = Ein regelmäßiges Vieleck zeichnen: Mittelpunkt, dann die Mitte einer Seite (Schlüsselweite)
 header-polygon-edge-hover = Ein regelmäßiges Vieleck zeichnen: die beiden Enden einer Seite; es liegt links davon
+header-spline = Spline
+header-spline-hover = Einen Spline zeichnen: die Punkte anklicken, durch die eine glatte Kurve geht
