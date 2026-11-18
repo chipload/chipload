@@ -14,7 +14,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 87] = [
+const GOLDEN: [(&str, &str); 88] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -316,6 +316,11 @@ const GOLDEN: [(&str, &str); 87] = [
     // rectangle --radii "20 3 20 3"` and `polygon --sides 6 --radii "6 0 6 0 6 0"`, then
     // `op add pocket --shapes 2 --depth 3` and `op add profile --shapes 1 --through`.
     ("v42_rounded_shapes", "jobs/v42/rounded_shapes.chipload"),
+    // The guide's first part (docs/book/src/first-part.md), made with its command-line
+    // steps from an empty settings folder: a 160 x 100 plate with 8 mm corners and four
+    // holes of radius 4, cut with `op add profile --shapes 1 2 3 4 5 --through`. Also the
+    // guide's toolpath picture.
+    ("v42_plate", "jobs/v42/plate.chipload"),
 ];
 
 /// Projects nested before they are run (docs/specs/nesting.md §13): `chipload nest` with

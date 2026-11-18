@@ -13,7 +13,7 @@ use chipload_core::math;
 const SHOTS: &[(&str, &str, &str, (f32, f32))] = &[
     (
         "toolpath",
-        "tests/corpus/jobs/v18/dogbones.chipload",
+        "tests/corpus/jobs/v42/plate.chipload",
         "generate",
         (1200.0, 800.0),
     ),
