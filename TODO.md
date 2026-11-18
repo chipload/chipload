@@ -315,6 +315,23 @@ to a program you trust. It was about four per operation; with the defaults and s
    mm). Later, if wanted: a true SPLINE in DXF export needs an R2000 writer (handles,
    objects section) in place of the R12 layout (the user chose arcs, 2026-11-18);
    control-point splines or a Bézier pen as variants on the spline's button.
+12f. **Drawing improvements** (the review of the drawing tools, 2026-11-18). Step 1, spec
+   drafted (docs/specs/drawing-improvements.md, six decisions for the user): mirror about
+   a line with a copy that joins halves, arithmetic in number fields, arc slots. Step 2,
+   the rest of the review (the user: "then we take the rest in step 2"):
+   - fillet and chamfer at line-arc and arc-arc corners, and between two shapes (trim to
+     the round and join);
+   - arcs while drawing a polyline (a tangent-arc mode);
+   - text on an arc (round plaques, the sign wizard);
+   - scale by reference (two points, a new length) and stretching in X and Y;
+   - spline to polyline (explode) and joining open splines; their end tangents;
+   - extend arc ends along their circle;
+   - a rectangle's corner radius or chamfer per corner, kept a rectangle (schema);
+   - an arc's form by centre, radius and angles when a polyline is one arc;
+   - snaps: a "from" base point, tracking along a line, a line tangent to two circles;
+   - lengths on the canvas for arcs, angles and polygon sides;
+   - copies along a path;
+   - named values (the drawing roadmap's phase 4; schema).
 13. **Small follow-ups:**
     - **Moulding: the dropped tool dips 0.006 mm below the section** (found 2026-11-16 by
       the property test `moulding::the_dropped_tool_is_never_below_the_section`, also on
