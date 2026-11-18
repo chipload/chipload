@@ -65,8 +65,9 @@ overshoot the uniform form has. Each piece between two points is one cubic Bézi
   copy and paste, layers, construction, groups, operations (profile, pocket, follow path,
   V-carve…). Snaps on a spline: its points (as ends) and nearest.
 - **Editing tools** (offset, fillet, trim, extend, break, union, subtract) work on its
-  lines and arcs and give a polyline of arcs, as for a circle today. **Explode** turns a
-  spline into that polyline by hand.
+  lines and arcs and give a polyline of arcs, as for a circle today. *Not built yet:*
+  **Explode** to turn a spline into that polyline by hand (TODO 12e, with joining
+  splines).
 
 ## 3. Format: schema 42
 
@@ -112,10 +113,10 @@ The centripetal form depends on distances. Moving, turning, mirroring and **even
 scaling the points therefore gives exactly the same curve moved, turned, mirrored or
 scaled.
 
-**Stretching one way** (the box's side handles, *Scale* with a different X and Y) moves
-the points and gives a slightly different curve than the stretched one. It is still smooth
-and still through the points. Decision 4: accept that and say so in the guide, or convert
-to a polyline of arcs when stretched unevenly.
+**Stretching one way** would move the points and give a slightly different curve than the
+stretched one, still smooth and through the points (decision 4). *As built:* drawn shapes
+can only be scaled evenly today (`shape scale --factor`, the box's corner handles), so
+this doesn't arise yet; it applies when stretching in X and Y comes.
 
 ## 6. Command line
 
@@ -175,8 +176,8 @@ each inner knot repeated three times, with `--segments` for lines and arcs.
    split button.
 3. **Smooth everywhere:** no sharp corner inside a spline. A corner is where two splines,
    or a spline and a line, meet. Alternative: a per-point "corner" flag.
-4. **Stretching one way** moves the points and keeps the spline (§5); the guide says the
-   curve can differ slightly from a stretched copy.
+4. **Stretching one way** moves the points and keeps the spline (§5), once stretching
+   exists for drawn shapes; the guide will say so then.
 5. **The curve in `chipload-core`** beside `fit`, so `chipload-job` needs no new
    dependency. Alternative: in `chipload-draw`, with job depending on it.
 6. **DXF export:** *changed while building:* lines and arcs within 0.01 mm, since the R12

@@ -45,9 +45,8 @@ Chipload draws the parts it cuts, with or without a DXF:
   perpendiculars. It is cut as lines
   and arcs within 0.01 mm of the curve, since controllers have no spline move. On the
   command line: `chipload shape add P spline --points "0,0 20,15 45,5 60,20" [--closed]`,
-  and `shape set P ID --points … --closed`. Moving, turning, mirroring and scaling evenly
-  move its points, and the curve follows exactly; stretching it one way moves the points,
-  so the curve through them can differ a little from a stretched copy.
+  and `shape set P ID --points … --closed`. Moving, turning, mirroring and scaling move
+  its points, and the curve follows exactly.
 
 Pick the tool in the ribbon's DRAW group (the small buttons; hover over one for its name
 and key) or by its key, then click on the canvas. With no
@@ -245,8 +244,8 @@ holes on, a guide at 45°) and are **never cut**.
   drawn shapes are selected, have *Position* (the lower-left corner of the box round them:
   type a value to move them there) and *Turn*: ⟲ 90, ⟳ 90, or type an angle and press
   Enter. A polyline keeps no angle of its own; turning moves its points.
-- **In the Browser:** under *Drawing*, the *Circles*, *Rectangles*, *Polylines* and
-  *Polygons* groups list their shapes in a folder per layer. Click a row to select the
+- **In the Browser:** under *Drawing*, the *Circles*, *Rectangles*, *Polylines*,
+  *Polygons* and *Splines* groups list their shapes in a folder per layer. Click a row to select the
   shape (Ctrl+click adds or removes); right-click to rename, copy or delete it. A group
   with more than 20 shapes starts closed.
 - **Names:** give a drawn shape a *Name* in its form (or *Rename…* in the Browser); the
