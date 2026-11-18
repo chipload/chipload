@@ -6,17 +6,14 @@ What's planned. Each item gets a spec in `docs/specs/` that is reviewed before i
 a quick workflow first. Brought up to date again for a handoff on 2026-11-16 (see *Handoff*
 below).
 
-## Handoff (2026-11-17)
+## Handoff (2026-11-18)
 
 - **Released:** 0.37.0 is the latest, published 2026-11-15 with its guide.
-- **On main:** pushed up to 324d936. Not pushed: everything after it, listed in *Done > In
-  main, not released yet*: the fitted board holding instances, the part itself placed
-  (schema 39), surfaces on the board and on a part (schema 40), the two findings of
-  2026-11-17 (board surface drag, instance handles) and nesting (six steps, 0fb5085..).
-  The next release (0.38.0) waits for the user. **Branch `parts-and-setups`** (worktree
-  `.worktrees/parts`, git-ignored locally): item 000a steps 1 (schema 41) and 1b (the
-  simple view), 2 (a part's stock), 3 (sheets side by side), 4 (placing in the window)
-  and 5 (nesting onto more boards), 6 (a part or a setup is shown, never both), not merged.
+- **0.38.0 prepared on main** (the user, 2026-11-18: "merge to main and prepare for
+  release"): branch `parts-and-setups` merged (fast-forward), version 0.38.0, notices,
+  guide screenshots renewed, the README's nesting GIF (`packaging/docs/nest-showcase.sh`).
+  Not tagged and not pushed: waiting for the user to say so (main has every commit since
+  324d936 unpushed).
 - **For the user to try** (said 2026-11-17: "will test after all is done"): nesting (the
   window and `chipload nest`), the instance handles, the part itself placed, surfaces on
   the board and on a part; pieces and instances from before. Findings become items here.
