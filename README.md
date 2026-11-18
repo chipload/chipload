@@ -10,6 +10,10 @@ for Linux, Windows and macOS, written in Rust.
 from a traced picture and an outline cut through and held by tabs along X, its toolpaths over the simulated
 stock in 3D](docs/book/src/images/showcase.png)
 
+![Chipload: the same plaque played back in the simulation: the logo V-carved, the pocket
+cleared round its island, the holes bored and the outline cut through, held by
+tabs](docs/book/src/images/showcase-sim.gif)
+
 ![Chipload: the word "Workshop" in a script font, V-carved with a 25° V-bit, played back
 in the simulation letter by letter](docs/book/src/images/showcase-text.gif)
 

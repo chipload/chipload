@@ -277,6 +277,18 @@ fn text_showcase() {
     playback_showcase("text", &project, (960.0, 760.0), 0.85, 1.0, false);
 }
 
+/// The README's first picture as a GIF (the user, 2026-11-18: "make the main showcase
+/// image a gif showing the simulation"): the plaque of packaging/docs/showcase.chipload
+/// played back in 3D, its frames (`plaque-frames/`). Run by
+/// packaging/docs/main-showcase.sh.
+#[test]
+#[ignore = "writes the README's plaque frames; run by packaging/docs/main-showcase.sh"]
+fn main_showcase() {
+    let project =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../packaging/docs/showcase.chipload");
+    playback_showcase("plaque", &project, (960.0, 760.0), 0.85, 1.0, false);
+}
+
 /// The README's nesting showcase (the user, 2026-11-18: "a gif showing the nest demo,
 /// first unnested and then the nesting"): the demo project as drawn, the Nest window's
 /// preview of four to ten of each part onto as many boards as they need, and the boards

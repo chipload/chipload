@@ -42,6 +42,11 @@ publish it.
 
        packaging/docs/text-showcase.sh
 
+   The README's plaque played back (`showcase-sim.gif`, below `showcase.png`), from
+   `packaging/docs/showcase.chipload`; renew it with the screenshots:
+
+       packaging/docs/main-showcase.sh
+
    The README's nesting (`showcase-nest.gif`): the nesting demo as drawn, the Nest window
    and the boards nested, from `tests/corpus/jobs/v41/nesting_demo.chipload`; renew it when
    nesting or the window's look changes:
