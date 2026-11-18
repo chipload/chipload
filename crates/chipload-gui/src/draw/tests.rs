@@ -420,3 +420,120 @@ fn previews_follow_the_cursor() {
             .all(|&p| (distance(p, (0.0, 0.0)) - 10.0).abs() < 1e-9)
     );
 }
+
+#[test]
+fn a_rectangle_by_its_centre_is_twice_the_corners_offset() {
+    let mut sketch = Sketch::new(Tool::RectangleCentre);
+    assert_eq!(sketch.click((10.0, 10.0), false), Step::Continue);
+    assert_eq!(
+        sketch.click((25.0, 0.0), false),
+        Step::Done(Geometry::Rectangle {
+            center: [10.0, 10.0],
+            length: 30.0,
+            width: 20.0,
+            angle: 0.0,
+            corner_radius: 0.0,
+        })
+    );
+    // A typed `@dx,dy` counts from the centre: half the size.
+    let mut typed = Sketch::new(Tool::RectangleCentre);
+    typed.click((0.0, 0.0), false);
+    let corner = typed.typed(Entry::By((20.0, 5.0)), (1.0, 1.0)).unwrap();
+    assert_eq!(corner, (20.0, 5.0));
+    assert_eq!(typed.readout(corner, Units::Mm).unwrap(), "40.000 × 10.000");
+    // On the centre's line: no size, and drawing goes on.
+    assert_eq!(
+        typed.click((7.0, 0.0), false),
+        Step::Ignored(Some(Why::NoSize(Tool::RectangleCentre)))
+    );
+    assert_eq!(typed.last_point(), None);
+}
+
+#[test]
+fn an_aligned_rectangle_is_an_edge_then_its_width() {
+    let mut sketch = Sketch::new(Tool::RectangleAligned);
+    assert_eq!(sketch.click((0.0, 0.0), false), Step::Continue);
+    // The edge's preview is a line from its first end.
+    assert_eq!(
+        sketch.preview((0.0, 10.0)),
+        vec![vec![(0.0, 0.0), (0.0, 10.0)]]
+    );
+    assert_eq!(sketch.last_point(), Some((0.0, 0.0)));
+    assert_eq!(sketch.click((0.0, 10.0), false), Step::Continue);
+    // On the edge's line: no width.
+    assert_eq!(
+        sketch.click((0.0, 30.0), false),
+        Step::Ignored(Some(Why::NoSize(Tool::RectangleAligned)))
+    );
+    assert_eq!(
+        sketch.readout((-4.0, 3.0), Units::Mm).unwrap(),
+        "10.000 × 4.000"
+    );
+    // Up the Y axis, the width to the left: a rectangle at 90°, centred at x -2.
+    let Step::Done(Geometry::Rectangle {
+        center,
+        length,
+        width,
+        angle,
+        corner_radius,
+    }) = sketch.click((-4.0, 3.0), false)
+    else {
+        panic!("a rectangle");
+    };
+    assert!((center[0] + 2.0).abs() < 1e-12 && (center[1] - 5.0).abs() < 1e-12);
+    assert_eq!((length, width, corner_radius), (10.0, 4.0, 0.0));
+    assert!((angle - std::f64::consts::FRAC_PI_2).abs() < 1e-12);
+}
+
+#[test]
+fn an_aligned_rectangles_typed_width_goes_to_the_cursors_side() {
+    let mut sketch = Sketch::new(Tool::RectangleAligned);
+    sketch.click((0.0, 0.0), false);
+    // The edge typed as a length at an angle.
+    let end = sketch.typed(Entry::Polar(10.0, 0.0), (5.0, 5.0)).unwrap();
+    assert_eq!(end, (10.0, 0.0));
+    sketch.click(end, false);
+    let below = sketch.typed(Entry::Distance(6.0), (3.0, -1.0)).unwrap();
+    assert!(distance(below, (10.0, -6.0)) < 1e-12);
+    let above = sketch.typed(Entry::Distance(6.0), (3.0, 1.0)).unwrap();
+    assert!(distance(above, (10.0, 6.0)) < 1e-12);
+    assert!(matches!(
+        sketch.click(below, false),
+        Step::Done(Geometry::Rectangle { width: 6.0, .. })
+    ));
+}
+
+#[test]
+fn a_shapes_variants_go_round_from_its_first() {
+    assert_eq!(Tool::Rectangle.next_variant(), Tool::RectangleCentre);
+    assert_eq!(Tool::RectangleCentre.next_variant(), Tool::RectangleAligned);
+    assert_eq!(Tool::RectangleAligned.next_variant(), Tool::Rectangle);
+    assert_eq!(Tool::RectangleAligned.shape(), Tool::Rectangle);
+    // A shape with one way of drawing stays itself.
+    assert_eq!(Tool::Circle.next_variant(), Tool::Circle);
+    assert_eq!(Tool::Polyline.variants(), &[Tool::Polyline]);
+}
+
+#[test]
+fn each_rectangle_variant_says_what_to_click() {
+    let status = |tool: Tool, clicks: &[Point]| {
+        let mut sketch = Sketch::new(tool);
+        for &p in clicks {
+            sketch.click(p, false);
+        }
+        sketch.status((3.0, 4.0), 1.0, Units::Mm, &En)
+    };
+    let texts = [
+        status(Tool::RectangleCentre, &[]),
+        status(Tool::RectangleCentre, &[(0.0, 0.0)]),
+        status(Tool::RectangleAligned, &[]),
+        status(Tool::RectangleAligned, &[(0.0, 0.0)]),
+        status(Tool::RectangleAligned, &[(0.0, 0.0), (10.0, 0.0)]),
+    ];
+    assert!(texts[1].contains("6.000 x 8.000"), "{}", texts[1]);
+    assert!(texts[3].contains("edge 5.000"), "{}", texts[3]);
+    assert!(texts[4].contains("10.000 x 4.000"), "{}", texts[4]);
+    for text in &texts {
+        assert!(text.contains("grid 1"), "{text}");
+    }
+}

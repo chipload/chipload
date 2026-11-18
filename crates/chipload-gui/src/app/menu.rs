@@ -610,7 +610,21 @@ impl ChiploadApp {
             ),
         ] {
             let label = with_keys(&label, action);
-            if ui.add_enabled(can_draw, egui::Button::new(label)).clicked() {
+            if tool.variants().len() > 1 {
+                // A submenu of its ways to draw (docs/specs/drawing-variants.md §3).
+                ui.add_enabled_ui(can_draw, |ui| {
+                    ui.menu_button(label, |ui| {
+                        let in_use = self.variant_in_use(tool);
+                        for &variant in tool.variants() {
+                            let name = super::ribbon::variant_name(ui, variant);
+                            if ui.selectable_label(variant == in_use, name).clicked() {
+                                self.start_drawing(variant);
+                                ui.close();
+                            }
+                        }
+                    });
+                });
+            } else if ui.add_enabled(can_draw, egui::Button::new(label)).clicked() {
                 self.start_drawing(tool);
             }
         }

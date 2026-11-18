@@ -118,14 +118,26 @@ fn draw_group(app: &mut ChiploadApp, ui: &mut egui::Ui) {
         let rows = tools.chunks(4).count();
         for (index, row) in tools.chunks(4).enumerate() {
             ui.horizontal(|ui| {
-                for (tool, icon, label, hint, action) in row {
-                    let active = app.sketch().is_some_and(|s| s.tool == *tool);
-                    let hint = format!("{label}: {hint}");
-                    if small_ribbon_button(ui, *icon, label, can_draw, active, None)
-                        .on_hover_text(hover_keys(&hint, *action))
-                        .clicked()
-                    {
-                        app.start_drawing(*tool);
+                for (shape, icon, label, hint, action) in row {
+                    // The shape's way of drawing in use; the arrow offers the others
+                    // (docs/specs/drawing-variants.md §3).
+                    let tool = app.variant_in_use(*shape);
+                    let several = shape.variants().len() > 1;
+                    let active = app.sketch().is_some_and(|s| s.tool.shape() == *shape);
+                    let mut hint = format!("{label}: {}", variant_hint(ui, tool, hint));
+                    if several {
+                        hint = format!("{hint}\n{}", t!(ui, "header-variants-hint"));
+                    }
+                    let icon = variant_icon(tool, *icon);
+                    let response = small_ribbon_button(ui, icon, label, can_draw, active, None)
+                        .on_hover_text(hover_keys(&hint, *action));
+                    let click = if several {
+                        split_button(ui, &response, tool, can_draw)
+                    } else {
+                        response.clicked().then_some(tool)
+                    };
+                    if let Some(tool) = click {
+                        app.start_drawing(tool);
                     }
                 }
                 if index + 1 == rows {
@@ -759,6 +771,86 @@ fn small_ribbon_button(
     let icon_rect = Rect::from_center_size(rect.center(), vec2(side - 4.0, side - 4.0));
     icons::paint(painter, icon_rect, icon, color);
     response
+}
+
+/// A drawing tool's icon: its variant's, else the shape's.
+fn variant_icon(tool: Tool, shape_icon: Icon) -> Icon {
+    match tool {
+        Tool::RectangleCentre => Icon::RectangleCentre,
+        Tool::RectangleAligned => Icon::RectangleAligned,
+        _ => shape_icon,
+    }
+}
+
+/// What a drawing tool's button says it does: its variant's clicks, else the shape's.
+fn variant_hint(ui: &egui::Ui, tool: Tool, shape_hint: &str) -> String {
+    match tool {
+        Tool::RectangleCentre => t!(ui, "header-rectangle-centre-hover"),
+        Tool::RectangleAligned => t!(ui, "header-rectangle-aligned-hover"),
+        _ => shape_hint.to_string(),
+    }
+}
+
+/// A way to draw a shape, as its split button's menu and the Draw menu name it.
+pub(super) fn variant_name(ui: &egui::Ui, tool: Tool) -> String {
+    match tool {
+        Tool::Rectangle => t!(ui, "draw-variant-rectangle-corners"),
+        Tool::RectangleCentre => t!(ui, "draw-variant-rectangle-centre"),
+        Tool::RectangleAligned => t!(ui, "draw-variant-rectangle-aligned"),
+        Tool::Circle => t!(ui, "header-circle"),
+        Tool::Polyline => t!(ui, "header-polyline"),
+        Tool::Arc => t!(ui, "header-arc"),
+        Tool::Slot => t!(ui, "header-slot"),
+        Tool::Polygon => t!(ui, "header-polygon"),
+    }
+}
+
+/// The share of a split button's side its arrow takes, in its lower right corner.
+const SPLIT_ARROW: f32 = 0.38;
+
+/// A small ribbon button that is also a split button (docs/specs/drawing-variants.md §3):
+/// a small triangle in its lower right corner; a click there, or a right-click, opens the
+/// menu of the shape's ways to draw. The tool to start: `in_use` on a click elsewhere, or
+/// the variant chosen from the menu.
+fn split_button(
+    ui: &mut egui::Ui,
+    response: &Response,
+    in_use: Tool,
+    enabled: bool,
+) -> Option<Tool> {
+    let rect = response.rect;
+    let side = rect.width() * SPLIT_ARROW;
+    let arrow = Rect::from_min_max(rect.max - vec2(side, side), rect.max);
+    let color = if enabled {
+        ui.visuals().text_color()
+    } else {
+        crate::style::disabled_color(ui.visuals())
+    };
+    let (inset, tip) = (2.0, side * 0.55);
+    let corner = rect.max - vec2(inset, inset);
+    ui.painter().add(egui::Shape::convex_polygon(
+        vec![corner, corner - vec2(tip, 0.0), corner - vec2(0.0, tip)],
+        color,
+        egui::Stroke::NONE,
+    ));
+    let on_arrow = response.clicked()
+        && response
+            .interact_pointer_pos()
+            .is_some_and(|p| arrow.contains(p));
+    let open = (on_arrow || response.secondary_clicked()).then_some(egui::SetOpenCommand::Toggle);
+    let mut chosen = None;
+    egui::Popup::menu(response).open_memory(open).show(|ui| {
+        for &variant in in_use.variants() {
+            let name = variant_name(ui, variant);
+            if ui.selectable_label(variant == in_use, name).clicked() {
+                chosen = Some(variant);
+            }
+        }
+    });
+    if response.clicked() && !on_arrow {
+        chosen = Some(in_use);
+    }
+    chosen
 }
 
 /// Generate (or Cancel): the one accent-coloured button, an icon beside a word.

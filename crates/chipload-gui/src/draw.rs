@@ -11,16 +11,24 @@ use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::CHAIN_TOL_MM;
-use chipload_draw::construct::{arc_as_polyline, arc_middle_for_radius, arc_through};
+use chipload_draw::construct::{
+    arc_as_polyline, arc_middle_for_radius, arc_through, left_of, rectangle_aligned,
+    rectangle_by_centre, rectangle_by_corners,
+};
 use chipload_job::{Geometry, Shape, Units};
 use chipload_pipeline::units::{length_text, parse_length};
 
 use crate::i18n::{Lang, t};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Tool {
     Circle,
+    /// Two opposite corners.
     Rectangle,
+    /// The centre, then a corner (docs/specs/drawing-variants.md §2).
+    RectangleCentre,
+    /// One edge's two ends, then the width across it (docs/specs/drawing-variants.md §2).
+    RectangleAligned,
     Polyline,
     /// Start, end, then a point it passes through: an open polyline of arcs.
     Arc,
@@ -28,6 +36,40 @@ pub enum Tool {
     Slot,
     /// The centre, then a corner: a regular polygon of `Sketch::sides` sides.
     Polygon,
+}
+
+impl Tool {
+    /// The shape this tool draws, as its button and key name it: a variant's first tool
+    /// (docs/specs/drawing-variants.md §3).
+    pub fn shape(self) -> Tool {
+        match self {
+            Tool::RectangleCentre | Tool::RectangleAligned => Tool::Rectangle,
+            other => other,
+        }
+    }
+
+    /// The ways to draw this tool's shape, the first today's (one when it has no others).
+    pub fn variants(self) -> &'static [Tool] {
+        match self.shape() {
+            Tool::Rectangle => &[
+                Tool::Rectangle,
+                Tool::RectangleCentre,
+                Tool::RectangleAligned,
+            ],
+            Tool::Circle => &[Tool::Circle],
+            Tool::Polyline => &[Tool::Polyline],
+            Tool::Arc => &[Tool::Arc],
+            Tool::Slot => &[Tool::Slot],
+            _ => &[Tool::Polygon],
+        }
+    }
+
+    /// The next way to draw the same shape, round to the first (the key pressed again).
+    pub fn next_variant(self) -> Tool {
+        let variants = self.variants();
+        let at = variants.iter().position(|&t| t == self).unwrap_or(0);
+        variants[(at + 1) % variants.len()]
+    }
 }
 
 /// A new polygon's sides until the user picks another number.
@@ -68,7 +110,9 @@ impl Why {
     pub fn text(self, lang: &impl Lang) -> String {
         match self {
             Why::NoSize(Tool::Circle | Tool::Polygon) => t!(lang, "draw-no-size-circle"),
-            Why::NoSize(Tool::Rectangle | Tool::Polyline) => t!(lang, "draw-no-size-rectangle"),
+            Why::NoSize(
+                Tool::Rectangle | Tool::RectangleCentre | Tool::RectangleAligned | Tool::Polyline,
+            ) => t!(lang, "draw-no-size-rectangle"),
             Why::NoSize(Tool::Arc) => t!(lang, "draw-arc-on-a-line"),
             Why::NoSize(Tool::Slot) => t!(lang, "draw-no-size-slot"),
             Why::TooFewPoints => t!(lang, "draw-polyline-too-short"),
@@ -120,8 +164,8 @@ impl Sketch {
     /// How many clicks make the shape (a polyline: as many as it takes).
     fn clicks(&self) -> usize {
         match self.tool {
-            Tool::Circle | Tool::Rectangle | Tool::Polygon => 2,
-            Tool::Arc | Tool::Slot => 3,
+            Tool::Circle | Tool::Rectangle | Tool::RectangleCentre | Tool::Polygon => 2,
+            Tool::Arc | Tool::Slot | Tool::RectangleAligned => 3,
             Tool::Polyline => usize::MAX,
         }
     }
@@ -141,12 +185,14 @@ impl Sketch {
     }
 
     /// The last click that a line goes on from (perpendicular and tangent snaps): a
-    /// polyline's, an arc's or a slot's last point. A circle's centre or a rectangle's
-    /// corner isn't one.
+    /// polyline's, an arc's, a slot's or an aligned rectangle's last point. A circle's
+    /// centre or a rectangle's corner isn't one.
     pub fn last_point(&self) -> Option<Point> {
         match self.tool {
-            Tool::Polyline | Tool::Arc | Tool::Slot => self.points.last().copied(),
-            Tool::Circle | Tool::Rectangle | Tool::Polygon => None,
+            Tool::Polyline | Tool::Arc | Tool::Slot | Tool::RectangleAligned => {
+                self.points.last().copied()
+            }
+            Tool::Circle | Tool::Rectangle | Tool::RectangleCentre | Tool::Polygon => None,
         }
     }
 
@@ -166,16 +212,9 @@ impl Sketch {
                     radius,
                 })
             }
-            (Tool::Rectangle, _) => {
-                let (length, width) = ((p.0 - first.0).abs(), (p.1 - first.1).abs());
-                (length >= CHAIN_TOL_MM && width >= CHAIN_TOL_MM).then_some(Geometry::Rectangle {
-                    center: [(first.0 + p.0) / 2.0, (first.1 + p.1) / 2.0],
-                    length,
-                    width,
-                    angle: 0.0,
-                    corner_radius: 0.0,
-                })
-            }
+            (Tool::Rectangle, _) => rectangle_by_corners(first, p).map(rectangle),
+            (Tool::RectangleCentre, _) => rectangle_by_centre(first, p).map(rectangle),
+            (Tool::RectangleAligned, &[a, b]) => rectangle_aligned(a, b, p).map(rectangle),
             (Tool::Arc, &[start, end]) => {
                 let arc = arc_through(start, p, end)?;
                 let (points, bulges) = arc_as_polyline(&arc);
@@ -205,16 +244,18 @@ impl Sketch {
             return Vec::new();
         }
         match self.tool {
-            Tool::Circle | Tool::Rectangle | Tool::Polygon => {
+            Tool::Circle | Tool::Rectangle | Tool::RectangleCentre | Tool::Polygon => {
                 self.geometry_to(p).map(|g| outline(&g)).unwrap_or_default()
             }
-            Tool::Arc | Tool::Slot if self.points.len() + 1 == self.clicks() => {
+            Tool::Arc | Tool::Slot | Tool::RectangleAligned
+                if self.points.len() + 1 == self.clicks() =>
+            {
                 match self.geometry_to(p) {
                     Some(g) => outline(&g),
                     None => vec![self.points.clone()],
                 }
             }
-            Tool::Polyline | Tool::Arc | Tool::Slot => {
+            Tool::Polyline | Tool::Arc | Tool::Slot | Tool::RectangleAligned => {
                 let mut line = self.points.clone();
                 line.push(p);
                 vec![line]
@@ -244,6 +285,32 @@ impl Sketch {
                 grid = grid
             ),
             (Tool::Rectangle, _) => t!(lang, "draw-status-rectangle-start", grid = grid),
+            (Tool::RectangleCentre, &[c, ..]) => t!(
+                lang,
+                "draw-status-rectangle-centre",
+                length = n(2.0 * (p.0 - c.0).abs()),
+                width = n(2.0 * (p.1 - c.1).abs()),
+                grid = grid
+            ),
+            (Tool::RectangleCentre, _) => {
+                t!(lang, "draw-status-rectangle-centre-start", grid = grid)
+            }
+            (Tool::RectangleAligned, []) => {
+                t!(lang, "draw-status-rectangle-aligned-start", grid = grid)
+            }
+            (Tool::RectangleAligned, &[a]) => t!(
+                lang,
+                "draw-status-rectangle-aligned-edge",
+                length = n(distance(a, p)),
+                grid = grid
+            ),
+            (Tool::RectangleAligned, &[a, b, ..]) => t!(
+                lang,
+                "draw-status-rectangle-aligned",
+                length = n(distance(a, b)),
+                width = n(left_of(a, b, p).abs()),
+                grid = grid
+            ),
             (Tool::Polyline, []) => t!(
                 lang,
                 "draw-status-polyline-start",
@@ -290,6 +357,17 @@ impl Sketch {
     }
 }
 
+/// A drawn rectangle, square-cornered, from its values.
+fn rectangle(r: chipload_draw::construct::Rectangle) -> Geometry {
+    Geometry::Rectangle {
+        center: [r.center.0, r.center.1],
+        length: r.length,
+        width: r.width,
+        angle: r.angle,
+        corner_radius: 0.0,
+    }
+}
+
 /// The slot from the centre of one end `a` to the other `b`, as wide as twice the distance
 /// of `p` from the line between them: a rectangle whose corner radius is half its width.
 fn slot(a: Point, b: Point, p: Point) -> Option<Geometry> {
@@ -309,12 +387,7 @@ fn slot(a: Point, b: Point, p: Point) -> Option<Geometry> {
 
 /// Twice the distance of `p` from the line through `a` and `b` (0 when they coincide).
 fn slot_width(a: Point, b: Point, p: Point) -> f64 {
-    let between = distance(a, b);
-    if between < CHAIN_TOL_MM {
-        return 0.0;
-    }
-    let cross = (b.0 - a.0) * (p.1 - a.1) - (b.1 - a.1) * (p.0 - a.0);
-    2.0 * cross.abs() / between
+    2.0 * left_of(a, b, p).abs()
 }
 
 // -- typed values and angle steps (docs/specs/drawing-input.md §2)
@@ -497,6 +570,20 @@ impl Sketch {
                 let (nx, ny) = (-(b.1 - a.1) / between, (b.0 - a.0) / between);
                 Ok((b.0 + nx * width / 2.0, b.1 + ny * width / 2.0))
             }
+            (Tool::RectangleAligned, &[a, b], Entry::Distance(width)) => {
+                let between = distance(a, b);
+                if between < CHAIN_TOL_MM {
+                    return Err(EntryError::NoDirection);
+                }
+                // The width across the edge, on the cursor's side (left when it is on it).
+                let side = if left_of(a, b, cursor) < 0.0 {
+                    -1.0
+                } else {
+                    1.0
+                };
+                let (nx, ny) = (-(b.1 - a.1) / between, (b.0 - a.0) / between);
+                Ok((b.0 + side * nx * width, b.1 + side * ny * width))
+            }
             _ => typed_point(entry, self.anchor(), cursor),
         }
     }
@@ -513,7 +600,10 @@ impl Sketch {
                 format!("R {}", n(arc_through(start, p, end)?.radius))
             }
             (Tool::Slot, &[a, b]) => format!("W {}", n(slot_width(a, b, p))),
-            (Tool::Polyline | Tool::Arc | Tool::Slot, _) => {
+            (Tool::RectangleAligned, &[a, b]) => {
+                format!("{} × {}", n(distance(a, b)), n(left_of(a, b, p).abs()))
+            }
+            (Tool::Polyline | Tool::Arc | Tool::Slot | Tool::RectangleAligned, _) => {
                 let (dx, dy) = (p.0 - from.0, p.1 - from.1);
                 let angle = if dx == 0.0 && dy == 0.0 {
                     0.0
@@ -528,6 +618,11 @@ impl Sketch {
                 "{} × {}",
                 n((p.0 - first.0).abs()),
                 n((p.1 - first.1).abs())
+            ),
+            (Tool::RectangleCentre, _) => format!(
+                "{} × {}",
+                n(2.0 * (p.0 - first.0).abs()),
+                n(2.0 * (p.1 - first.1).abs())
             ),
         })
     }

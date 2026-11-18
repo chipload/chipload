@@ -124,3 +124,6 @@ header-new-flute = Neue Kannelur
 header-new-pattern = Neues Muster
 header-new-prism = Neues Prisma
 header-new-moulding = Neue Profilfräsung
+header-rectangle-centre-hover = Ein Rechteck zeichnen: die Mitte, dann eine Ecke
+header-rectangle-aligned-hover = Ein Rechteck zeichnen: die beiden Enden einer Kante, dann die Breite
+header-variants-hint = Der Pfeil oder ein Rechtsklick: andere Arten, es zu zeichnen

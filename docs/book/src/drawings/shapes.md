@@ -4,7 +4,11 @@ Chipload draws the parts it cuts, with or without a DXF:
 
 - **Circle** (key **C**): the centre, then a point on it.
 - **Rectangle** (**R**): two opposite corners. It keeps its centre, length and width, a
-  rotation, and a corner radius (0: sharp corners).
+  rotation, and a corner radius (0: sharp corners). Two more ways to draw it, from the
+  small arrow on its button (below):
+  - **Centre and corner:** the centre, then a corner.
+  - **Aligned (three points):** the two ends of one edge, at any angle, then its width (a
+    click on either side of the edge, or type it). The rectangle is turned to the edge.
 - **Polyline** (**L**): points joined by straight or arc segments, open or closed. Click
   the first point again to close it; Enter or a double-click finishes it open.
 - **Arc** (**A**): where it starts, where it ends, then a point it passes through (or type
@@ -21,7 +25,13 @@ Chipload draws the parts it cuts, with or without a DXF:
 
 Pick the tool in the ribbon's DRAW group (the small buttons; hover over one for its name
 and key) or by its key, then click on the canvas. With no
-tool active, **Enter** starts the last one again. Clicks snap to the drawing (below), else
+tool active, **Enter** starts the last one again.
+
+A button with a small triangle in its corner draws its shape more than one way. Click the
+triangle, or right-click the button, for the list; the way you choose stays on the button
+until you close Chipload. The *Draw* menu lists them under the shape. Pressing the key again
+before the first click moves to the next way (**R**, **R**, **R**: two corners, centre,
+aligned) and the status bar names it. Clicks snap to the drawing (below), else
 to the [grid](../window.md#the-canvas), whose step the status bar gives ("grid 1 mm").
 
 ## Snapping
@@ -53,7 +63,8 @@ uses it, **Esc** closes it.
 
 Lengths are in the units the app shows, unless you name them: `1/2in`, `12mm`. Where the
 decimal point is a comma, separate X and Y with a semicolon: `12,5;30`. For a circle, a
-plain length after the centre is its radius. The preview shows where the value lands before
+plain length after the centre is its radius; for an aligned rectangle, after the edge, its
+width. The preview shows where the value lands before
 you press Enter; a value that can't be used turns red and the status bar says why.
 
 ![Drawing a polyline: 40<120 typed, the preview at 120° and the length and angle beside the

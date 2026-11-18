@@ -29,6 +29,10 @@ pub enum Icon {
     Frame,
     Circle,
     Rectangle,
+    /// A rectangle drawn from its centre.
+    RectangleCentre,
+    /// A rectangle drawn on a slanted edge.
+    RectangleAligned,
     Polyline,
     Arc,
     Slot,
@@ -238,6 +242,16 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
         }
         Icon::Circle => pen.circle((0.5, 0.5), 0.36),
         Icon::Rectangle => pen.closed(&[(0.12, 0.25), (0.88, 0.25), (0.88, 0.75), (0.12, 0.75)]),
+        Icon::RectangleCentre => {
+            pen.closed(&[(0.12, 0.25), (0.88, 0.25), (0.88, 0.75), (0.12, 0.75)]);
+            pen.dot((0.5, 0.5), 0.05);
+            pen.line([(0.5, 0.5), (0.88, 0.25)]);
+        }
+        Icon::RectangleAligned => {
+            pen.closed(&[(0.1, 0.62), (0.62, 0.2), (0.9, 0.55), (0.38, 0.97)]);
+            pen.dot((0.1, 0.62), 0.05);
+            pen.dot((0.62, 0.2), 0.05);
+        }
         Icon::Polyline => pen.poly(&[(0.1, 0.8), (0.3, 0.3), (0.55, 0.65), (0.9, 0.2)]),
         Icon::Arc => {
             // Screen y grows downwards: angles past PI bow upwards.

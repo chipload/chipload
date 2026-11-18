@@ -1,6 +1,7 @@
 # Spec: more ways to draw a shape, on one split button
 
-Status: **draft, 2026-11-18**, for review (decisions in §9).
+Status: **approved 2026-11-18** (the user: "sounds good go ahead"; §9 as recommended).
+Step 1 built (see *As built*).
 
 Guide: docs/book/src/drawings/shapes.md.
 
@@ -102,7 +103,7 @@ Details:
 
 | Variant | Step 2 | Step 3 |
 |---|---|---|
-| Rectangle, centre | `@dx,dy`: half the size; `d`: a square's corner at that distance, towards the cursor | |
+| Rectangle, centre | `@dx,dy`: half the size (from the centre); `d`: a corner that far from the centre, towards the cursor | |
 | Rectangle, aligned | `d`, `d<a`: the edge's length (and angle) | `d`: the width |
 | Circle, two points | `d`: the diameter | |
 | Circle, three points | points only | points only |
@@ -182,3 +183,17 @@ next click, for example "Rectangle (aligned): click the width. 0.5 mm grid".
    centre. Alternative: only `d<a`, with d ignored, which reads oddly.
 6. **The polygon on an edge lies on the edge's left**, chosen by click order, rather than a
    third click for the side.
+
+## As built
+
+- **Step 1 (2026-11-18):**
+  - `chipload_draw::construct` has `Rectangle` (centre, length, width, angle) with
+    `rectangle_by_corners`, `rectangle_by_centre`, `rectangle_aligned` and `left_of`.
+  - The window's `Tool` has `RectangleCentre` and `RectangleAligned`, with `shape()`,
+    `variants()` and `next_variant()`. `CanvasTools::variants` keeps each shape's variant
+    in use. `draw_shape` is the key's action, and `start_drawing` records the variant.
+  - The split button is `ribbon::split_button`: its arrow takes the lower right 38 % of
+    the small button and opens an `egui::Popup::menu`. The Draw menu has a submenu for a
+    shape with variants.
+  - A typed width for the aligned rectangle goes to the cursor's side of the edge (to the
+    left when the cursor is on the edge's line).

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Shapes from the points of a drawing tool (docs/specs/drawing-input.md §4): the arc
-//! through three points, the arc of a radius between two, and an arc as polyline segments.
+//! Shapes from the points of a drawing tool (docs/specs/drawing-input.md §4,
+//! drawing-variants.md §2): the arc through three points, the arc of a radius between two,
+//! an arc as polyline segments, and rectangles by two corners, by their centre or aligned
+//! to an edge.
 
 use chipload_core::math;
 use std::f64::consts::{PI, TAU};
@@ -85,6 +87,77 @@ pub fn arc_as_polyline(arc: &Arc) -> (Vec<Point>, Vec<f64>) {
     (vec![start, middle, end], vec![half, half])
 }
 
+/// A rectangle by its defining values, as a drawn rectangle stores them: its centre, its
+/// length along `angle` (radians, counter-clockwise from +X) and its width across it.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Rectangle {
+    pub center: Point,
+    pub length: f64,
+    pub width: f64,
+    pub angle: f64,
+}
+
+impl Rectangle {
+    /// None when a side is shorter than `CHAIN_TOL_MM`: the rectangle would have no size.
+    fn sized(self) -> Option<Rectangle> {
+        (self.length >= CHAIN_TOL_MM && self.width >= CHAIN_TOL_MM).then_some(self)
+    }
+}
+
+/// The rectangle with opposite corners `a` and `b`, square to the axes.
+pub fn rectangle_by_corners(a: Point, b: Point) -> Option<Rectangle> {
+    Rectangle {
+        center: ((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0),
+        length: (b.0 - a.0).abs(),
+        width: (b.1 - a.1).abs(),
+        angle: 0.0,
+    }
+    .sized()
+}
+
+/// The rectangle centred on `center` with a corner at `corner`, square to the axes.
+pub fn rectangle_by_centre(center: Point, corner: Point) -> Option<Rectangle> {
+    Rectangle {
+        center,
+        length: 2.0 * (corner.0 - center.0).abs(),
+        width: 2.0 * (corner.1 - center.1).abs(),
+        angle: 0.0,
+    }
+    .sized()
+}
+
+/// How far `p` lies to the left of the line from `a` to `b` (negative: to its right); 0
+/// when `a` and `b` coincide.
+pub fn left_of(a: Point, b: Point, p: Point) -> f64 {
+    let between = distance(a, b);
+    if between < CHAIN_TOL_MM {
+        return 0.0;
+    }
+    ((b.0 - a.0) * (p.1 - a.1) - (b.1 - a.1) * (p.0 - a.0)) / between
+}
+
+/// The rectangle with one side from `a` to `b`, reaching across to `p`'s side as far as
+/// `p` lies from that side: length the side, width `p`'s distance, angle the direction
+/// from `a` to `b`.
+pub fn rectangle_aligned(a: Point, b: Point, p: Point) -> Option<Rectangle> {
+    let between = distance(a, b);
+    if between < CHAIN_TOL_MM {
+        return None;
+    }
+    let off = left_of(a, b, p);
+    let (nx, ny) = (-(b.1 - a.1) / between, (b.0 - a.0) / between);
+    Rectangle {
+        center: (
+            (a.0 + b.0) / 2.0 + nx * off / 2.0,
+            (a.1 + b.1) / 2.0 + ny * off / 2.0,
+        ),
+        length: between,
+        width: off.abs(),
+        angle: math::atan2(b.1 - a.1, b.0 - a.0),
+    }
+    .sized()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -136,5 +209,44 @@ mod tests {
         // The bulges give the same arc back.
         let first = Arc::from_bulge(points[0], points[1], bulges[0]).unwrap();
         assert!(close(first.center, big.center));
+    }
+
+    #[test]
+    fn rectangles_by_corners_and_by_centre() {
+        let r = rectangle_by_corners((10.0, 20.0), (0.0, 0.0)).unwrap();
+        assert!(close(r.center, (5.0, 10.0)));
+        assert_eq!((r.length, r.width, r.angle), (10.0, 20.0, 0.0));
+        let c = rectangle_by_centre((5.0, 10.0), (0.0, 25.0)).unwrap();
+        assert!(close(c.center, (5.0, 10.0)));
+        assert_eq!((c.length, c.width), (10.0, 30.0));
+        // A corner on the centre's line: no size.
+        assert!(rectangle_by_centre((5.0, 10.0), (9.0, 10.0)).is_none());
+        assert!(rectangle_by_corners((0.0, 0.0), (0.0, 5.0)).is_none());
+    }
+
+    #[test]
+    fn an_aligned_rectangle_stands_on_its_edge_towards_the_third_point() {
+        // Along +X, the third point above: the rectangle above the edge.
+        let up = rectangle_aligned((0.0, 0.0), (10.0, 0.0), (3.0, 4.0)).unwrap();
+        assert!(close(up.center, (5.0, 2.0)));
+        assert!((up.length - 10.0).abs() < 1e-12 && (up.width - 4.0).abs() < 1e-12);
+        assert!(up.angle.abs() < 1e-12);
+        // Below: the same edge, the rectangle under it.
+        let down = rectangle_aligned((0.0, 0.0), (10.0, 0.0), (30.0, -4.0)).unwrap();
+        assert!(close(down.center, (5.0, -2.0)));
+        // Straight up the Y axis, the third point to the right: centre at x 3.
+        let side = rectangle_aligned((0.0, 0.0), (0.0, 10.0), (6.0, 1.0)).unwrap();
+        assert!(close(side.center, (3.0, 5.0)));
+        assert!((side.angle - FRAC_PI_2).abs() < 1e-12);
+        // At 30°: the corners are the edge's ends and the edge moved across by the width.
+        let (s, c) = (0.5, 3f64.sqrt() / 2.0);
+        let b = (10.0 * c, 10.0 * s);
+        let r = rectangle_aligned((0.0, 0.0), b, (-2.0 * s, 2.0 * c)).unwrap();
+        assert!((r.angle - PI / 6.0).abs() < 1e-12);
+        assert!((r.width - 2.0).abs() < 1e-12);
+        assert!(close(r.center, (5.0 * c - s, 5.0 * s + c)));
+        // The third point on the edge's line, or the edge a point: no size.
+        assert!(rectangle_aligned((0.0, 0.0), (10.0, 0.0), (20.0, 0.0)).is_none());
+        assert!(rectangle_aligned((1.0, 1.0), (1.0, 1.0), (5.0, 5.0)).is_none());
     }
 }

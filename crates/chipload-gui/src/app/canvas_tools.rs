@@ -31,6 +31,9 @@ pub struct CanvasTools {
     pub typed: Option<drawing::Typed>,
     /// The last drawing tool used: Enter with no tool active starts it again.
     pub last_tool: Option<Tool>,
+    /// Each shape's way of drawing in use, by its first tool, as last chosen; the first
+    /// when none is (docs/specs/drawing-variants.md §3).
+    pub variants: std::collections::BTreeMap<Tool, Tool>,
     /// The number of sides new polygons get, as last chosen.
     pub polygon_sides: u32,
     /// The drawing tools draw construction geometry (key K; docs/specs/dxf-export.md §B2).
@@ -63,6 +66,7 @@ impl Default for CanvasTools {
             active: ActiveTool::Select,
             typed: None,
             last_tool: None,
+            variants: std::collections::BTreeMap::new(),
             polygon_sides: crate::draw::POLYGON_SIDES_DEFAULT,
             construction_mode: false,
             offset_corners: chipload_pipeline::drawing_edit::Corners::Round,

@@ -100,3 +100,6 @@ header-new-flute = Новая каннелюра
 header-new-pattern = Новый узор
 header-new-prism = Новая призма
 header-new-moulding = Новый профиль
+header-rectangle-centre-hover = Начертить прямоугольник: центр, затем угол
+header-rectangle-aligned-hover = Начертить прямоугольник: два конца стороны, затем ширина
+header-variants-hint = Стрелка или правый щелчок: другие способы построения

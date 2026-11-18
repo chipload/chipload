@@ -52,7 +52,37 @@ impl ChiploadApp {
             sketch.sides = self.canvas_tools.polygon_sides;
             self.set_tool(ActiveTool::Draw(sketch));
             self.canvas_tools.last_tool = Some(tool);
+            self.canvas_tools.variants.insert(tool.shape(), tool);
         }
+    }
+
+    /// The way the shape's button and key draw it now: the variant last chosen, else the
+    /// first (docs/specs/drawing-variants.md §3).
+    pub fn variant_in_use(&self, shape: Tool) -> Tool {
+        let shape = shape.shape();
+        self.canvas_tools
+            .variants
+            .get(&shape)
+            .copied()
+            .unwrap_or(shape)
+    }
+
+    /// The shape's key or menu item: start its variant in use. Pressed again while that
+    /// shape waits for its first click, it moves to the next variant; after the first click
+    /// it does nothing, so no click is read anew (docs/specs/drawing-variants.md §4).
+    pub fn draw_shape(&mut self, shape: Tool) {
+        let shape = shape.shape();
+        if shape.variants().len() > 1
+            && let Some(sketch) = self.sketch()
+            && sketch.tool.shape() == shape
+        {
+            if sketch.points.is_empty() {
+                let next = sketch.tool.next_variant();
+                self.start_drawing(next);
+            }
+            return;
+        }
+        self.start_drawing(self.variant_in_use(shape));
     }
 
     pub fn cancel_drawing(&mut self) {

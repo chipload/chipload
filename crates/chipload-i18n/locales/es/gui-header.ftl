@@ -124,3 +124,6 @@ header-new-flute = Nuevo acanalado
 header-new-pattern = Nuevo patrón
 header-new-prism = Nuevo prisma
 header-new-moulding = Nueva moldura
+header-rectangle-centre-hover = Dibujar un rectángulo: su centro, luego una esquina
+header-rectangle-aligned-hover = Dibujar un rectángulo: los dos extremos de un borde, luego su ancho
+header-variants-hint = La flecha, o un clic derecho: otras formas de dibujarlo

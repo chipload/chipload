@@ -124,3 +124,6 @@ header-new-flute = New Flute
 header-new-pattern = New Pattern
 header-new-prism = New Prism
 header-new-moulding = New Moulding
+header-rectangle-centre-hover = Draw a rectangle: its centre, then a corner
+header-rectangle-aligned-hover = Draw a rectangle: one edge's two ends, then its width
+header-variants-hint = The arrow, or a right-click: other ways to draw it

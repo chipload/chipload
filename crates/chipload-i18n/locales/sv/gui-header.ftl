@@ -124,3 +124,6 @@ header-new-flute = Ny räffla
 header-new-pattern = Nytt mönster
 header-new-prism = Nytt prisma
 header-new-moulding = Ny profilering
+header-rectangle-centre-hover = Rita en rektangel: mitten, sedan ett hörn
+header-rectangle-aligned-hover = Rita en rektangel: en kants två ändar, sedan bredden
+header-variants-hint = Pilen, eller ett högerklick: andra sätt att rita den

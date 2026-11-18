@@ -970,3 +970,61 @@ fn a_shape_no_operation_selects_keeps_the_toolpath() {
     app.commit();
     assert!(app.toolpath.changed_at.is_some(), "the board grew");
 }
+
+#[test]
+fn the_shapes_key_goes_through_its_variants_until_the_first_click() {
+    let mut app = drawn_part();
+    let tool = |app: &ChiploadApp| app.sketch().map(|s| s.tool);
+    app.draw_shape(Tool::Rectangle);
+    assert_eq!(tool(&app), Some(Tool::Rectangle));
+    app.draw_shape(Tool::Rectangle);
+    assert_eq!(tool(&app), Some(Tool::RectangleCentre));
+    app.draw_shape(Tool::Rectangle);
+    assert_eq!(tool(&app), Some(Tool::RectangleAligned));
+    // After the first click the key leaves the rectangle being drawn alone.
+    app.draw_click((200.0, 10.0), false);
+    app.draw_shape(Tool::Rectangle);
+    assert_eq!(tool(&app), Some(Tool::RectangleAligned));
+    assert_eq!(app.sketch().unwrap().points.len(), 1);
+    app.draw_click((240.0, 10.0), false);
+    app.draw_click((230.0, 25.0), false);
+    assert!(matches!(
+        app.shape(app.selected_shape().unwrap()).unwrap().geometry,
+        Geometry::Rectangle {
+            length: 40.0,
+            width: 15.0,
+            ..
+        }
+    ));
+    app.commit();
+    // The variant stays the rectangle's: its button and key start it next time.
+    assert_eq!(app.variant_in_use(Tool::Rectangle), Tool::RectangleAligned);
+    app.draw_shape(Tool::Circle);
+    app.draw_shape(Tool::Rectangle);
+    assert_eq!(tool(&app), Some(Tool::RectangleAligned));
+    // A shape with one way: its key starts it afresh, as before.
+    app.draw_shape(Tool::Circle);
+    app.draw_click((200.0, 50.0), false);
+    app.draw_shape(Tool::Circle);
+    assert_eq!(app.sketch().unwrap().points.len(), 0);
+}
+
+#[test]
+fn the_r_key_cycles_the_rectangles() {
+    let mut harness = egui_kittest::Harness::builder()
+        .with_size(egui::vec2(1200.0, 800.0))
+        .build_eframe(|_| drawn_part());
+    harness.run();
+    harness.key_press(egui::Key::R);
+    harness.run();
+    assert_eq!(
+        harness.state().sketch().map(|s| s.tool),
+        Some(Tool::Rectangle)
+    );
+    harness.key_press(egui::Key::R);
+    harness.run();
+    assert_eq!(
+        harness.state().sketch().map(|s| s.tool),
+        Some(Tool::RectangleCentre)
+    );
+}
