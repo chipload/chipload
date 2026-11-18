@@ -799,11 +799,11 @@ impl ChiploadApp {
             // The units, the post and the cycle time once generated, at the far right
             // (docs/specs/browser-and-layout.md §6).
             let post = self.edit.as_ref().map(|e| e.job.machine.post.clone());
-            // What the toolpath is of: one part of several, or all of them
-            // (docs/specs/active-part-preview.md §4).
+            // What the toolpath is of: one part alone, or the setup's parts
+            // (docs/specs/parts-and-setups.md §8a).
             let scope = self.edit.as_ref().and_then(|e| {
                 let parts = &e.job.parts;
-                (parts.len() > 1).then(|| match self.toolpath.part {
+                (parts.len() > 1).then(|| match self.toolpath.scope.viewed() {
                     Some(id) => {
                         let k = parts.iter().position(|p| p.id == id).map_or(0, |k| k + 1);
                         t!(ui, "menu-status-part-of", part = k, count = parts.len())
@@ -828,7 +828,8 @@ impl ChiploadApp {
                 let parts = &e.job.parts;
                 let id = e.job.active_part_id()?;
                 (parts.len() > 1
-                    && !(self.toolpath.result.is_some() && self.toolpath.part == Some(id)))
+                    && !(self.toolpath.result.is_some()
+                        && self.toolpath.scope.viewed() == Some(id)))
                 .then(|| parts.iter().find(|p| p.id == id).map(|p| p.name.clone()))?
             });
             let several = self.edit.as_ref().is_some_and(|e| e.job.parts.len() > 1);

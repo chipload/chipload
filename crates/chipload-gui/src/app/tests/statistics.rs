@@ -121,7 +121,6 @@ fn a_part_sums_its_operations_and_says_why_when_it_cant() {
     let mut app = ChiploadApp::default();
     assert!(app.open(&corpus("jobs/v22/two_parts.chipload")));
     app.set_auto_generate(false);
-    app.display.all_parts = true;
     assert!(matches!(app.part_statistics(2), Statistics::OutOfDate));
     assert!(app.generate_and_wait(), "{:?}", app.report);
     let Statistics::Counted {
@@ -145,16 +144,17 @@ fn a_part_sums_its_operations_and_says_why_when_it_cant() {
         ops.iter().map(|(_, c)| c.lifts).sum::<usize>()
     );
     assert_eq!(copies, 2);
-    // Only the active part previewed: the other part wasn't planned.
-    app.display.all_parts = false;
+    // One part shown alone: the other part wasn't planned, and it is cut once.
     let active = app.edited_job().unwrap().active_part_id().unwrap();
     let other = if active == 1 { 2 } else { 1 };
+    app.show_part(Some(active));
     assert!(app.generate_and_wait(), "{:?}", app.report);
     assert!(matches!(
         app.part_statistics(active),
         Statistics::Counted { .. }
     ));
     assert!(matches!(app.part_statistics(other), Statistics::OutOfDate));
+    app.show_part(None);
     // A new part has no operations.
     let added = app.add_part().unwrap();
     assert!(matches!(app.part_statistics(added), Statistics::Empty));
@@ -175,7 +175,6 @@ fn a_parts_section_is_last_in_its_properties() {
             let mut app = ChiploadApp::default();
             assert!(app.open(&corpus("jobs/v22/two_parts.chipload")));
             app.set_auto_generate(false);
-            app.display.all_parts = true;
             app.focus = Focus::Part(2);
             app
         });
@@ -189,9 +188,6 @@ fn a_parts_section_is_last_in_its_properties() {
         .top();
     assert!(statistics > note, "{statistics} under {note}");
     assert!(harness.query_by_label("Lifts").is_some());
-    assert!(
-        harness
-            .query_by_label_contains("For 2 instances, the part included.")
-            .is_some()
-    );
+    // The part selected is shown alone, cut once (docs/specs/parts-and-setups.md §8a).
+    assert!(harness.query_by_label_contains("For 2 instances").is_none());
 }

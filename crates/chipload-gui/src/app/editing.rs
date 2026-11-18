@@ -265,15 +265,17 @@ impl ChiploadApp {
         Some(id)
     }
 
-    /// Make part `id` the one new operations go into.
+    /// Make part `id` the one new operations go into, and the one shown, alone, where it
+    /// is drawn (docs/specs/parts-and-setups.md §8a).
     pub fn activate_part(&mut self, id: u64) {
         if let Some(edit) = self.edit.as_mut()
             && let Some(setup) = edit.job.home_setup(id)
         {
             edit.job.active_part = Some(id);
-            // Its setup is the one shown (docs/specs/setups.md §7).
+            // Its setup is the one it is planned on (docs/specs/setups.md §7).
             edit.job.active_setup = Some(setup);
             self.commit();
+            self.show_part(Some(id));
         }
     }
 

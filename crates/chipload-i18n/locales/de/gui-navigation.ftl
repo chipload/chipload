@@ -27,8 +27,6 @@ navigation-images = Bilder
 navigation-images-hover = Die in Formen nachgezeichneten Bilder, blass über dem Rohteil
 navigation-grid = Raster
 navigation-grid-hover = Das Raster zeigen
-navigation-all-parts = Alle Teile
-navigation-all-parts-hover = Jedes Teil berechnen und simulieren, nicht nur das aktive. Exportieren schreibt immer jedes Teil.
 
 # The orientation cube: its faces' labels are small capitals on the cube.
 navigation-cube-hover = Eine Fläche anklicken, um auf sie zu schauen

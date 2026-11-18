@@ -40,6 +40,7 @@ mod nesting;
 mod new_project;
 mod part_export;
 mod part_stock;
+mod part_view;
 mod parts;
 mod pattern;
 mod pieces;

@@ -38,9 +38,9 @@ pub(super) struct Generation {
     project: EditJob,
     /// Started by the user (F5, the button): errors also go to the status bar.
     loud: bool,
-    /// The one part planned for the preview; None: the whole project
-    /// (docs/specs/active-part-preview.md).
-    scope: Option<u64>,
+    /// What is planned: the active setup, one part of it (an export of that part), or a
+    /// part alone where it is drawn (the part view).
+    scope: Scope,
     /// What the run is made from: an edit that leaves it so keeps the run
     /// (docs/specs/edit-and-simulate.md §5).
     inputs: Option<chipload_pipeline::CutInputs>,
@@ -93,6 +93,7 @@ impl ChiploadApp {
                 counts: *counts,
                 operations: None,
                 copies: job
+                    .filter(|_| self.toolpath.scope.viewed().is_none())
                     .and_then(|job| job.operations.get(at.operation).map(|op| (job, op)))
                     .and_then(|(job, op)| job.part_of(op).map(|p| job.count(p.id)))
                     .unwrap_or(1),
@@ -132,7 +133,11 @@ impl ChiploadApp {
             Some(part) => Statistics::Counted {
                 counts: part.counts,
                 operations: Some(part.operations),
-                copies: job.part(id).map_or(1, |p| job.count(p.id)),
+                // A part shown alone is cut once (docs/specs/parts-and-setups.md §8a).
+                copies: match self.toolpath.scope {
+                    Scope::View(_) => 1,
+                    _ => job.part(id).map_or(1, |p| job.count(p.id)),
+                },
             },
             // Not in this run: another part's preview, or another setup.
             None => Statistics::OutOfDate,
@@ -161,33 +166,32 @@ impl ChiploadApp {
         self.start_generation_of(loud, false)
     }
 
-    /// The part a preview plans: the active one, when the active setup has several parts
-    /// that are cut and "All parts" is off (docs/specs/active-part-preview.md §1), and it is
-    /// in that setup with operations of its own (an empty part has nothing to show; the
-    /// setup's parts are previewed then, docs/specs/setups.md §7). None: all of the setup's.
-    pub(super) fn preview_part(&self) -> Option<u64> {
-        let edit = self.edit.as_ref()?;
-        let settings = &edit.job;
-        let setup = settings.active_setup_id();
-        let in_setup =
-            |p: &chipload_job::Part| p.enabled && setup.is_some_and(|s| settings.part_on(p.id, s));
-        let cut = settings.parts.iter().filter(|p| in_setup(p)).count();
-        let active = settings.active_part_id()?;
-        let on = settings.part(active).is_some_and(in_setup);
-        let has_operations = edit.job.operations.iter().any(|e| e.part() == active);
-        (!self.display.all_parts && cut > 1 && on && has_operations).then_some(active)
+    /// What a preview plans (docs/specs/parts-and-setups.md §8a): the part shown alone,
+    /// where it is drawn, or the active setup.
+    pub(super) fn preview_scope(&self) -> Scope {
+        self.part_shown().map_or(Scope::Setup, Scope::View)
     }
 
-    /// As `start_generation`; `whole` plans every part whatever the preview shows (for an
-    /// export).
+    /// The part shown alone, while it is still in the project.
+    pub(super) fn part_shown(&self) -> Option<u64> {
+        let id = self.display.part?;
+        self.edit.as_ref()?.job.part(id).map(|p| p.id)
+    }
+
+    /// As `start_generation`; `whole` plans the active setup whatever the preview shows
+    /// (for an export).
     pub(super) fn start_generation_of(&mut self, loud: bool, whole: bool) -> bool {
-        let scope = if whole { None } else { self.preview_part() };
+        let scope = if whole {
+            Scope::Setup
+        } else {
+            self.preview_scope()
+        };
         self.start_generation_scoped(loud, scope)
     }
 
-    /// Plan only part `scope`, as if every other part were switched off, or every part
-    /// that is cut (None).
-    pub(super) fn start_generation_scoped(&mut self, loud: bool, scope: Option<u64>) -> bool {
+    /// Plan the active setup, only one part of it as if every other part were switched
+    /// off, or a part alone where it is drawn.
+    pub(super) fn start_generation_scoped(&mut self, loud: bool, scope: Scope) -> bool {
         self.commit();
         self.stop_generation();
         self.toolpath.changed_at = None;
@@ -198,21 +202,27 @@ impl ChiploadApp {
         // Nothing to generate: no error, and the toolpath of operations since deleted goes.
         // A setup without operations (a new one) is the same: it isn't every operation
         // switched off (found 2026-11-06).
-        if !active_setup_has_operations(&edit.job) {
+        let has_operations = match scope {
+            Scope::View(id) => edit.job.operations.iter().any(|op| op.part() == id),
+            _ => active_setup_has_operations(&edit.job),
+        };
+        if !has_operations {
             self.invalidate();
             return false;
         }
         let project = edit.clone();
         let job = match edit.to_job() {
-            // Only the active part: the others are planned as if switched off.
-            Ok(mut job) => {
-                if let Some(id) = scope {
+            Ok(mut job) => match scope {
+                Scope::Setup => job,
+                // Only that part: the others are planned as if switched off.
+                Scope::Only(id) => {
                     for part in &mut job.parts {
                         part.enabled = part.id == id;
                     }
+                    job
                 }
-                job
-            }
+                Scope::View(id) => chipload_pipeline::part_view::part_view(&job, id).unwrap_or(job),
+            },
             Err(problems) => {
                 self.error_ops = problems.iter().filter_map(Problem::operation).collect();
                 self.fail_with(
@@ -322,7 +332,7 @@ impl ChiploadApp {
         self.toolpath.failed = false;
         let done = match outcome {
             Ok(Ok(result)) => {
-                self.toolpath.part = scope;
+                self.toolpath.scope = scope;
                 self.show_result(&job, result);
                 self.toolpath.shown_inputs = inputs;
                 true
@@ -465,7 +475,7 @@ impl ChiploadApp {
         }
         let zero = Self::work_zero_message(job);
         report.push_message(Tone::Info, zero, None);
-        if let Some(part) = self.toolpath.part.and_then(|id| job.part(id)) {
+        if let Some(part) = self.toolpath.scope.viewed().and_then(|id| job.part(id)) {
             let text = t!(self, "generation-one-part-shown", part = part.name.as_str());
             report.push(Tone::Info, text);
         }
@@ -553,12 +563,48 @@ impl ChiploadApp {
         None
     }
 
-    /// "All parts" on the canvas bar: the preview shows every part, or only the active one;
-    /// planned again at once.
-    pub fn set_all_parts(&mut self, on: bool) {
-        self.display.all_parts = on;
+    /// Show part `part` alone, where it is drawn, or (None) the active setup
+    /// (docs/specs/parts-and-setups.md §8a): the board and ghosts follow, and the toolpath
+    /// is planned again when one is shown or the live preview is on.
+    pub fn show_part(&mut self, part: Option<u64>) {
+        if self.display.part == part {
+            return;
+        }
+        self.display.part = part;
+        self.update_ghosts();
         if self.edit.is_some() && (self.toolpath.result.is_some() || self.prefs.auto_generate) {
             self.start_generation(false);
+        }
+    }
+
+    /// What is shown follows what is selected (docs/specs/parts-and-setups.md §8a): a part
+    /// or one of its operations shows that part alone; a setup, the project, the stock,
+    /// the work zero or an instance shows the active setup; anything else leaves it.
+    pub(super) fn follow_focus(&mut self) {
+        if self.display.followed == Some(self.focus) {
+            return;
+        }
+        self.display.followed = Some(self.focus);
+        let op_part = |i: usize| {
+            self.edit
+                .as_ref()
+                .and_then(|e| e.job.operations.get(i))
+                .map(|op| Some(op.part()))
+        };
+        let wanted = match self.focus {
+            Focus::Part(id) => Some(Some(id)),
+            Focus::Op(i)
+            | Focus::RestPass(i, _)
+            | Focus::FloorPass(i)
+            | Focus::RoughingPass(i)
+            | Focus::SmoothingPass(i) => op_part(i),
+            Focus::Job | Focus::Stock | Focus::WorkZero | Focus::Setup(_) | Focus::Instance(..) => {
+                Some(None)
+            }
+            _ => None,
+        };
+        if let Some(part) = wanted {
+            self.show_part(part);
         }
     }
 
@@ -577,14 +623,14 @@ impl ChiploadApp {
     }
 
     fn export_now_or_when_planned(&mut self) {
-        // An export is always of every part that is cut: a preview of one part is planned
-        // again whole first (docs/specs/active-part-preview.md §2).
-        let whole = self.toolpath.result.is_some() && self.toolpath.part.is_none();
+        // An export is always of the active setup: a part shown alone is planned with its
+        // setup first (docs/specs/parts-and-setups.md §8a).
+        let whole = self.toolpath.result.is_some() && self.toolpath.scope == Scope::Setup;
         let running_whole = self
             .toolpath
             .running
             .as_ref()
-            .is_some_and(|g| g.scope.is_none());
+            .is_some_and(|g| g.scope == Scope::Setup);
         if whole {
             self.ask_export();
         } else if running_whole || self.start_generation_of(true, true) {
@@ -670,6 +716,29 @@ fn pass_enabled(op: &chipload_job::Operation, k: usize) -> bool {
     }
 }
 
+/// What a run plans.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Scope {
+    /// The active setup: every part on its board that is cut.
+    Setup,
+    /// Only this part of the active setup, the others as if switched off: what exporting
+    /// that part writes (docs/specs/part-export.md).
+    Only(u64),
+    /// This part alone, once, where it is drawn: the part view, never written
+    /// (docs/specs/parts-and-setups.md §8a).
+    View(u64),
+}
+
+impl Scope {
+    /// The part shown alone, if this is a part view.
+    pub fn viewed(self) -> Option<u64> {
+        match self {
+            Scope::View(id) => Some(id),
+            _ => None,
+        }
+    }
+}
+
 /// The toolpath shown and its runs (docs/specs/background-generation.md).
 pub struct Toolpath {
     // The last generation.
@@ -699,8 +768,8 @@ pub struct Toolpath {
     /// drop is taken back, so the markers stay to be dragged elsewhere (the user,
     /// 2026-10-29).
     pub(super) undo_if_refused: Option<EditJob>,
-    /// The part the last result is a preview of; None: the whole project.
-    pub(super) part: Option<u64>,
+    /// What the last result is of: the active setup, one part of it, or a part alone.
+    pub(super) scope: Scope,
     /// The last run failed: the operations' statistics say so
     /// (docs/specs/operation-statistics.md §3.1).
     pub(super) failed: bool,
@@ -711,7 +780,7 @@ impl Default for Toolpath {
         Toolpath {
             result: None,
             job: None,
-            part: None,
+            scope: Scope::Setup,
             stale: false,
             running: None,
             runner: RUNNER,

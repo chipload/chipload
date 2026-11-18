@@ -21,6 +21,6 @@ generation-check = Comprobación: { $message }
 # Where X, Y and Z zero are on the stock.
 generation-work-zero = Cero pieza: { $zero }
 # "All parts" is a switch on the bar above the canvas.
-generation-one-part-shown = Se muestra solo la pieza "{ $part }" (Todas las piezas, en la barra del lienzo, muestra todas). Exportar escribe todas las piezas que se cortan.
+generation-one-part-shown = Se muestra la pieza "{ $part }" sola, una vez, donde está dibujada (seleccione la sujeción o el proyecto para ver todas las piezas). Exportar escribe toda la sujeción.
 
 generation-export-when-done = Se exportará cuando la trayectoria esté calculada

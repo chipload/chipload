@@ -18,8 +18,8 @@ const QUICK_BUTTON: f32 = 24.0;
 const MENU_TITLE_PADDING: f32 = 6.0;
 
 impl ChiploadApp {
-    /// What Export writes: every part that is cut, which the preview may not show
-    /// (docs/specs/active-part-preview.md §2).
+    /// What Export writes: every part of the active setup that is cut, which the preview
+    /// may not show (docs/specs/parts-and-setups.md §8a).
     pub(super) fn export_hover(&self) -> String {
         let Some(edit) = &self.edit else {
             return t!(self, "header-export-hover");
@@ -27,7 +27,8 @@ impl ChiploadApp {
         let cut = edit.job.parts.iter().filter(|p| p.enabled).count();
         let shown = self
             .toolpath
-            .part
+            .scope
+            .viewed()
             .and_then(|id| edit.job.part(id))
             .map(|p| p.name.as_str());
         match (cut, shown) {

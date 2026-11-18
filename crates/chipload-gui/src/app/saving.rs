@@ -21,9 +21,9 @@ impl ChiploadApp {
             self.error(vec![t!(self, "app-generate-before-export")]);
             return false;
         }
-        // Never a preview of one part: every part is planned first, then written there
-        // (docs/specs/active-part-preview.md §2).
-        if self.toolpath.part.is_some() {
+        // Never a part shown alone: its setup is planned first, then written there
+        // (docs/specs/parts-and-setups.md §8a).
+        if self.toolpath.scope != super::generation::Scope::Setup {
             if self.start_generation_of(true, true) {
                 self.toolpath.export_path_when_done = Some(path.to_path_buf());
                 self.set_status(t!(self, "app-planning-then-export"), STATUS_SECONDS);
@@ -48,10 +48,10 @@ impl ChiploadApp {
         let current = self.toolpath.result.is_some()
             && !self.toolpath.stale
             && self.toolpath.running.is_none();
-        if current && self.toolpath.part == Some(id) {
+        if current && self.toolpath.scope == super::generation::Scope::Only(id) {
             return self.write_export(path, vec![name]);
         }
-        if self.start_generation_scoped(true, Some(id)) {
+        if self.start_generation_scoped(true, super::generation::Scope::Only(id)) {
             self.toolpath.export_path_when_done = None;
             self.toolpath.export_when_done = false;
             self.toolpath.export_part_when_done = Some((id, path.to_path_buf()));
@@ -80,7 +80,7 @@ impl ChiploadApp {
         let current = self.toolpath.result.is_some()
             && !self.toolpath.stale
             && self.toolpath.running.is_none()
-            && self.toolpath.part.is_none()
+            && self.toolpath.scope == super::generation::Scope::Setup
             && shown;
         if current {
             return self.write_export(path, Vec::new());

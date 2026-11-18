@@ -27,8 +27,6 @@ navigation-images = Images
 navigation-images-hover = Les images vectorisées en formes, en transparence sur le brut
 navigation-grid = Grille
 navigation-grid-hover = Afficher la grille
-navigation-all-parts = Toutes les pièces
-navigation-all-parts-hover = Calculer et simuler chaque pièce, pas seulement l'active. L'export écrit toujours chaque pièce.
 
 # The orientation cube: its faces' labels are small capitals on the cube.
 navigation-cube-hover = Cliquer une face pour la regarder

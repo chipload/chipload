@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! What the canvas shows: top view or 3D, Edit or Simulate, the pictures, the toolpath,
-//! every part or the active one, the legend.
+//! a part alone or the active setup, the legend.
 
 /// What the canvas shows.
 pub struct Display {
@@ -11,8 +11,12 @@ pub struct Display {
     pub three_d: bool,
     /// The canvas legend is unfolded.
     pub legend_open: bool,
-    /// Preview every part, not only the active one (canvas bar; this session only).
-    pub all_parts: bool,
+    /// The part shown alone, once, where it is drawn (docs/specs/parts-and-setups.md §8a);
+    /// None: the active setup, every instance on its board. Follows what is selected in
+    /// the Browser; this session only.
+    pub part: Option<u64>,
+    /// The focus `part` last followed (`ChiploadApp::follow_focus`).
+    pub followed: Option<super::Focus>,
     /// View > Show images: the pictures, faintly over the stock and under the drawing.
     pub images: bool,
     /// View → Show toolpath (docs/specs/drawing-sources.md §5).
@@ -48,7 +52,8 @@ impl Default for Display {
             toolpath: true,
             turned: false,
             turn_axis: true,
-            all_parts: false,
+            part: None,
+            followed: None,
             legend_open: true,
             other: None,
         }

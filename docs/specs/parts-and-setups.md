@@ -2,7 +2,7 @@
 
 Status: **started 2026-11-17** on the user's word ("start the work in a feature branch so
 we can work in parallel"), on branch `parts-and-setups`, the decisions as recommended until
-the user says otherwise. **Steps 1 to 5 built** (§11). The user's idea (2026-11-17, after nesting): "each
+the user says otherwise. **Steps 1 to 6 built** (§11). The user's idea (2026-11-17, after nesting): "each
 part should have a stock and not be a node under setup … a project has many parts and then
 setups only hold instances". It brings TODO's *Setups on sheets of their own* (chosen
 2026-10-30 for later) into this scope, and a second board for what nesting can't fit
@@ -220,6 +220,38 @@ it), but **the window and the command line show neither until they matter**:
 - *Show placement instance* goes: instance #1 is an instance like the others, always listed
   and drawn.
 
+## 8a. A part or a setup is shown, never both (decision 12)
+
+The user, 2026-11-18: "When a part is active, we should see the toolpaths for that part in
+its original place … When a setup is active we see the toolpath for all the instances in
+that setup. So parts and setups can only be exclusively active." It replaces the active
+part preview and its *All parts* button (docs/specs/active-part-preview.md, superseded).
+
+- **What is selected decides** (this session only, never saved):
+  - a **part**, or one of its **operations** (or their rest, floor, roughing or smoothing
+    passes): that part is shown **alone, once, where it is drawn**;
+  - a **setup**, the **project**, its **Stock**, its **Work zero**, an **instance**, or a
+    setup's sheet clicked: the **active setup**, every instance on its board, the other
+    setups as sheets beside it (§7);
+  - anything else (tools, a drawing file, a shape, the library) leaves it as it is.
+- **The part view** (`chipload_pipeline::part_view::part_view`): the part planned alone,
+  once, where drawn, every other part off, its board surfaces and dowel holes off (they are
+  the board's work). Its board is the one it is cut from (the active setup when the part is
+  on it, else its first), with the part's own thickness and material when it asks for them
+  (§4), its through cuts following. Drawn in place on that board, the board is the
+  setup's as it is: the simple case doesn't jump. Placed elsewhere, or only copied there,
+  the board is fitted round the part's shapes with the stock's margin (`placed`, never
+  saved) and the machine's travel isn't checked, since the part as drawn may lie anywhere.
+  No sheets, no instance ghosts, no *not cut here* boxes; contours only other parts cut
+  are ghosts.
+- **Generate, the live preview, the simulation and playback** show what is shown. The
+  status bar says "part 2 of 3 · cycle …" for a part; a part's and an operation's
+  statistics count the one cut shown.
+- **Export, the setup sheet and Export all setups** are of setups only: with a part shown,
+  Export plans the active setup first, then writes it, as before. *Export G-code of this
+  part…* is unchanged.
+- **No format change**; the command line plans setups as before.
+
 ## 9. Nesting onto more boards (decision 6)
 
 - `nest` with **overflow**: what doesn't fit on the board goes to the next setup with the
@@ -301,7 +333,8 @@ Each step a commit with its tests, shippable on its own:
    inside, without tabs (the drawing's nesting). Now an outline that only other parts cut
    is passed over (`new_ops::default_side`): the shape is an outline of its own part. One
    no operation cuts, or the part's own, still makes a hole.
-6. **Guide, sheet, translations, specs** brought up to date (setups.md, instances.md,
+6. **A part or a setup is shown** (§8a), asked for 2026-11-18. **Built 2026-11-18.**
+7. **Guide, sheet, translations, specs** brought up to date (setups.md, instances.md,
    part-placement.md marked superseded where they differ).
 
 ## 12. Tests
@@ -372,3 +405,8 @@ Each step a commit with its tests, shippable on its own:
     part (as 0.37); or a mismatch refused outright. **Changed 2026-11-17** (the user agreed,
     review item 3): the stock is recorded and the move offered as one button, never made
     unasked; boards are never removed for being empty.
+12. **A part or a setup is shown, never both** (§8a; the user, 2026-11-18, agreeing to the
+    recommendations: an operation shows its part, the part on the board it is cut from,
+    the project row is the setup in the simple view, exports stay of setups). Changed while
+    building: the simulation and playback show what is shown (a part alone simulates on its
+    own board), as the preview did before; exporting stays of setups.

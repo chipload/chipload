@@ -27,8 +27,6 @@ navigation-images = Images
 navigation-images-hover = The pictures traced into shapes, faintly over the stock
 navigation-grid = Grid
 navigation-grid-hover = Show the grid
-navigation-all-parts = All parts
-navigation-all-parts-hover = Generate and simulate every part, not only the active one. Export always writes every part.
 
 # The orientation cube: its faces' labels are small capitals on the cube.
 navigation-cube-hover = Click a face to look at it

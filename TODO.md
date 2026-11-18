@@ -16,7 +16,7 @@ below).
   The next release (0.38.0) waits for the user. **Branch `parts-and-setups`** (worktree
   `.worktrees/parts`, git-ignored locally): item 000a steps 1 (schema 41) and 1b (the
   simple view), 2 (a part's stock), 3 (sheets side by side), 4 (placing in the window)
-  and 5 (nesting onto more boards), not merged.
+  and 5 (nesting onto more boards), 6 (a part or a setup is shown, never both), not merged.
 - **For the user to try** (said 2026-11-17: "will test after all is done"): nesting (the
   window and `chipload nest`), the instance handles, the part itself placed, surfaces on
   the board and on a part; pieces and instances from before. Findings become items here.
@@ -152,8 +152,18 @@ to a program you trust. It was about four per operation; with the defaults and s
     workflow (2026-11-17, all agreed): copies and placing are setups' work (no instances
     under a part), a part's drag moves it (Ctrl places a copy), *Export all setups…*, a
     shape inside another part's outline is an outline of its own, a part's stock recorded
-    with the move offered (no boards made or removed unasked): built. Next: step 6 with the
-    remembered overflow choice and the setup/board wording.
+    with the move offered (no boards made or removed unasked): built. **Step 6 built
+    2026-11-18** (the user: "parts and setups can only be exclusively active"): a part or
+    one of its operations selected shows the part alone, once, where drawn
+    (`part_view`); a setup, the project, Stock or Work zero shows the setup; *All parts*
+    is gone (§8a; active-part-preview.md superseded); the user tries it, we iterate.
+    Waiting for the user's project and error text: (1) an odd nest on a tall board (a part
+    turned and put right of another instead of above it; perhaps the lies compared by
+    where they start rather than how far up the board they reach); (2) a board default in
+    the Nest window larger than the machine's travel gave an error (not reproduced: the
+    board defaults to the travel when the machine has one). Also seen: `part list` says
+    "0 in all" for a part cut only from another setup. Next: step 7 with the remembered
+    overflow choice and the setup/board wording.
 0. **Compass** (the user, 2026-11-15, before fluting): **built 2026-11-15**
    (docs/specs/compass.md, see *In main*); next the user tries it and we iterate.
 1. **Fewer clicks for the usual job.** Spec docs/specs/fewer-clicks.md, **approved

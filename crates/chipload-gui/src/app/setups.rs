@@ -66,6 +66,7 @@ impl ChiploadApp {
         };
         let p = self.view.to_world(pos);
         self.activate_setup(id);
+        self.show_part(None);
         self.view.keep_at((p.0 - offset.0, p.1 - offset.1), pos);
     }
 

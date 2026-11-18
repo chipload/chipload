@@ -45,8 +45,9 @@ operations were counted. It's what one part costs in time, cutting and lifts, wi
 adding up its operations by hand. The moves from one operation to the next and the tool
 changes aren't in it; they are in the job's total in the report.
 
-When only the active part is previewed (*All parts* off), the other parts weren't
-planned: their section asks you to generate. A part that is off says so, and a part
+While one part is shown alone, the other parts weren't planned: their section asks you
+to generate, and the part shown counts the one cut you see, not its copies. Select the
+setup or the project to count them all. A part that is off says so, and a part
 without operations says *No operations.*
 
 `chipload run` ends its time lines with the whole job's lengths and lifts (*In all: …*),

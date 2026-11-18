@@ -21,6 +21,6 @@ generation-check = Kontroll: { $message }
 # Where X, Y and Z zero are on the stock.
 generation-work-zero = Arbetsnollpunkt: { $zero }
 # "All parts" is a switch on the bar above the canvas.
-generation-one-part-shown = Visas: bara detaljen "{ $part }" (Alla detaljer på ritytans list visar alla detaljer). Export skriver alla detaljer som fräses.
+generation-one-part-shown = Visas: detaljen "{ $part }" ensam, en gång, där den är ritad (välj uppspänningen eller projektet för att se alla detaljer). Export skriver hela uppspänningen.
 
 generation-export-when-done = Exporterar när verktygsbanan har beräknats

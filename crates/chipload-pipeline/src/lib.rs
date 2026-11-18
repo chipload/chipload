@@ -25,6 +25,7 @@ pub mod nest;
 pub mod new_ops;
 pub mod notices;
 pub mod part_stock;
+pub mod part_view;
 pub mod parts;
 mod passes;
 pub mod pieces;

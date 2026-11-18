@@ -181,9 +181,9 @@ colour theme: dark, or light grey.
     window, or a panel opening or folding), a fitted view is fitted again, and a view you
     zoomed or moved keeps showing the same area;
   - what is shown: **Toolpath**, **Drawing** (in Simulate; Edit always shows the drawing),
-    **Images** and **Grid** (G);
-  - with two parts or more, **All parts**: the toolpath and simulation of every part, not
-    only the [active one](operations/parts.md).
+    **Images** and **Grid** (G). What the toolpath is of follows the Browser: a part
+    selected shows [that part alone](operations/parts.md), a setup or the project every
+    part on its board.
   - When the canvas is too narrow for the names, the buttons show only their icons; hover
     over one to see its name.
 - **Drawing off** (in Simulate) hides the drawing's contours, to see the simulated stock or

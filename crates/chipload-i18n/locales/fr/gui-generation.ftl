@@ -21,6 +21,6 @@ generation-check = Vérification : { $message }
 # Where X, Y and Z zero are on the stock.
 generation-work-zero = Origine pièce : { $zero }
 # "All parts" is a switch on the bar above the canvas.
-generation-one-part-shown = Affiché : pièce « { $part } » seulement (Toutes les pièces, dans la barre du canevas, les montre toutes). L'export écrit chaque pièce usinée.
+generation-one-part-shown = Affiché : la pièce « { $part } » seule, une fois, là où elle est dessinée (sélectionnez le montage ou le projet pour voir toutes les pièces). L'export écrit tout le montage.
 
 generation-export-when-done = Export dès que le parcours d'outil est calculé

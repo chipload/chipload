@@ -27,8 +27,6 @@ navigation-images = Imágenes
 navigation-images-hover = Las imágenes vectorizadas en formas, tenues sobre el material
 navigation-grid = Cuadrícula
 navigation-grid-hover = Mostrar la cuadrícula
-navigation-all-parts = Todas las piezas
-navigation-all-parts-hover = Calcular y simular todas las piezas, no solo la activa. Exportar siempre escribe todas las piezas.
 
 # The orientation cube: its faces' labels are small capitals on the cube.
 navigation-cube-hover = Haz clic en una cara para mirarla

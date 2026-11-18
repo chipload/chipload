@@ -21,6 +21,6 @@ generation-check = Prüfung: { $message }
 # Where X, Y and Z zero are on the stock.
 generation-work-zero = Werkstücknullpunkt: { $zero }
 # "All parts" is a switch on the bar above the canvas.
-generation-one-part-shown = Gezeigt: nur Teil „{ $part }“ (Alle Teile in der Leiste der Zeichenfläche zeigt jedes Teil). Exportieren schreibt jedes gefräste Teil.
+generation-one-part-shown = Gezeigt: Teil „{ $part }“ allein, einmal, wo es gezeichnet ist (die Aufspannung oder das Projekt wählen, um alle Teile zu sehen). Exportieren schreibt die ganze Aufspannung.
 
 generation-export-when-done = Export, sobald der Werkzeugweg berechnet ist

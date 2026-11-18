@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use super::*;
+use crate::app::generation::Scope;
 
 #[test]
 fn the_canvas_bar_header_and_job_settings_draw_with_the_moved_settings() {
@@ -78,12 +79,11 @@ fn a_traced_picture_is_v_carved_end_to_end() {
     }
 }
 
-/// docs/specs/active-part-preview.md: with several parts, the preview is of the active
-/// part; All parts shows all; export always writes every part.
+/// docs/specs/parts-and-setups.md §8a: a part selected is shown alone, where it is
+/// drawn; the setup selected shows every part on it; export always writes the setup.
 #[test]
-fn the_preview_is_of_the_active_part_and_export_is_of_all() {
+fn a_part_selected_is_shown_alone_and_export_is_of_the_setup() {
     let mut app = two_parts();
-    let active = app.edit.as_ref().unwrap().job.active_part_id().unwrap();
     let ops_of = |app: &ChiploadApp| -> std::collections::BTreeSet<usize> {
         app.toolpath
             .result
@@ -95,33 +95,45 @@ fn the_preview_is_of_the_active_part_and_export_is_of_all() {
             .map(|s| s.operation)
             .collect()
     };
-    let mine: std::collections::BTreeSet<usize> = op_parts(&app)
-        .iter()
-        .enumerate()
-        .filter(|(_, part)| **part == active)
-        .map(|(i, _)| i)
-        .collect();
+    let of = |app: &ChiploadApp, part: u64| -> std::collections::BTreeSet<usize> {
+        op_parts(app)
+            .iter()
+            .enumerate()
+            .filter(|(_, p)| **p == part)
+            .map(|(i, _)| i)
+            .collect()
+    };
+    // At start the setup is shown: every operation.
     assert!(app.generate_and_wait(), "{:?}", app.report);
-    assert_eq!(app.toolpath.part, Some(active));
-    assert_eq!(ops_of(&app), mine, "only the active part's operations");
-    // All parts: every operation.
-    app.set_all_parts(true);
-    assert!(app.wait_for_generation());
-    assert_eq!(app.toolpath.part, None);
+    assert_eq!(app.toolpath.scope, Scope::Setup);
     assert_eq!(ops_of(&app).len(), op_parts(&app).len());
-    // Back to the part, then export: every part is planned again and written.
-    app.set_all_parts(false);
+    // A part selected in the Browser: only its operations.
+    app.focus = Focus::Part(2);
+    app.follow_focus();
     assert!(app.wait_for_generation());
-    assert_eq!(app.toolpath.part, Some(active));
+    assert_eq!(app.toolpath.scope, Scope::View(2));
+    assert_eq!(ops_of(&app), of(&app, 2));
+    // One of the other part's operations: that part instead.
+    let first = *of(&app, 1).iter().next().unwrap();
+    app.focus = Focus::Op(first);
+    app.follow_focus();
+    assert!(app.wait_for_generation());
+    assert_eq!(app.toolpath.scope, Scope::View(1));
+    assert_eq!(ops_of(&app), of(&app, 1));
+    // Tools or a shape leave it as it is.
+    app.focus = Focus::Tools;
+    app.follow_focus();
+    assert!(!app.generating());
+    // Export: the setup is planned first, then written.
     let dir = temp_dir("part-preview-export");
     let path = dir.join("two.nc");
     assert!(
         !app.export_gcode(&path),
-        "not yet: every part is planned first"
+        "not yet: the setup is planned first"
     );
     assert!(app.generating());
     assert!(app.wait_for_generation());
-    assert_eq!(app.toolpath.part, None);
+    assert_eq!(app.toolpath.scope, Scope::Setup);
     let whole = chipload_pipeline::run_job(&app.edit.as_ref().unwrap().to_job().unwrap()).unwrap();
     let written: Vec<String> = whole
         .files
@@ -130,6 +142,10 @@ fn the_preview_is_of_the_active_part_and_export_is_of_all() {
         .collect();
     let expected: Vec<String> = whole.files.iter().map(|f| f.gcode.clone()).collect();
     assert_eq!(written, expected);
+    // The project selected: the setup again.
+    app.focus = Focus::Job;
+    app.follow_focus();
+    assert_eq!(app.display.part, None);
 }
 
 /// docs/specs/view-and-settings.md §2: Drawing off hides the contours and their picking;

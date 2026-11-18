@@ -21,6 +21,6 @@ generation-check = Check: { $message }
 # Where X, Y and Z zero are on the stock.
 generation-work-zero = Work zero: { $zero }
 # "All parts" is a switch on the bar above the canvas.
-generation-one-part-shown = Shown: part "{ $part }" only (All parts on the canvas bar shows every part). Export writes every part that is cut.
+generation-one-part-shown = Shown: part "{ $part }" alone, once, where it is drawn (select the setup or the project to see every part). Export writes the whole setup.
 
 generation-export-when-done = Exporting once the toolpath is generated

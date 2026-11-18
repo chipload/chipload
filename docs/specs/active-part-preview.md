@@ -1,6 +1,8 @@
 # Spec: the preview is of the active part
 
-Status: approved 2026-10-14 (the user: "go ahead").
+Status: approved 2026-10-14 (the user: "go ahead"). **Superseded 2026-11-18** by
+docs/specs/parts-and-setups.md §8a: a part selected is shown alone, where it is drawn; a
+setup selected shows every part on it; *All parts* is gone.
 
 ## 1. Why
 

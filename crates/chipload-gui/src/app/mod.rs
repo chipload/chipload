@@ -833,6 +833,7 @@ impl eframe::App for ChiploadApp {
             .show(ui, |ui| self.status_bar(ui));
         CentralPanel::no_frame().show(ui, |ui| self.dock_area(ui));
         self.follow_properties();
+        self.follow_focus();
         self.prompts(&ctx);
         self.about(&ctx);
         self.shortcuts_window(&ctx);
@@ -936,21 +937,17 @@ fn sheets(
     out
 }
 
-/// The contours only another setup's operations cut (every shape of them picked by one,
-/// none by the active setup's): drawn as ghosts (docs/specs/setups.md §5). None with one
-/// setup.
+/// The contours only operations of parts not shown cut (every shape of them picked by one,
+/// none by a part `here`): drawn as ghosts (docs/specs/setups.md §5; a part shown alone,
+/// parts-and-setups.md §8a).
 fn ghost_contours(
     job: &chipload_job::Job,
     contours: &[chipload_core::chain::Contour],
+    here: impl Fn(u64) -> bool,
 ) -> BTreeSet<usize> {
-    if job.setups.len() < 2 {
-        return BTreeSet::new();
-    }
-    let active = job.active_setup_id();
     let picks = |mine: bool, shape: &chipload_job::Shape| {
         job.operations.iter().any(|op| {
-            let here = active.is_some_and(|s| job.part_on(op.part(), s));
-            here == mine
+            here(op.part()) == mine
                 && op.selects_shapes()
                 && op.select().resolved(&job.drawing).may_pick(shape)
         })

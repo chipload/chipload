@@ -15,15 +15,21 @@ boxes.
   changes.
 - **Off:** a part that is off is left out with all its operations.
 - **The active part:** new operations go into it. Adding a part makes the new one active.
-- **Seeing one part:** with two parts or more, Generate, the automatic update, the
-  simulation and playback show only the active part, so a change to part 2 doesn't plan
-  part 1 again. The status bar says "part 2 of 2 · cycle …". **All parts** on the canvas
-  bar shows every part.
+- **A part or a setup is shown, never both.** Select a part, or one of its operations, in
+  the Browser: that part is shown alone, once, where it is drawn, and Generate, the
+  automatic update, the simulation and playback are of it, so a change to part 2 doesn't
+  plan part 1 again. The status bar says "part 2 of 2 · cycle …". Other parts' shapes are
+  ghosts. Select the setup, the project, the Stock or the Work zero (or click a setup's
+  sheet) to see every instance on the board again. Selecting a tool or a shape leaves the
+  view as it is.
+- **Its board:** a part drawn in place is shown on its own board. A part placed elsewhere,
+  or cut only as copies, is shown where it is drawn on a board fitted round it, its own
+  thickness when it [asks for one](#a-parts-stock).
 - **Statistics:** the last section of a part's properties gives its time, lengths and
   lifts, its operations' summed with all of its instances
   ([Statistics of a part](../checking/time.md#statistics-of-a-part)).
-- **Export writes every part** that is on. When only the active part is shown, Export
-  plans the whole project first, then writes it.
+- **Export writes the whole setup**, every part on it that is on. When one part is shown
+  alone, Export plans the setup first, then writes it.
 - **One part's G-code:** right-click a part in the Browser and choose **Export G-code of
   this part…**. You get the program the project gives with every other part switched off:
   that part with all its instances, the same stock, work zero and machine, checked as every

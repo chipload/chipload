@@ -27,8 +27,6 @@ navigation-images = Bilder
 navigation-images-hover = Bilderna som spårats till former, svagt över ämnet
 navigation-grid = Rutnät
 navigation-grid-hover = Visa rutnätet
-navigation-all-parts = Alla detaljer
-navigation-all-parts-hover = Beräkna och simulera alla detaljer, inte bara den aktiva. Export skriver alltid alla detaljer.
 
 # The orientation cube: its faces' labels are small capitals on the cube.
 navigation-cube-hover = Klicka på en sida för att se mot den

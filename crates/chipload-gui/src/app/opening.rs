@@ -93,6 +93,19 @@ impl ChiploadApp {
     /// (docs/specs/setups.md §5), from the edited project with its operations: a board
     /// that fits fits its own setup's parts.
     pub(super) fn update_ghosts(&mut self) {
+        // A part shown alone (docs/specs/parts-and-setups.md §8a): its board, no other
+        // setup, every contour only another part cuts a ghost.
+        if let Some((id, job)) = self
+            .part_shown()
+            .zip(self.edited_job())
+            .and_then(|(id, job)| Some((id, chipload_pipeline::part_view::part_view(&job, id)?)))
+        {
+            self.scene.stock = Some(job.stock_bounds());
+            self.scene.sheets.clear();
+            self.scene.pieces.clear();
+            self.scene.ghost_contours = ghost_contours(&job, &self.contours, |part| part == id);
+            return;
+        }
         let job = self.edited_job();
         self.scene.stock = job.as_ref().map(chipload_job::Job::stock_bounds);
         self.scene.sheets = job
@@ -108,7 +121,12 @@ impl ChiploadApp {
             .map(|map| map.pieces)
             .unwrap_or_default();
         self.scene.ghost_contours = job
-            .map(|job| ghost_contours(&job, &self.contours))
+            .filter(|job| job.setups.len() > 1)
+            .map(|job| {
+                let active = job.active_setup_id();
+                let here = |part| active.is_some_and(|s| job.part_on(part, s));
+                ghost_contours(&job, &self.contours, here)
+            })
             .unwrap_or_default();
     }
 

@@ -27,8 +27,6 @@ navigation-images = Immagini
 navigation-images-hover = Le immagini vettorizzate in forme, tenui sopra il grezzo
 navigation-grid = Griglia
 navigation-grid-hover = Mostra la griglia
-navigation-all-parts = Tutti i pezzi
-navigation-all-parts-hover = Calcola e simula ogni pezzo, non solo quello attivo. Esporta scrive sempre ogni pezzo.
 
 # The orientation cube: its faces' labels are small capitals on the cube.
 navigation-cube-hover = Clic su una faccia per guardarla

@@ -95,7 +95,6 @@ pub enum Icon {
     Grid,
     Toolpath,
     Part,
-    Parts,
     Machine,
     ThemeLight,
     ThemeDark,
@@ -622,17 +621,6 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
             ]);
             pen.circle((0.3, 0.45), 0.08);
             pen.circle((0.7, 0.45), 0.08);
-        }
-        Icon::Parts => {
-            pen.closed(&[(0.25, 0.1), (0.9, 0.1), (0.9, 0.55), (0.25, 0.55)]);
-            pen.poly(&[
-                (0.25, 0.3),
-                (0.1, 0.3),
-                (0.1, 0.9),
-                (0.75, 0.9),
-                (0.75, 0.55),
-            ]);
-            pen.circle((0.57, 0.32), 0.07);
         }
         Icon::Grid => {
             for t in [0.15, 0.38, 0.62, 0.85] {
