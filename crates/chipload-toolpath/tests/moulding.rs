@@ -286,21 +286,27 @@ proptest! {
         let step = chipload_toolpath::moulding::SECTION_STEP_MM;
         let first = ((c - r) / step).floor() as i64;
         let last = ((c + r) / step).ceil() as i64;
+        // The top of the wall where the section ends: the board beyond it is at 0.
+        let wall = s.width;
         let points = (first..=last)
             .map(|i| (i as f64 * step, None))
-            .chain([(c - r, Some(-r)), (c + r, Some(r))]);
+            .chain([(c - r, Some(-r)), (c + r, Some(r)), (wall, Some(wall - c))]);
         for (d, rim) in points {
             let Some(h) = cutter.height_at(rim.unwrap_or(d - c)) else { continue };
             // Grid points within the section are its samples exactly.
             let surface = if d < -1e-9 {
                 if s.waste_before { continue } else { 0.0 }
-            } else if d > s.width + 1e-9 {
+            } else if d > s.width - 1e-12 && rim == Some(wall - c) || d > s.width + 1e-9 {
                 0.0
             } else {
-                // Straight between samples, as the section reads.
+                // Straight between samples, as the section reads; its last sample lies at
+                // its width, which may come before the grid's next step.
                 let x = (d / step).clamp(0.0, (s.z.len() - 1) as f64);
                 let i = (x.floor() as usize).min(s.z.len() - 2);
-                s.z[i] + (s.z[i + 1] - s.z[i]) * (x - i as f64)
+                let start = i as f64 * step;
+                let end = ((i + 1) as f64 * step).min(s.width);
+                let t = if end > start { ((d - start) / (end - start)).clamp(0.0, 1.0) } else { 0.0 };
+                s.z[i] + (s.z[i + 1] - s.z[i]) * t
             };
             let tool = z + h;
             prop_assert!(tool >= surface - 1e-9, "below at d {d}: {tool} < {surface}");
@@ -366,4 +372,27 @@ fn the_preview_shows_the_tool_at_each_pass() {
         });
     assert!((hi - lo - 6.0).abs() < 1e-9);
     assert!(preview_tool(&MouldProfile::Cove { radius: 6.0 }, &[], ball, 0.0).is_none());
+}
+
+/// The two cases the property test found (TODO, 2026-11-16 and 11-17): a bead whose width
+/// isn't a whole number of 0.01 mm steps, a ball nose reaching just past its end. The tool
+/// must stay above the untouched board beyond the section, at its end wall too.
+#[test]
+fn the_tool_stays_above_the_board_just_past_the_sections_end() {
+    for (size, r, c) in [
+        (14.009968037188523, 2.709730661055996, 12.554779909949778),
+        (11.659449711444985, 1.0, 10.956349851748659),
+    ] {
+        let s = section(MouldProfile::Bead { radius: size / 2.0 });
+        let cutter = Cutter::Ball { radius: r };
+        let z = s.drop(cutter, c, 1.0);
+        // Every point of the tool past the section's end is above the board (Z 0).
+        let mut d = s.width;
+        while d <= c + r {
+            if let Some(h) = cutter.height_at(d - c) {
+                assert!(z + h >= -1e-9, "below the board at d {d}: {}", z + h);
+            }
+            d += 0.0005;
+        }
+    }
 }

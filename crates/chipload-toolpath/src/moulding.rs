@@ -137,13 +137,22 @@ impl Section {
         if d < -CHAIN_TOL_MM {
             return if self.waste_before { None } else { Some(0.0) };
         }
-        if d > self.width + CHAIN_TOL_MM {
+        // Past its end the board is untouched: the section stops at `width` exactly, not
+        // at the next sample of its grid (the property test's gouge, 2026-11-16).
+        if d > self.width {
             return Some(0.0);
         }
         let last = self.z.len() - 1;
         let x = (d / SECTION_STEP_MM).clamp(0.0, last as f64);
         let i = (x.floor() as usize).min(last.saturating_sub(1));
-        let t = (x - i as f64).clamp(0.0, 1.0);
+        // The last sample lies at `width`, which may come before the grid's next step.
+        let start = i as f64 * SECTION_STEP_MM;
+        let end = ((i + 1) as f64 * SECTION_STEP_MM).min(self.width);
+        let t = if end > start {
+            ((d - start) / (end - start)).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
         let z = match self.z.get(i + 1) {
             Some(&next) => self.z[i] + (next - self.z[i]) * t,
             None => self.z[i],
@@ -160,8 +169,11 @@ impl Section {
         let first = ((c - r) / SECTION_STEP_MM).floor() as i64;
         let last = ((c + r) / SECTION_STEP_MM).ceil() as i64;
         let mut z = f64::NEG_INFINITY;
-        // The rim's two edges too: a steep wall between two samples still stops it.
-        let rims = [(c - r, -r), (c + r, r)];
+        // The rim's two edges too: a steep wall between two samples still stops it. And
+        // the top of the wall where the section ends (the board beyond it is at 0), which
+        // needn't lie on the grid.
+        let end_wall = self.width + f64::EPSILON * self.width.max(1.0);
+        let rims = [(c - r, -r), (c + r, r), (end_wall, end_wall - c)];
         let grid = (first..=last).map(|i| {
             let d = i as f64 * SECTION_STEP_MM;
             (d, d - c)

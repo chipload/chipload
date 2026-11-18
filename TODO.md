@@ -340,14 +340,6 @@ to a program you trust. It was about four per operation; with the defaults and s
    `corner_radius`, the form's Each corner, golden v42_rounded_shapes). The user to try the
    feel. Left: the dashed line from a rounded corner's handle to its arc (spec §4).
 13. **Small follow-ups:**
-    - **Moulding: the dropped tool dips 0.006 mm below the section** (found 2026-11-16 by
-      the property test `moulding::the_dropped_tool_is_never_below_the_section`, also on
-      5ee72272, so older than part placement): kind 3, size 14.009968037188523, r
-      2.709730661055996, ball nose, c 12.554779909949778 ("below at d 14.01:
-      -0.0064 < 0"). Found again 2026-11-17, deeper: kind 3, size 11.659449711444985, r 1.0,
-      ball nose, c 10.956349851748659 ("below at d 11.66: -0.0100 < 0"), again at the
-      section's end. A gouge of 6 µm at the section's end; find whether the drop cutter
-      misses the end point and add the case to `moulding.proptest-regressions` with the fix.
     - Large files and functions (started 2026-11-16, aim: files under 1,000 lines, one job
       per function): split so far `plan/`, `pocket/`, the job's `operations/` and `library/`,
       `validate_ops.rs`, the pipeline's `sheet/`, `drawing_edit/` and `lib.rs`, the CLI's
