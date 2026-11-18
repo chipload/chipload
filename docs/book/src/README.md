@@ -60,7 +60,6 @@ licences of everything it is built with are under *Help > About and licences*, a
 ## What Chipload doesn't do
 
 Chipload is meant to be lean. It leaves out what other tools do better:
-- nesting parts on a sheet;
 - machining driven by a 3D CAD model (features and depths from a STEP file): CAM connected
   to your CAD does that better. Chipload does carve 3D shapes from 2D input:
   [reliefs](drawings/models.md) from the top, and [mouldings](operations/moulding.md);

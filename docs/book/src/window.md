@@ -106,10 +106,12 @@ operations; the first DXF's placement window is open](images/drawing.png)
     operation* (for the selected shapes), *Move up*, *Move down*, *Move to setup ▸* and
     *Delete part* (with its operations).
   - **An instance:** *Mirror*, *Turn 90°* and *Remove*.
-  - **The project**, with one board: *New part*, *Face the board…*, *Nest…*, *Pieces and
-    back side…* (the board's own settings), *Add the back side* and *Add a setup*.
-  - **A setup:** *Export G-code of this setup…*, *New part*, *Add a setup* and *Delete*. **The Setups folder:** *Add a
-    setup*.
+  - **The project, or the empty space below the Browser's rows:** *New part* (on the active
+    setup), *Add a setup*, *Face the board…*, *Nest…* and *Nest again* (the active setup's),
+    and *Export all setups…* with two or more.
+  - **A setup:** *Export G-code of this setup…*, *Face the board…*, *Nest…*, *Nest again*
+    (once nested), *New part*, *Add a setup*, *Add the back side* and, with two or more,
+    *Delete*. **The Setups folder:** *Add a setup* and *Export all setups…*.
   - **A library tool:** *Add to project*, *Make default*, *Delete*. **A library machine:**
     *Use in this project*, *Make default*, *Delete*. **Library > Tools or Machines:** *New*,
     *Import…*, *Export…*.
