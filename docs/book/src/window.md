@@ -166,8 +166,9 @@ colour theme: dark, or light grey.
     picture shows *Drawing*; a setup, its stock, its work zero or an instance shows that
     setup's tab. The project and the tools leave the tab as it is. A drawing tool (or its
     key) started from a setup's tab goes to *Drawing* first.
-  - **Each tab keeps its own view:** zoom into a corner of the drawing, look at the
-    board, and coming back finds the corner as you left it.
+  - **Each space keeps its own view:** zoom into a corner of the drawing, look at the
+    boards, and coming back finds the corner as you left it. The setups' tabs share one
+    view: their boards lie in one row that stays put, whichever is active.
   - **A simple project,** one board with each part on it once where drawn, looks the same
     in both: projects open on *Drawing*, and you can draw, add operations, generate and
     export without leaving it.

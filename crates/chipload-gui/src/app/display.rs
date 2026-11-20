@@ -20,9 +20,9 @@ pub struct Display {
     /// The space shown (docs/specs/drawing-and-setup-spaces.md §2), as last picked; what is
     /// selected picks it again (`ChiploadApp::space`).
     pub space: Space,
-    /// Each space's view, scale and offset, kept while another is shown: the drawing's
-    /// under None, a setup's under its id.
-    pub views: std::collections::BTreeMap<Option<u64>, (f64, (f64, f64))>,
+    /// Each space's view, scale and offset, kept while the other is shown. The setups share
+    /// one: their boards lie in one row that stays put (the user, 2026-11-20).
+    pub views: std::collections::BTreeMap<Space, (f64, (f64, f64))>,
     /// The setup's tab a part dragged from the Browser is held over, and since when
     /// (seconds, egui's clock): held long enough, it opens.
     pub tab_held: Option<(u64, f64)>,
@@ -73,7 +73,7 @@ impl Default for Display {
 }
 
 /// The two kinds of space the canvas shows (docs/specs/drawing-and-setup-spaces.md §2).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum Space {
     /// Every part's shapes where drawn, to draw and edit; no instances.
     #[default]

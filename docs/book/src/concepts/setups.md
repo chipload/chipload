@@ -47,11 +47,12 @@ what is done to that board: **New part** in it, **Nest…**, **Add the back side
 Each setup has a tab over the canvas, beside *Drawing* ([the canvas](../window.md#the-canvas)):
 its board with its instances where they are cut, no drawn shapes. With two or more, the
 setup you click is the **active setup**: it is shown in full colour, generated, simulated
-and exported, its board where it is cut. Every other
-setup is a **sheet** beside it: its board, faint, in a row to the right (50 mm apart; a
-back right beside its front, 10 mm apart with a turn-over mark between them), with the outlines of what is cut from it and its name above. A click on a
-sheet makes that setup the active one: its board moves into place, the point you clicked
-staying under the pointer. Sheets are only drawn beside the board: the project, the G-code
+and exported, its board where it is cut. The boards lie in **one row**, in the setups'
+order from left to right (50 mm apart; a back right beside its front, 10 mm apart with a
+turn-over mark between them); every other setup is a **sheet** in it, its board faint with
+the outlines of what is cut from it and its name above. **The row stays put:** click a
+sheet, a setup's tab or its Browser row, and that setup becomes the active one where it
+lies on screen; only its colours change. Sheets are only drawn beside the board: the project, the G-code
 and the setup sheet keep each board where it is. Right-click a part for **Move to setup ▸**. The machine, shared by
 every setup, is under **Machine**.
 

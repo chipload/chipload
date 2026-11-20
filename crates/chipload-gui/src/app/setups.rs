@@ -53,20 +53,10 @@ impl ChiploadApp {
 
     /// Setup `id`'s sheet clicked at `pos`: the setup becomes the active one and its board
     /// moves into place, the view keeping the point under the pointer there (§7).
-    pub(super) fn activate_sheet(&mut self, id: u64, pos: eframe::egui::Pos2) {
-        let Some(offset) = self
-            .scene
-            .sheets
-            .iter()
-            .find(|s| s.setup == id)
-            .map(|s| s.offset)
-        else {
-            return;
-        };
-        let p = self.view.to_world(pos);
+    pub(super) fn activate_sheet(&mut self, id: u64, _pos: eframe::egui::Pos2) {
+        // The boards stay in their row: the view follows (`activate_setup`).
         self.activate_setup(id);
         self.show_part(None);
-        self.view.keep_at((p.0 - offset.0, p.1 - offset.1), pos);
     }
 
     /// Part `id` cut from `stock`, None for any board (docs/specs/parts-and-setups.md §4):
@@ -230,12 +220,47 @@ impl ChiploadApp {
     /// Make setup `id` the one shown, simulated and previewed. A back is simulated turned
     /// over, back face up; a front face up (docs/specs/two-sided.md §10.2).
     pub fn activate_setup(&mut self, id: u64) {
+        // Where its board is drawn now, in the row: the view moves by as much, so every
+        // board stays where it is on screen (the user, 2026-11-20).
+        let moved = self
+            .edit
+            .as_ref()
+            .and_then(|e| super::row_offsets(&e.job).into_iter().find(|r| r.0 == id))
+            .map(|r| r.1);
         if self.change_setups(|job| chipload_pipeline::setups::activate_setup(job, id)) {
+            if let Some(by) = moved {
+                self.shift_setups_view(by);
+            }
             self.display.turned = self
                 .edit
                 .as_ref()
                 .and_then(|e| e.job.setup(id))
                 .is_some_and(|s| s.back_of.is_some());
+        }
+    }
+
+    /// The setups' view moved with their row by `by` (drawing mm): what was at a point is now
+    /// `by` short of it, so the boards stay on screen. The view itself while a setup's space
+    /// is shown, else the one kept for it.
+    fn shift_setups_view(&mut self, by: (f64, f64)) {
+        use super::display::Space;
+        if self.display.three_d {
+            return;
+        }
+        let shift = |view: &mut crate::view::View| {
+            let at = view.to_screen((0.0, 0.0));
+            view.keep_at((-by.0, -by.1), at);
+        };
+        if self.space() == Space::Setup {
+            shift(&mut self.view);
+        } else if let Some(&(scale, offset)) = self.display.views.get(&Space::Setup) {
+            let mut kept = self.view;
+            kept.scale = scale;
+            kept.offset = offset;
+            shift(&mut kept);
+            self.display
+                .views
+                .insert(Space::Setup, (kept.scale, kept.offset));
         }
     }
 

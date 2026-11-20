@@ -631,27 +631,14 @@ impl ChiploadApp {
     }
 
     /// A tab over the canvas clicked (docs/specs/drawing-and-setup-spaces.md §2): None the
-    /// drawing, else setup `id`, made active and selected. Each keeps its view.
+    /// drawing, else setup `id`, made active and selected. The boards stay where they lie in
+    /// their row; the view follows the one made active ([`Self::activate_setup`]).
     pub(super) fn click_space_tab(&mut self, tab: Option<u64>) {
-        use super::display::Space;
         match tab {
             None => self.enter_drawing_space(),
             Some(id) => {
                 let active = self.edit.as_ref().and_then(|e| e.job.active_setup_id());
-                if self.space() == Space::Setup && active != Some(id) {
-                    // From one board to another: this one's view kept, that one's back.
-                    self.display
-                        .views
-                        .insert(active, (self.view.scale, self.view.offset));
-                    self.activate_setup(id);
-                    match self.display.views.get(&Some(id)) {
-                        Some(&(scale, offset)) if !self.display.three_d => {
-                            self.view.scale = scale;
-                            self.view.offset = offset;
-                        }
-                        _ => self.fit_pending = true,
-                    }
-                } else if active != Some(id) {
+                if active != Some(id) {
                     self.activate_setup(id);
                 }
                 self.focus = Focus::Setup(id);
@@ -660,31 +647,20 @@ impl ChiploadApp {
         }
     }
 
-    /// The key a space's view is kept under: None the drawing, a setup's id.
-    pub(super) fn view_key(&self, space: super::display::Space) -> Option<u64> {
-        match space {
-            super::display::Space::Drawing => None,
-            super::display::Space::Setup => {
-                self.edit.as_ref().and_then(|e| e.job.active_setup_id())
-            }
-        }
-    }
-
     /// From space `from` (its view kept) to `to` (its view put back, or fitted the first
     /// time); the scene's board and ghosts redone.
     pub(super) fn switch_space(&mut self, from: super::display::Space, to: super::display::Space) {
-        let (old, new) = (self.view_key(from), self.view_key(to));
         self.display.space = to;
-        if old == new && from == to {
+        if from == to {
             return;
         }
         // A view still waiting for its first fit is nothing to come back to.
         if !self.fit_pending {
             self.display
                 .views
-                .insert(old, (self.view.scale, self.view.offset));
+                .insert(from, (self.view.scale, self.view.offset));
         }
-        match self.display.views.get(&new) {
+        match self.display.views.get(&to) {
             Some(&(scale, offset)) if !self.display.three_d => {
                 self.view.scale = scale;
                 self.view.offset = offset;

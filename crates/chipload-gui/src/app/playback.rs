@@ -334,6 +334,8 @@ impl ChiploadApp {
         if steps.contains(&"setup2") {
             self.activate_setup(2);
             self.focus = Focus::Setup(2);
+            // Fitted round both boards as they lie now.
+            self.fit_pending = true;
         }
         // The active setup's form open (docs/specs/pieces.md §9).
         if steps.contains(&"setup")

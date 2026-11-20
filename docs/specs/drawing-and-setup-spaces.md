@@ -224,3 +224,8 @@ already places an instance anywhere, and `--like` like another.
 - **A right-click on empty canvas in a setup's space** (the user, 2026-11-20) gives the
   setup's own menu, the same items as its Browser row (`setup_menu_items`): export it,
   face the board, nest and nest again, a new part, a new setup, its back side, remove it.
+- **The boards stay put** (the user, 2026-11-20: "when selecting a setup the selected setup
+  moves to the leftmost position … I want them to stay"): every board lies in one row in
+  the setups' order (`row_offsets`), the active one where it is cut; making another active
+  moves the view by as much as its board moved, so nothing moves on screen. This replaces
+  each setup's own view (§2): the setups' tabs share one, the drawing has its own.

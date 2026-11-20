@@ -358,3 +358,35 @@ fn a_right_click_on_the_board_gives_the_setups_menu() {
     click(&mut h, item, false);
     assert!(h.state().nest.is_some());
 }
+
+#[test]
+fn the_boards_stay_where_they_are_when_another_setup_is_chosen() {
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v34/two_setups.chipload")));
+    app.activate_setup(1);
+    show_setup(&mut app);
+    app.fit_pending = false;
+    draw_canvas(&mut app);
+    let on_screen = |app: &ChiploadApp, board: (Point, Point)| {
+        (app.view.to_screen(board.0), app.view.to_screen(board.1))
+    };
+    let one = on_screen(&app, app.scene.stock.unwrap());
+    let two = on_screen(&app, app.scene.sheets[0].board);
+    // Setup 2 chosen from its tab: it is the active board now, setup 1 a sheet, and both
+    // lie where they lay on screen.
+    app.click_space_tab(Some(2));
+    draw_canvas(&mut app);
+    assert_eq!(app.edit.as_ref().unwrap().job.active_setup_id(), Some(2));
+    let close = |a: (egui::Pos2, egui::Pos2), b: (egui::Pos2, egui::Pos2)| {
+        a.0.distance(b.0) < 0.01 && a.1.distance(b.1) < 0.01
+    };
+    assert!(close(on_screen(&app, app.scene.stock.unwrap()), two));
+    let sheet = app.scene.sheets.iter().find(|s| s.setup == 1).unwrap();
+    assert!(close(on_screen(&app, sheet.board), one));
+    // In the setups' order, left to right, whichever is active.
+    assert!(sheet.board.1.0 < app.scene.stock.unwrap().0.0);
+    // And back from the Browser: the same.
+    app.activate_setup(1);
+    draw_canvas(&mut app);
+    assert!(close(on_screen(&app, app.scene.stock.unwrap()), one));
+}

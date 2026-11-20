@@ -923,28 +923,55 @@ fn paired(job: &chipload_job::Job, a: u64, b: u64) -> bool {
     back_of(a, b) || back_of(b, a)
 }
 
-/// The setups that aren't active, as sheets in a row to the right of the active board, in
-/// their order (a back after its front), their bottoms level with its bottom: each its
-/// board and its instances' outlines, moved there for the view only
-/// (docs/specs/parts-and-setups.md §7). None with one setup.
+/// Where each setup's board is drawn, as (setup, offset from where it lies, paired with the
+/// one before): every board in one row in the setups' order (a back right after its front,
+/// close), bottoms level, the active one where it lies. The row stays put whichever setup is
+/// active (the user, 2026-11-20: "I want them to stay"); only the view moves.
+pub(super) fn row_offsets(job: &chipload_job::Job) -> Vec<(u64, (f64, f64), bool)> {
+    let mut x = 0.0;
+    let mut before: Option<u64> = None;
+    // (setup, its left in the row, its board's lower left, paired)
+    let mut lefts = Vec::new();
+    for setup in &job.setups {
+        let ((x0, y0), (x1, _)) = job.for_setup(setup.id).stock_bounds();
+        let pair = before.is_some_and(|b| paired(job, b, setup.id));
+        if before.is_some() {
+            x += if pair { PAIR_GAP_MM } else { SHEET_GAP_MM };
+        }
+        lefts.push((setup.id, x, (x0, y0), pair));
+        x += x1 - x0;
+        before = Some(setup.id);
+    }
+    let active = job.active_setup_id();
+    let Some(&(_, row_x, (ax, ay), _)) = lefts.iter().find(|l| Some(l.0) == active) else {
+        return Vec::new();
+    };
+    lefts
+        .into_iter()
+        .map(|(id, left, (x0, y0), pair)| (id, (left - row_x + ax - x0, ay - y0), pair))
+        .collect()
+}
+
+/// The setups that aren't active, as sheets in their row ([`row_offsets`]): each its board
+/// and its instances' outlines, moved there for the view only
+/// (docs/specs/drawing-and-setup-spaces.md §4). None with one setup.
 fn sheets(
     job: &chipload_job::Job,
     contours: &[chipload_core::chain::Contour],
 ) -> Vec<crate::view::Sheet> {
     let active = job.active_setup_id();
-    let ((_, bottom), (right, _)) = job.stock_bounds();
-    let (mut x, mut before) = (right, active);
     let mut out = Vec::new();
-    for setup in job.setups.iter().filter(|s| Some(s.id) != active) {
-        // A back beside its front, close, the pair one board turned over (§10a).
-        let pair = before.is_some_and(|b| paired(job, b, setup.id));
-        x += if pair { PAIR_GAP_MM } else { SHEET_GAP_MM };
-        before = Some(setup.id);
-        let one = job.for_setup(setup.id);
+    for (id, (dx, dy), pair) in row_offsets(job) {
+        if Some(id) == active {
+            continue;
+        }
+        let Some(setup) = job.setup(id) else {
+            continue;
+        };
+        let one = job.for_setup(id);
         let ((x0, y0), (x1, y1)) = one.stock_bounds();
-        let (dx, dy) = (x - x0, bottom - y0);
         let shift = |p: &chipload_core::Point| (p.0 + dx, p.1 + dy);
-        let outlines = chipload_pipeline::parts::setup_outlines(&one, contours, setup.id)
+        let outlines = chipload_pipeline::parts::setup_outlines(&one, contours, id)
             .into_iter()
             .map(|(points, closed)| {
                 let mut moved: Vec<chipload_core::Point> = points.iter().map(shift).collect();
@@ -955,14 +982,13 @@ fn sheets(
             })
             .collect();
         out.push(crate::view::Sheet {
-            setup: setup.id,
+            setup: id,
             name: setup.name.clone(),
             board: ((x0 + dx, y0 + dy), (x1 + dx, y1 + dy)),
             outlines,
             offset: (dx, dy),
             paired: pair,
         });
-        x += x1 - x0;
     }
     out
 }

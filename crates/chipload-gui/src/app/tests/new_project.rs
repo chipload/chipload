@@ -31,6 +31,9 @@ fn tool(name: &str, id: i64, kind: ToolType, diameter: f64) -> LibraryTool {
 /// A settings folder with three tools (6 mm the default) and plywood 18 mm as the default
 /// material.
 fn settings(name: &str) -> PathBuf {
+    // Emptied first: process numbers repeat (a sandbox starts each run's from 1), and a run
+    // must not find the choice an earlier one remembered.
+    let _ = std::fs::remove_dir_all(temp_dir(name));
     let dir = temp_dir(name);
     let tools = ToolLibrary {
         tools: vec![
