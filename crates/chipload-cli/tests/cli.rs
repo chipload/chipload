@@ -25,10 +25,16 @@ fn text(bytes: &[u8]) -> String {
 }
 
 fn temp_dir(name: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("chipload-cli-{name}-{}", std::process::id()));
-    // Emptied first: process numbers repeat (a sandbox starts each run's from 1), and a
-    // test must not find what an earlier run left, such as a library tool.
-    let _ = std::fs::remove_dir_all(&dir);
+    // A fresh folder each run: process numbers repeat (a sandbox starts each run's from 1),
+    // and a test must not find what an earlier run left, such as a library tool. Not
+    // emptied and made again: on Windows a removed folder can linger a moment, and making
+    // it again then fails.
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let dir =
+        std::env::temp_dir().join(format!("chipload-cli-{name}-{}-{now}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     dir
 }

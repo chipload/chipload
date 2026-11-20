@@ -138,11 +138,23 @@ fn the_tabs_switch_spaces_and_a_double_click_opens_an_instances_part() {
         .find(|g| g.id == 2)
         .unwrap()
         .clone();
-    let (a, b) = (ghost.outlines[0][0], ghost.outlines[0][1]);
+    // The middle of its highest edge: clear of its badge, below it.
+    let (a, b) = ghost
+        .outlines
+        .iter()
+        .flat_map(|o| o.windows(2))
+        .map(|w| (w[0], w[1]))
+        .max_by(|x, y| (x.0.1 + x.1.1).total_cmp(&(y.0.1 + y.1.1)))
+        .unwrap();
     let on = h
         .state()
         .view
         .to_screen(((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0));
+    assert_eq!(
+        h.state().instance_at(on),
+        Some((1, 2)),
+        "the point is on it"
+    );
     click(&mut h, on, true);
     assert_eq!(h.state().focus, Focus::Part(1));
     assert_eq!(h.state().space(), Space::Drawing);
