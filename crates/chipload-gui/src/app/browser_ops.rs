@@ -119,6 +119,7 @@ pub(super) enum OpAction {
     InstanceMirror(u64, u32),
     InstanceTurn(u64, u32, bool),
     InstanceDuplicate(u64, u32),
+    InstanceReset(u64, u32),
     InstanceRemove(u64, u32),
     /// Part `.0` placed on setup `.1` where it is drawn, a new instance
     /// (docs/specs/parts-and-setups.md §8).
@@ -206,6 +207,7 @@ impl ChiploadApp {
             OpAction::InstanceDuplicate(part, id) => {
                 self.duplicate_instance(part, id);
             }
+            OpAction::InstanceReset(part, id) => self.reset_instance(part, id),
             OpAction::InstanceRemove(part, id) => self.remove_instance(part, id),
             OpAction::PartPlace(part) => self.place_part(part),
             OpAction::PartPlaceOn(part, setup) => self.place_part_on(part, setup),

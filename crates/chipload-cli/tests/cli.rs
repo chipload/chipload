@@ -689,6 +689,17 @@ fn instances_are_added_changed_and_removed_from_the_command_line() {
     let (code, _, err) = run(&["part", "instance", "add", p, "--like", "9"]);
     assert_eq!(code, Some(1));
     assert!(err.contains("has no instance 9"), "{err}");
+    // --reset: back where the part is drawn, not turned; the mirror stays.
+    let (code, out, _) = run(&["part", "instance", "set", p, "5", "--reset"]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(
+        out.contains("Instance 5 at 0.000, 0.000 mm")
+            && !out.contains("turned")
+            && out.contains("mirrored left-right"),
+        "{out}"
+    );
+    let (code, _, err) = run(&["part", "instance", "set", p, "5", "--reset", "--at", "1,1"]);
+    assert_eq!(code, Some(2), "{err}");
     run(&["part", "instance", "remove", p, "5", "6"]);
     // Added where it overlaps the part: written, with a warning; running refuses it.
     let (code, _, err) = run(&["part", "instance", "set", p, "4", "--at", "1,1"]);

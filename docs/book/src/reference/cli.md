@@ -2554,6 +2554,7 @@ chipload part instance set <PROJECT> <IDS>... [OPTIONS]
 | `--mirror <MIRROR>` | Mirrored: left-right, top-bottom or none. |
 | `--off` | Keep it, but don't cut it. |
 | `--on` | Cut it again. |
+| `--reset` | Back where the part is drawn, not turned; its mirror and on or off stay. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload part instance remove`

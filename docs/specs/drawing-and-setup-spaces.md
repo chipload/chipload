@@ -1,6 +1,6 @@
 # Spec: a drawing space and a space per setup
 
-Status: **approved 2026-11-20** (all decisions as recommended); steps 1 and 2 built (§14). From the user's testing of
+Status: **approved and built 2026-11-20** (all decisions as recommended; §14). From the user's testing of
 nesting and instances: "when we select the setup we should not see the parts, only the
 instances, it gets quite messy on the screen", then "could we separate drawing space and
 setup space?", and "we should be able to drag in parts from the browser to the setup to
@@ -209,3 +209,7 @@ already places an instance anywhere, and `--like` like another.
     bar.
   - **The part's outline** dragged is the contours its operations cut
     (`chipload_pipeline::parts::part_outlines`, shared with the instances' outlines).
+- **Step 3** (*Reset to where drawn*): in an instance's menu, canvas and Browser, greyed
+  when it is already there; `part instance set --reset` (refused with `--at` or
+  `--angle` by the argument parser). *Reset placement* of the part is the same for its
+  first instance.

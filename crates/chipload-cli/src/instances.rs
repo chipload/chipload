@@ -82,6 +82,9 @@ pub enum InstanceAction {
         /// Cut it again.
         #[arg(long)]
         on: bool,
+        /// Back where the part is drawn, not turned; its mirror and on or off stay.
+        #[arg(long, conflicts_with_all = ["at", "angle"])]
+        reset: bool,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -294,6 +297,7 @@ pub fn instance(out: &mut Out, action: InstanceAction) -> ExitCode {
             mirror,
             off,
             on,
+            reset,
             output,
         } => {
             let job = match load(out, &project) {
@@ -305,9 +309,15 @@ pub fn instance(out: &mut Out, action: InstanceAction) -> ExitCode {
                 if at.is_some() && ids.len() > 1 {
                     return Err("--at moves one instance: give one number".to_string());
                 }
+                // Back where the part is drawn (docs/specs/drawing-and-setup-spaces.md §8).
+                let (at, angle) = if reset {
+                    (Some([0.0, 0.0]), Some(0.0))
+                } else {
+                    (at_arg(at.as_deref())?, angle.map(radians).transpose()?)
+                };
                 let change = InstanceChange {
-                    at: at_arg(at.as_deref())?,
-                    angle: angle.map(radians).transpose()?,
+                    at,
+                    angle,
                     mirror: mirror.map(|MirrorChoice(m)| m),
                     enabled: match (off, on) {
                         (true, _) => Some(false),

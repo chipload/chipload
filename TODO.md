@@ -354,7 +354,7 @@ to a program you trust. It was about four per operation; with the defaults and s
    Browser onto a setup to make instances). Spec approved 2026-11-20
    (docs/specs/drawing-and-setup-spaces.md); replaces parts-and-setups.md §7 and §8a in the
    window. Steps: (1) the tabs, each space's content, views kept: **done**; (2) parts
-   dragged from the Browser onto a board: **done** (snapping to instances not built); (3) *Reset to where drawn* and `--reset`.
+   dragged from the Browser onto a board: **done** (snapping to instances not built); (3) *Reset to where drawn* and `--reset`: **done**. The user to try.
    Guide screenshots to renew once all three are in.
 13. **Small follow-ups:**
     - Large files and functions (started 2026-11-16, aim: files under 1,000 lines, one job

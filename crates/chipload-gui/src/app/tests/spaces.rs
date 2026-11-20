@@ -5,6 +5,7 @@ use super::*;
 use crate::app::display::Space;
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
+use std::f64::consts::FRAC_PI_2;
 
 fn select(app: &mut ChiploadApp, focus: Focus) {
     app.focus = focus;
@@ -282,4 +283,45 @@ fn a_setup_in_pieces_refuses_a_second_instance_of_a_part() {
     );
     let why: Vec<&String> = app.report.iter().collect();
     assert!(why.iter().any(|l| l.contains("piece")), "{why:?}");
+}
+
+#[test]
+fn reset_to_where_drawn_from_the_instances_menu() {
+    let mut h = setup_window();
+    h.state_mut().add_instance(1, true);
+    h.state_mut().turn_instance(1, 2, true);
+    h.run_steps(4);
+    let ghost = h
+        .state()
+        .scene
+        .instances
+        .iter()
+        .find(|g| g.id == 2)
+        .unwrap()
+        .clone();
+    let (a, b) = (ghost.outlines[0][0], ghost.outlines[0][1]);
+    let on = h
+        .state()
+        .view
+        .to_screen(((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0));
+    h.hover_at(on);
+    h.run_steps(1);
+    for pressed in [true, false] {
+        h.event(egui::Event::PointerButton {
+            pos: on,
+            button: egui::PointerButton::Secondary,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        });
+        h.run_steps(1);
+    }
+    h.run_steps(2);
+    let item = h.get_by_label("Reset to where drawn").rect().center();
+    click(&mut h, item, false);
+    let now = h.state().instance_value(1, 2).unwrap();
+    assert_eq!((now.at, now.angle), ([0.0, 0.0], 0.0));
+    assert!(now.mirror.is_some(), "the mirror stays");
+    // One undo step.
+    h.state_mut().undo();
+    assert_eq!(h.state().instance_value(1, 2).unwrap().angle, FRAC_PI_2);
 }

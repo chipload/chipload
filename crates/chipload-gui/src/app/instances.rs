@@ -115,9 +115,15 @@ impl ChiploadApp {
     /// Part `part`'s first instance cut where drawn again, as one undo step (*Reset
     /// placement*); its mirror and on or off stay.
     pub(super) fn reset_part_placement(&mut self, part: u64) {
-        let Some(id) = self.first_instance(part) else {
-            return;
-        };
+        if let Some(id) = self.first_instance(part) {
+            self.reset_instance(part, id);
+        }
+    }
+
+    /// Instance `id` of part `part` back where the part is drawn, not turned, as one undo
+    /// step; its mirror and on or off stay (*Reset to where drawn*,
+    /// docs/specs/drawing-and-setup-spaces.md §8).
+    pub(super) fn reset_instance(&mut self, part: u64, id: u32) {
         if let Some(mut now) = self.instance_value(part, id)
             && (now.angle != 0.0 || now.at != [0.0, 0.0])
         {
@@ -649,6 +655,17 @@ impl ChiploadApp {
         }
         if ui.button(t!(ui, "browser-instance-mirror")).clicked() {
             action = Some(OpAction::InstanceMirror(part, id));
+        }
+        let moved = self
+            .instance_value(part, id)
+            .is_some_and(|i| i.angle != 0.0 || i.at != [0.0, 0.0]);
+        if ui
+            .add_enabled(moved, egui::Button::new(t!(ui, "browser-instance-reset")))
+            .on_hover_text(t!(ui, "browser-instance-reset-hover"))
+            .on_disabled_hover_text(t!(ui, "browser-instance-reset-disabled-hover"))
+            .clicked()
+        {
+            action = Some(OpAction::InstanceReset(part, id));
         }
         let enabled = self.instance_value(part, id).is_some_and(|i| i.enabled);
         let toggle = if enabled {

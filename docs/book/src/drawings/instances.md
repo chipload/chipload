@@ -29,7 +29,9 @@ In the window:
   says why.
 - **More of them on the canvas:**
   - **Right-click an instance** (its badge, or its outline): *Duplicate*, *Turn 90° left*,
-    *Turn 90° right*, *Mirror*, *Don't cut* (or *Cut*) and *Remove*.
+    *Turn 90° right*, *Mirror*, *Reset to where drawn*, *Don't cut* (or *Cut*) and
+    *Remove*. *Reset to where drawn* puts it back where the part is drawn, not turned; its
+    mirror and whether it is cut stay.
   - **Duplicate** places a new instance, turned and mirrored like this one and on the same
     board, beside everything the part cuts, and selects it. Duplicate again and the next
     goes beside that one.
@@ -60,6 +62,7 @@ chipload part instance add part.chipload --at 300,0       # moved 300 mm right o
 chipload part instance add part.chipload --like 3         # turned, mirrored and on the board of instance 3
 chipload part instance list part.chipload                 # their numbers, places and turns
 chipload part instance set part.chipload 3 --angle 45     # turn instance 3 (also --at, --mirror, --off, --on)
+chipload part instance set part.chipload 3 --reset        # back where the part is drawn, not turned
 chipload part instance remove part.chipload 3             # or --all: the part is cut once
 chipload part instance array part.chipload --grid 3x2 --gap 10   # a grid in place of them
 chipload part instance move part.chipload 3 --setup 2     # instance 3 cut from setup 2's board instead
