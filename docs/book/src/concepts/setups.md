@@ -55,6 +55,8 @@ staying under the pointer. Sheets are only drawn beside the board: the project, 
 and the setup sheet keep each board where it is. Right-click a part for **Move to setup ▸**. The machine, shared by
 every setup, is under **Machine**.
 
+The same menu opens with a right-click on empty canvas in the setup's tab.
+
 Right-click a setup for **Export G-code of this setup…**: it becomes the active setup, is
 planned if it isn't shown already, and its program and sheet are written. **Export G-code**
 writes the active setup's program, named `-S1`, `-S2` as `run` names them,

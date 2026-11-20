@@ -159,7 +159,8 @@ colour theme: dark, or light grey.
     (`Side #2`, and a mirror mark when mirrored) and the setup's toolpath. No drawn shapes: here you place, turn, copy and
     [nest](drawings/nesting.md) the instances. Double-click an instance to open its part
     in *Drawing*. Drag a part's row from the Browser onto the board to place it there
-    again. The other setups lie beside the board as before.
+    again. Right-click empty canvas for the setup's own menu, as on its Browser row:
+    export it, face or nest its board, a new part or setup, its back side. The other setups lie beside the board as before.
   - **+** adds a setup.
   - **What you select picks the tab:** a part, an operation, a shape, a text or a
     picture shows *Drawing*; a setup, its stock, its work zero or an instance shows that

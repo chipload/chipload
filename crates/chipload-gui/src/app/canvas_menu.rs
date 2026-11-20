@@ -24,6 +24,12 @@ impl ChiploadApp {
         }
         let context_instance = self.drag.context_instance;
         let mut instance_action = None;
+        // Empty canvas in a setup's space: the setup's own menu, as on its Browser row
+        // (docs/specs/drawing-and-setup-spaces.md §4).
+        let setup_here = (self.space() == super::display::Space::Setup)
+            .then(|| self.edit.as_ref().and_then(|e| e.job.active_setup_id()))
+            .flatten();
+        let mut setup_action = None;
         let context_start = self.drag.context_start;
         let (context_tab, context_ring) = (self.drag.context_tab, self.drag.context_ring);
         let picked = self
@@ -117,9 +123,17 @@ impl ChiploadApp {
                         }
                     }
                     (None, Some(id)) => self.contour_menu(ui, id, &layers, from),
-                    (None, None) => {
-                        ui.label(t!(ui, "canvas-right-click-hint"));
-                    }
+                    (None, None) => match setup_here {
+                        Some(id) => {
+                            setup_action = self.setup_menu_items(ui, id);
+                            if setup_action.is_some() {
+                                ui.close();
+                            }
+                        }
+                        None => {
+                            ui.label(t!(ui, "canvas-right-click-hint"));
+                        }
+                    },
                 }
                 // The Q menu does the same in two keys (docs/specs/fewer-clicks.md §2).
                 if context_start.is_none() && self.selection != CanvasSelection::Nothing {
@@ -150,6 +164,9 @@ impl ChiploadApp {
         }
         if let Some(action) = instance_action {
             self.apply_op_action(action);
+        }
+        if let Some(action) = setup_action {
+            self.apply_setup_action(action);
         }
     }
 

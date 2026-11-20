@@ -325,3 +325,36 @@ fn reset_to_where_drawn_from_the_instances_menu() {
     h.state_mut().undo();
     assert_eq!(h.state().instance_value(1, 2).unwrap().angle, FRAC_PI_2);
 }
+
+#[test]
+fn a_right_click_on_the_board_gives_the_setups_menu() {
+    let mut h = setup_window();
+    let right_click = |h: &mut Harness<'_, ChiploadApp>| {
+        // Empty board, away from the part.
+        let at = h.state().view.to_screen((250.0, 200.0));
+        h.hover_at(at);
+        h.run_steps(1);
+        for pressed in [true, false] {
+            h.event(egui::Event::PointerButton {
+                pos: at,
+                button: egui::PointerButton::Secondary,
+                pressed,
+                modifiers: egui::Modifiers::NONE,
+            });
+            h.run_steps(1);
+        }
+        h.run_steps(2);
+    };
+    right_click(&mut h);
+    let parts = h.state().edit.as_ref().unwrap().job.parts.len();
+    let item = h.get_by_label("New part").rect().center();
+    click(&mut h, item, false);
+    assert_eq!(h.state().edit.as_ref().unwrap().job.parts.len(), parts + 1);
+    // Nest… from the same menu opens the nest window for this setup.
+    h.state_mut().focus = Focus::Setup(1);
+    h.run_steps(10);
+    right_click(&mut h);
+    let item = h.get_by_label("Nest…").rect().center();
+    click(&mut h, item, false);
+    assert!(h.state().nest.is_some());
+}

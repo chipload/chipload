@@ -305,10 +305,6 @@ impl ChiploadApp {
         } else {
             parts_text
         };
-        let can_turn = setup.back_of.is_none()
-            && !setups
-                .iter()
-                .any(|s| s.back_of.is_some_and(|b| b.setup == setup.id));
         let icon = if setup.back_of.is_some() {
             Icon::TurnOver
         } else {
@@ -361,60 +357,84 @@ impl ChiploadApp {
             hover = format!("⚠ {}\n\n{hover}", t!(ui, "browser-setup-no-dowels-hover"));
         }
         out.response.on_hover_text(hover).context_menu(|ui| {
-            if ui
-                .button(t!(ui, "browser-export-setup"))
-                .on_hover_text(t!(ui, "browser-export-setup-hover"))
-                .clicked()
-            {
-                action = Some(SetupAction::Export(setup.id));
-            }
-            ui.separator();
-            if ui
-                .button(t!(ui, "browser-face-board"))
-                .on_hover_text(t!(ui, "browser-face-board-hover"))
-                .clicked()
-            {
-                action = Some(SetupAction::FaceBoard(setup.id));
-            }
-            if ui
-                .button(t!(ui, "nest-menu"))
-                .on_hover_text(t!(ui, "nest-menu-hover"))
-                .clicked()
-            {
-                action = Some(SetupAction::Nest(setup.id));
-            }
-            if self.was_nested(setup.id)
-                && ui
-                    .button(t!(ui, "nest-again"))
-                    .on_hover_text(t!(ui, "nest-again-hover"))
-                    .clicked()
-            {
-                action = Some(SetupAction::NestAgain(setup.id));
-            }
-            if ui.button(t!(ui, "browser-new-part")).clicked() {
-                action = Some(SetupAction::NewPart(setup.id));
-            }
-            if ui
-                .button(t!(ui, "browser-add-setup"))
-                .on_hover_text(t!(ui, "browser-add-setup-hover"))
-                .clicked()
-            {
-                action = Some(SetupAction::Add);
-            }
-            if ui
-                .add_enabled(can_turn, egui::Button::new(t!(ui, "browser-add-back-side")))
-                .on_hover_text(t!(ui, "browser-add-back-side-hover"))
-                .clicked()
-            {
-                action = Some(SetupAction::AddBack(setup.id));
-            }
-            ui.separator();
-            // The last board isn't deleted: it can go back to being the project's.
-            if several && ui.button(t!(ui, "browser-delete")).clicked() {
-                action = Some(SetupAction::Remove(setup.id));
+            if let Some(chosen) = self.setup_menu_items(ui, setup.id) {
+                action = Some(chosen);
             }
         });
         (setup_open, action)
+    }
+
+    /// A setup's menu (docs/specs/drawing-and-setup-spaces.md §4): on its Browser row, and
+    /// on empty canvas in its space. Export it; face, nest or nest again its board; a new part
+    /// or setup; its back side; remove it (not the last).
+    pub(super) fn setup_menu_items(&self, ui: &mut egui::Ui, id: u64) -> Option<SetupAction> {
+        let setups = self
+            .edit
+            .as_ref()
+            .map(|e| e.job.setups.as_slice())
+            .unwrap_or(&[]);
+        let several = setups.len() > 1;
+        let can_turn = setups
+            .iter()
+            .find(|s| s.id == id)
+            .is_some_and(|s| s.back_of.is_none())
+            && !setups
+                .iter()
+                .any(|s| s.back_of.is_some_and(|b| b.setup == id));
+        let mut action = None;
+        if ui
+            .button(t!(ui, "browser-export-setup"))
+            .on_hover_text(t!(ui, "browser-export-setup-hover"))
+            .clicked()
+        {
+            action = Some(SetupAction::Export(id));
+        }
+        ui.separator();
+        if ui
+            .button(t!(ui, "browser-face-board"))
+            .on_hover_text(t!(ui, "browser-face-board-hover"))
+            .clicked()
+        {
+            action = Some(SetupAction::FaceBoard(id));
+        }
+        if ui
+            .button(t!(ui, "nest-menu"))
+            .on_hover_text(t!(ui, "nest-menu-hover"))
+            .clicked()
+        {
+            action = Some(SetupAction::Nest(id));
+        }
+        if self.was_nested(id)
+            && ui
+                .button(t!(ui, "nest-again"))
+                .on_hover_text(t!(ui, "nest-again-hover"))
+                .clicked()
+        {
+            action = Some(SetupAction::NestAgain(id));
+        }
+        if ui.button(t!(ui, "browser-new-part")).clicked() {
+            action = Some(SetupAction::NewPart(id));
+        }
+        if ui
+            .button(t!(ui, "browser-add-setup"))
+            .on_hover_text(t!(ui, "browser-add-setup-hover"))
+            .clicked()
+        {
+            action = Some(SetupAction::Add);
+        }
+        if ui
+            .add_enabled(can_turn, egui::Button::new(t!(ui, "browser-add-back-side")))
+            .on_hover_text(t!(ui, "browser-add-back-side-hover"))
+            .clicked()
+        {
+            action = Some(SetupAction::AddBack(id));
+        }
+        ui.separator();
+        // The last board isn't deleted: it can go back to being the project's.
+        if several && ui.button(t!(ui, "browser-delete")).clicked() {
+            action = Some(SetupAction::Remove(id));
+        }
+        action
     }
 
     /// The project's menu, on its row and the Browser's empty space

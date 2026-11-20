@@ -221,3 +221,6 @@ already places an instance anywhere, and `--like` like another.
   below the instance's bottom left, clear of the turn handle above.
 - **A part with nothing to cut** (no operation yet) has no instance drawn in a setup's
   space: there is nothing to show or place; it is listed in the Browser as before.
+- **A right-click on empty canvas in a setup's space** (the user, 2026-11-20) gives the
+  setup's own menu, the same items as its Browser row (`setup_menu_items`): export it,
+  face the board, nest and nest again, a new part, a new setup, its back side, remove it.
