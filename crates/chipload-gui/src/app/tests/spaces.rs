@@ -138,18 +138,18 @@ fn the_tabs_switch_spaces_and_a_double_click_opens_an_instances_part() {
         .find(|g| g.id == 2)
         .unwrap()
         .clone();
-    // The middle of its highest edge: clear of its badge, below it.
-    let (a, b) = ghost
+    // The middle of the outline's edge nearest the window's middle: clear of the tabs over
+    // the canvas's top and of the panels, whatever the fonts make of the layout (Windows'
+    // are wider: the canvas is smaller there).
+    let middle = egui::pos2(600.0, 400.0);
+    let view = h.state().view;
+    let on = ghost
         .outlines
         .iter()
         .flat_map(|o| o.windows(2))
-        .map(|w| (w[0], w[1]))
-        .max_by(|x, y| (x.0.1 + x.1.1).total_cmp(&(y.0.1 + y.1.1)))
+        .map(|w| view.to_screen(((w[0].0 + w[1].0) / 2.0, (w[0].1 + w[1].1) / 2.0)))
+        .min_by(|x, y| x.distance(middle).total_cmp(&y.distance(middle)))
         .unwrap();
-    let on = h
-        .state()
-        .view
-        .to_screen(((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0));
     assert_eq!(
         h.state().instance_at(on),
         Some((1, 2)),
