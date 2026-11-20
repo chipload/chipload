@@ -21,3 +21,4 @@ copy-paste-mirrored = Mirrored
 copy-paste-mirrored-drawn = Mirrored (imported shapes in the selection stay as they are)
 # Followed by the reason on the next line.
 copy-paste-cannot-mirror = Cannot mirror:
+copy-paste-instance-copied = Instance #{ $number } copied: Ctrl+V places another like it

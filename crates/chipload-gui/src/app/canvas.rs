@@ -344,7 +344,10 @@ impl ChiploadApp {
         grips: &Grips,
     ) {
         let Keys {
-            alt, shift, space, ..
+            alt,
+            shift,
+            ctrl,
+            space,
         } = keys;
         let view = self.view;
         let on_handle = |pos: egui::Pos2| grips.shape_at(&view, pos);
@@ -370,15 +373,24 @@ impl ChiploadApp {
             } else if let Some(instance) = self.instance_handle_at(origin).filter(|_| flat) {
                 self.start_instance_drag(instance, super::instances::InstanceGrip::Turn, at);
             } else if let Some(instance) = self.instance_badge_at(origin).filter(|_| flat) {
-                // Its badge, above it, outside the shapes: always the instance.
-                self.start_instance_drag(instance, super::instances::InstanceGrip::Move, at);
+                // Its badge, above it, outside the shapes: always the instance. Ctrl: a copy
+                // of it (docs/specs/canvas-handling.md §3).
+                if ctrl {
+                    self.start_instance_copy(instance, at);
+                } else {
+                    self.start_instance_drag(instance, super::instances::InstanceGrip::Move, at);
+                }
             } else if let Some(instance) = self.instance_at(origin).filter(|i| {
                 // Over the shapes, only the selected one: instance 1 where it is drawn lies
                 // on them (docs/specs/part-placement.md §6).
                 flat && (self.scene.pick(&self.view, origin).is_none()
                     || self.focus == Focus::Instance(i.0, i.1))
             }) {
-                self.start_instance_drag(instance, super::instances::InstanceGrip::Move, at);
+                if ctrl {
+                    self.start_instance_copy(instance, at);
+                } else {
+                    self.start_instance_drag(instance, super::instances::InstanceGrip::Move, at);
+                }
             } else if let Some(handle) = on_handle(origin) {
                 self.start_handle_drag(handle);
             } else if let Some(handle) = on_box_handle(origin) {

@@ -14,3 +14,4 @@ copy-paste-select-to-mirror = Выделите начерченную геоме
 copy-paste-mirrored = Отражено
 copy-paste-mirrored-drawn = Отражено (импортированная геометрия в выделении не изменена)
 copy-paste-cannot-mirror = Не удалось отразить:
+copy-paste-instance-copied = Экземпляр #{ $number } скопирован: Ctrl+V разместит ещё один такой же

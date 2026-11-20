@@ -2533,6 +2533,7 @@ chipload part instance add <PROJECT> [OPTIONS]
 | `--at <AT>` | Its move "DX,DY" from the part as drawn (any length unit; plain numbers are mm); default: beside everything the part cuts, 10 mm away. |
 | `--angle <ANGLE>` | Turned about the middle of the part's box, degrees counter-clockwise. |
 | `--mirror <MIRROR>` | Mirrored about the middle of the part's box first: left-right, top-bottom or none. Climb stays climb. |
+| `--like <LIKE>` | Like this instance (its number): on its setup, turned and mirrored as it is; --setup, --angle and --mirror still override each. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload part instance set`

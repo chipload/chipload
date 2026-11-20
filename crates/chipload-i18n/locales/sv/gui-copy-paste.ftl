@@ -21,3 +21,4 @@ copy-paste-mirrored = Speglade
 copy-paste-mirrored-drawn = Speglade (importerade former i markeringen förblir som de är)
 # Followed by the reason on the next line.
 copy-paste-cannot-mirror = Kan inte spegla:
+copy-paste-instance-copied = Instans #{ $number } kopierad: Ctrl+V placerar en till likadan

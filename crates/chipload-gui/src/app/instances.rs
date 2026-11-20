@@ -39,6 +39,9 @@ pub(super) struct InstanceDrag {
     grab: Point,
     /// The centre it turns about, where it was when the drag began.
     centre: Point,
+    /// A copy of this instance made as the drag began (Ctrl+drag): kept when dropped, gone
+    /// on Escape.
+    copy_of: Option<u32>,
 }
 
 impl ChiploadApp {
@@ -144,23 +147,97 @@ impl ChiploadApp {
             }
         };
         let mirror = mirrored.then_some(Mirror::LeftRight);
-        match chipload_pipeline::instances::add_instance(&job, part, None, None, 0.0, mirror) {
+        let made = chipload_pipeline::instances::add_instance(&job, part, None, None, 0.0, mirror);
+        if self.adopt_instance(part, made).is_some() {
+            self.commit();
+        }
+    }
+
+    /// A new instance like instance `id` of part `part` (turned, mirrored and on its setup),
+    /// beside what the part cuts, selected, one undo step (docs/specs/canvas-handling.md
+    /// §3). False when refused, the reason shown.
+    pub(super) fn duplicate_instance(&mut self, part: u64, id: u32) -> bool {
+        self.commit();
+        let made = self.duplicated(part, id, None);
+        let done = made.is_some();
+        if done {
+            self.commit();
+        }
+        done
+    }
+
+    /// Instance `id` of part `part` duplicated, moved by `at` or beside the others, and
+    /// selected; not yet an undo step. Its number, or None when refused (the reason shown).
+    fn duplicated(&mut self, part: u64, id: u32, at: Option<[f64; 2]>) -> Option<u32> {
+        let job = match self.edit.as_ref()?.to_job() {
+            Ok(job) => job,
+            Err(problems) => {
+                self.error_report(Report::of_problems(
+                    &t!(self, "app-project-incomplete"),
+                    &problems,
+                ));
+                return None;
+            }
+        };
+        let made = chipload_pipeline::instances::duplicate_instance(&job, part, id, at);
+        self.adopt_instance(part, made)
+    }
+
+    /// The setups' instances taken from `made` and its new instance selected; the reason
+    /// shown when it was refused.
+    fn adopt_instance(
+        &mut self,
+        part: u64,
+        made: Result<(chipload_job::Job, u32), chipload_pipeline::PipelineError>,
+    ) -> Option<u32> {
+        match made {
             Ok((made, id)) => {
-                if let Some(edit) = self.edit.as_mut() {
-                    for (setup, target) in made.setups.iter().zip(edit.job.setups.iter_mut()) {
-                        target.instances = setup.instances.clone();
-                    }
-                    self.focus = Focus::Instance(part, id);
-                    self.commit();
+                let edit = self.edit.as_mut()?;
+                for (setup, target) in made.setups.iter().zip(edit.job.setups.iter_mut()) {
+                    target.instances = setup.instances.clone();
                 }
+                self.focus = Focus::Instance(part, id);
+                Some(id)
             }
             Err(err) => {
                 self.error_report(Report::failed(
                     t!(self, "app-instance-needs-plan"),
                     err.message(),
                 ));
+                None
             }
         }
+    }
+
+    /// A Ctrl+drag of instance `id` of part `part` begins at `at`: a copy is made where it
+    /// is, and that copy is dragged; the original stays (docs/specs/canvas-handling.md §3).
+    pub(super) fn start_instance_copy(&mut self, (part, id): (u64, u32), at: Point) -> bool {
+        let centre = self
+            .scene
+            .instances
+            .iter()
+            .find(|g| g.part == part && g.id == id)
+            .map(|g| g.centre);
+        let (Some(original), Some(centre)) = (self.instance_value(part, id), centre) else {
+            return false;
+        };
+        self.commit();
+        let Some(copy) = self.duplicated(part, id, Some(original.at)) else {
+            return false;
+        };
+        let Some(start) = self.instance_value(part, copy) else {
+            return false;
+        };
+        self.drag.instance = Some(InstanceDrag {
+            part,
+            id: copy,
+            grip: InstanceGrip::Move,
+            start,
+            grab: at,
+            centre,
+            copy_of: Some(id),
+        });
+        true
     }
 
     /// Instance `id` of part `part` removed, instance 1 as any other; the others keep their
@@ -198,10 +275,13 @@ impl ChiploadApp {
         }
     }
 
-    /// Instance `id` turned a quarter counter-clockwise.
-    pub(super) fn turn_instance(&mut self, part: u64, id: u32) {
+    /// Instance `id` turned a quarter, counter-clockwise (`left`) or clockwise, about its
+    /// centre.
+    pub(super) fn turn_instance(&mut self, part: u64, id: u32, left: bool) {
         if let Some(mut instance) = self.instance_value(part, id) {
-            instance.angle = tidy_angle(instance.angle + std::f64::consts::FRAC_PI_2);
+            let quarter = std::f64::consts::FRAC_PI_2;
+            let turn = if left { quarter } else { -quarter };
+            instance.angle = tidy_angle(instance.angle + turn);
             self.set_instance_value(part, id, instance);
             self.commit();
         }
@@ -401,6 +481,7 @@ impl ChiploadApp {
             start,
             grab: at,
             centre,
+            copy_of: None,
         });
         true
     }
@@ -465,7 +546,7 @@ impl ChiploadApp {
             return;
         };
         let now = self.instance_value(drag.part, drag.id);
-        if now.is_some_and(|now| now != drag.start) {
+        if drag.copy_of.is_some() || now.is_some_and(|now| now != drag.start) {
             self.commit();
         }
     }
@@ -476,7 +557,19 @@ impl ChiploadApp {
         let Some(drag) = self.drag.instance.take() else {
             return false;
         };
-        self.set_instance_value(drag.part, drag.id, drag.start);
+        if let Some(original) = drag.copy_of {
+            // The copy goes; the original is selected again.
+            if let Some(edit) = self.edit.as_mut() {
+                for setup in &mut edit.job.setups {
+                    setup
+                        .instances
+                        .retain(|i| i.part != drag.part || i.id != drag.id);
+                }
+            }
+            self.focus = Focus::Instance(drag.part, original);
+        } else {
+            self.set_instance_value(drag.part, drag.id, drag.start);
+        }
         true
     }
 }
@@ -513,6 +606,46 @@ fn segment_distance(p: egui::Pos2, a: egui::Pos2, b: egui::Pos2) -> f32 {
     }
     let t = ((p - a).dot(ab) / length).clamp(0.0, 1.0);
     p.distance(a + ab * t)
+}
+
+impl ChiploadApp {
+    /// The items of an instance's right-click menu, on the canvas and in the Browser
+    /// (docs/specs/canvas-handling.md §3). Moving it to another setup is the Browser's.
+    pub(super) fn instance_menu_items(
+        &self,
+        ui: &mut egui::Ui,
+        part: u64,
+        id: u32,
+    ) -> Option<super::browser_ops::OpAction> {
+        use super::browser_ops::OpAction;
+        let mut action = None;
+        if ui
+            .button(t!(ui, "browser-instance-duplicate"))
+            .on_hover_text(t!(ui, "browser-instance-duplicate-hover"))
+            .clicked()
+        {
+            action = Some(OpAction::InstanceDuplicate(part, id));
+        }
+        if ui.button(t!(ui, "browser-instance-turn")).clicked() {
+            action = Some(OpAction::InstanceTurn(part, id, true));
+        }
+        if ui.button(t!(ui, "browser-instance-turn-right")).clicked() {
+            action = Some(OpAction::InstanceTurn(part, id, false));
+        }
+        if ui.button(t!(ui, "browser-instance-mirror")).clicked() {
+            action = Some(OpAction::InstanceMirror(part, id));
+        }
+        let enabled = self.instance_value(part, id).is_some_and(|i| i.enabled);
+        let toggle = if enabled {
+            t!(ui, "browser-instance-off")
+        } else {
+            t!(ui, "browser-instance-on")
+        };
+        if ui.button(toggle).clicked() {
+            action = Some(OpAction::InstanceToggle(part, id));
+        }
+        action
+    }
 }
 
 #[cfg(test)]

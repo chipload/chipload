@@ -347,7 +347,8 @@ to a program you trust. It was about four per operation; with the defaults and s
    **done**; (2) Ctrl+click points of one polyline or spline and drag them together:
    **done**;
    (3) instances from the canvas: right-click menu (duplicate, turn ±90°, mirror, on/off,
-   remove), Ctrl+drag a copy, Ctrl+C/Ctrl+V, `part instance add --like`.
+   remove), Ctrl+drag a copy, Ctrl+C/Ctrl+V, `part instance add --like`: **done**. The
+   user to try all three.
 13. **Small follow-ups:**
     - Large files and functions (started 2026-11-16, aim: files under 1,000 lines, one job
       per function): split so far `plan/`, `pocket/`, the job's `operations/` and `library/`,

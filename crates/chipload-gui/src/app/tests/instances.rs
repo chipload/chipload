@@ -5,6 +5,7 @@
 use super::*;
 use chipload_job::{Instance, Mirror};
 use egui_kittest::Harness;
+use egui_kittest::kittest::Queryable;
 use std::f64::consts::FRAC_PI_2;
 
 fn harness() -> Harness<'static, ChiploadApp> {
@@ -161,8 +162,8 @@ fn an_instance_is_changed_from_the_browser_menu_and_removed_with_delete() {
     draw_sidebar(&mut app);
     draw_properties(&mut app);
     app.mirror_instance(1, 2);
-    app.turn_instance(1, 2);
-    app.turn_instance(1, 2);
+    app.turn_instance(1, 2, true);
+    app.turn_instance(1, 2, true);
     app.toggle_instance(1, 2);
     let i = instance(&app);
     assert_eq!(i.mirror, Some(Mirror::LeftRight));
@@ -226,7 +227,7 @@ fn the_part_itself_is_placed_shown_where_it_is_cut_and_reset() {
     assert_eq!(app.scene.elsewhere.len(), 1);
     assert!(app.scene.elsewhere[0].1.ends_with("not cut here"));
     // Turned a quarter from its menu.
-    app.turn_instance(1, 1);
+    app.turn_instance(1, 1, true);
     assert_eq!(own(&app).1, FRAC_PI_2);
     // *Reset placement*: back where drawn, as one undo step.
     app.reset_part_placement(1);
@@ -489,4 +490,91 @@ fn shift_keeps_an_instance_move_to_15_degree_steps() {
         moved.at
     );
     app.end_instance_drag();
+}
+
+#[test]
+fn an_instance_is_duplicated_turned_both_ways_copied_and_pasted() {
+    let mut app = drawn_part();
+    app.add_instance(1, true);
+    app.turn_instance(1, 2, true);
+    let two = instance(&app);
+    // Duplicate: a new number, turned and mirrored alike, beside it, selected, one undo step.
+    assert!(app.duplicate_instance(1, 2));
+    let three = others(&app.edit.as_ref().unwrap().job, 1)[1];
+    assert_eq!(three.id, 3);
+    assert_eq!((three.angle, three.mirror), (two.angle, two.mirror));
+    assert_ne!(three.at, two.at);
+    assert_eq!(app.focus, Focus::Instance(1, 3));
+    app.undo();
+    assert_eq!(others(&app.edit.as_ref().unwrap().job, 1).len(), 1);
+    // A quarter right undoes a quarter left.
+    app.turn_instance(1, 2, false);
+    assert_eq!(instance(&app).angle, 0.0);
+    // Ctrl+C with the instance selected, Ctrl+V: another like it, twice.
+    app.focus = Focus::Instance(1, 2);
+    let text = app.copy_selected_shapes().expect("the clipboard's note");
+    assert!(app.paste(Some(&text)));
+    assert!(app.paste(Some(&text)));
+    let job = &app.edit.as_ref().unwrap().job;
+    assert_eq!(others(job, 1).len(), 3);
+    assert!(
+        others(job, 1)
+            .iter()
+            .all(|i| i.mirror == Some(Mirror::LeftRight))
+    );
+    // Other text on the clipboard pastes as before (no shapes in it: refused).
+    assert!(!app.paste(Some("hello")));
+}
+
+#[test]
+fn ctrl_drag_copies_an_instance_and_escape_drops_the_copy() {
+    let mut h = harness();
+    let start = instance(h.state());
+    let on = screen(&h, on_ghost(&h));
+    let ctrl_drag = |h: &mut Harness<'_, ChiploadApp>, escape: bool| {
+        h.event(egui::Event::ModifiersChanged(egui::Modifiers::COMMAND));
+        drag(h, on, on + egui::vec2(0.0, -60.0), escape);
+        h.event(egui::Event::ModifiersChanged(egui::Modifiers::NONE));
+        h.run_steps(2);
+    };
+    ctrl_drag(&mut h, false);
+    let job = &h.state().edit.as_ref().unwrap().job;
+    let list = others(job, 1);
+    assert_eq!(list.len(), 2, "a copy");
+    assert_eq!(list[0], start, "the original stays");
+    assert!(
+        list[1].at[1] > start.at[1],
+        "the copy went up: {:?}",
+        list[1].at
+    );
+    assert_eq!(h.state().focus, Focus::Instance(1, 3));
+    // One undo step takes the copy away.
+    h.state_mut().undo();
+    assert_eq!(others(&h.state().edit.as_ref().unwrap().job, 1).len(), 1);
+    // Escape during a Ctrl+drag: no copy, the original selected.
+    h.run_steps(3);
+    ctrl_drag(&mut h, true);
+    assert_eq!(others(&h.state().edit.as_ref().unwrap().job, 1), [start]);
+    assert_eq!(h.state().focus, Focus::Instance(1, 2));
+}
+
+#[test]
+fn an_instance_has_its_own_menu_on_the_canvas() {
+    let mut h = harness();
+    let on = screen(&h, on_ghost(&h));
+    h.hover_at(on);
+    h.run_steps(1);
+    for pressed in [true, false] {
+        h.event(egui::Event::PointerButton {
+            pos: on,
+            button: egui::PointerButton::Secondary,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        });
+        h.run_steps(1);
+    }
+    h.run_steps(2);
+    let at = h.get_by_label("Turn 90° right").rect().center();
+    click_at(&mut h, at);
+    assert_eq!(instance(h.state()).angle, -FRAC_PI_2);
 }

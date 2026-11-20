@@ -17,10 +17,20 @@ In the window:
   takes. Hold Shift while moving to keep it to 15° steps from where you grabbed it
   (straight across, up or at 45°). Turning snaps to quarter turns within 3°; hold
   Alt to turn freely. Escape during a drag puts it back; each drag is one undo step.
+- **More of them on the canvas:**
+  - **Right-click an instance** (its badge, or its outline): *Duplicate*, *Turn 90° left*,
+    *Turn 90° right*, *Mirror*, *Don't cut* (or *Cut*) and *Remove*.
+  - **Duplicate** places a new instance, turned and mirrored like this one and on the same
+    board, beside everything the part cuts, and selects it. Duplicate again and the next
+    goes beside that one.
+  - **Ctrl+drag** (⌘ on a Mac) an instance to drag a copy of it off; the original stays.
+    Escape during the drag drops the copy.
+  - **Ctrl+C, then Ctrl+V,** with an instance selected, works as *Duplicate*, as many times
+    as you paste. It copies the placement, not the shapes.
 - **In the Browser**, each instance has a row with its tick under its setup ("Side #2"),
   never under its part: copies and placing are setups' work, so they are listed under the
-  setup that cuts them, even with one board (*Setup 1*). Right-click it to *Mirror* it, *Turn
-  90°*, *Move to setup ▸* or *Remove* it; Delete removes the selected one.
+  setup that cuts them, even with one board (*Setup 1*). Right-click it for the same menu
+  as on the canvas, and *Move to setup ▸*; Delete removes the selected one.
 - **Several setups:** drag a part's row onto a setup to cut it there, every instance of it
   moved (right-click it for *Move to setup ▸*); hold Ctrl (⌘ on a Mac) as you drop to
   place it there too, a new instance where the part is drawn (*Place on setup ▸*). Drag an
@@ -37,6 +47,7 @@ give `--part`.
 chipload part instance add part.chipload                  # beside the part, 10 mm from its cut
 chipload part instance add part.chipload --angle 90 --mirror left-right
 chipload part instance add part.chipload --at 300,0       # moved 300 mm right of the part
+chipload part instance add part.chipload --like 3         # turned, mirrored and on the board of instance 3
 chipload part instance list part.chipload                 # their numbers, places and turns
 chipload part instance set part.chipload 3 --angle 45     # turn instance 3 (also --at, --mirror, --off, --on)
 chipload part instance remove part.chipload 3             # or --all: the part is cut once

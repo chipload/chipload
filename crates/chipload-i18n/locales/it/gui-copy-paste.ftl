@@ -21,3 +21,4 @@ copy-paste-mirrored = Specchiate
 copy-paste-mirrored-drawn = Specchiate (le forme importate nella selezione restano come sono)
 # Followed by the reason on the next line.
 copy-paste-cannot-mirror = Impossibile specchiare:
+copy-paste-instance-copied = Istanza #{ $number } copiata: Ctrl+V ne posiziona un'altra uguale

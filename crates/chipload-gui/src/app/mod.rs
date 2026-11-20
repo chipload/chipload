@@ -357,6 +357,9 @@ struct Drag {
     start: Option<usize>,
     /// The start marker right-clicked, for its context menu.
     context_start: Option<usize>,
+    /// The instance right-clicked on the canvas, part and number, for its menu
+    /// (docs/specs/canvas-handling.md §3).
+    context_instance: Option<(u64, u32)>,
     /// The tab marker being dragged (index in `scene.tab_markers`).
     tab: Option<usize>,
     /// The tab marker right-clicked, for its context menu.

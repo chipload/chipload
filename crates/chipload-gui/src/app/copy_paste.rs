@@ -14,6 +14,16 @@ impl ChiploadApp {
     /// Keep the selected drawn shapes for pasting. Returns the text for the system
     /// clipboard (egui only reports Ctrl+V when that holds text).
     pub fn copy_selected_shapes(&mut self) -> Option<String> {
+        // A selected instance: Ctrl+V places another like it (docs/specs/canvas-handling.md
+        // §3).
+        if let Focus::Instance(part, id) = self.focus {
+            self.clipboard.instance = Some((part, id));
+            self.set_status(
+                t!(self, "copy-paste-instance-copied", number = id),
+                STATUS_SECONDS,
+            );
+            return Some(instance_text(part, id));
+        }
         // A whole group copies its drawn shapes, and pastes as a group.
         let group = self.selected_group();
         let (ids, imported) = match group {
@@ -47,6 +57,7 @@ impl ChiploadApp {
                 let n = shapes.len();
                 self.clipboard.group = group.is_some() && n > 1;
                 self.clipboard.shapes = shapes;
+                self.clipboard.instance = None;
                 let status = t!(self, "copy-paste-copied", count = n);
                 self.set_status(status, STATUS_SECONDS);
                 Some(text)
@@ -61,6 +72,12 @@ impl ChiploadApp {
     /// Paste: the shapes in `text` (the system clipboard) if it holds some, else (no text)
     /// the ones copied last. Centred on the cursor when it is over the canvas in top view.
     pub fn paste(&mut self, text: Option<&str>) -> bool {
+        // An instance copied last, and the clipboard still says so: another like it.
+        if let Some((part, id)) = self.clipboard.instance
+            && text.is_none_or(|text| text == instance_text(part, id))
+        {
+            return self.duplicate_instance(part, id);
+        }
         let shapes = match text {
             Some(text) => match shapes_from_clipboard(text) {
                 Some(shapes) => shapes,
@@ -169,4 +186,12 @@ pub struct Clipboard {
     /// The shapes copied were a whole group: they paste as a new group
     /// (docs/specs/shape-groups.md, decision 6).
     pub(super) group: bool,
+    /// The instance copied last (part, number), when it was an instance; Ctrl+V duplicates
+    /// it (docs/specs/canvas-handling.md §3).
+    pub(super) instance: Option<(u64, u32)>,
+}
+
+/// What the system clipboard holds for a copied instance: a note of which it was.
+fn instance_text(part: u64, id: u32) -> String {
+    format!("Chipload instance #{id} of part {part}")
 }

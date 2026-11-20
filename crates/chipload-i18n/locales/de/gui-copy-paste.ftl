@@ -21,3 +21,4 @@ copy-paste-mirrored = Gespiegelt
 copy-paste-mirrored-drawn = Gespiegelt (importierte Formen in der Auswahl bleiben unverändert)
 # Followed by the reason on the next line.
 copy-paste-cannot-mirror = Spiegeln nicht möglich:
+copy-paste-instance-copied = Instanz #{ $number } kopiert: Strg+V platziert eine weitere wie sie

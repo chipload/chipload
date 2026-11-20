@@ -672,6 +672,24 @@ fn instances_are_added_changed_and_removed_from_the_command_line() {
         out.contains("Added instance 4 at 0.000, 25.400 mm, turned -30°"),
         "{out}"
     );
+    // Like instance 3: turned and mirrored as it is, beside the others; --angle overrides.
+    let (code, out, _) = run(&["part", "instance", "add", p, "--like", "3"]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(
+        out.contains("Added instance 5 at") && out.contains("turned 90°, mirrored left-right"),
+        "{out}"
+    );
+    let (code, out, _) = run(&["part", "instance", "add", p, "--like", "3", "--angle", "0"]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(
+        out.contains("Added instance 6 at") && !out.contains("turned"),
+        "{out}"
+    );
+    assert!(out.contains("mirrored left-right"), "{out}");
+    let (code, _, err) = run(&["part", "instance", "add", p, "--like", "9"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("has no instance 9"), "{err}");
+    run(&["part", "instance", "remove", p, "5", "6"]);
     // Added where it overlaps the part: written, with a warning; running refuses it.
     let (code, _, err) = run(&["part", "instance", "set", p, "4", "--at", "1,1"]);
     assert_eq!(code, Some(0));

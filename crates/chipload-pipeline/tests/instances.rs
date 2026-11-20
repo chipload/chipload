@@ -352,3 +352,22 @@ fn the_part_itself_placed_may_not_cut_into_another_part() {
     let err = run_job(&job).unwrap_err().to_string();
     assert!(err.contains("part \"Box\" instance 1"), "{err}");
 }
+
+#[test]
+fn a_duplicate_is_turned_mirrored_and_on_the_setup_of_its_original() {
+    use chipload_pipeline::instances::{add_instance, duplicate_instance};
+    let mut job = with_instance(Spot::default(), None);
+    job.set_instances_here(1, vec![Instance::drawn(1, 1)]);
+    let (job, two) = add_instance(&job, 1, None, None, FRAC_PI_2, Some(Mirror::TopBottom)).unwrap();
+    let (job, three) = duplicate_instance(&job, 1, two, None).unwrap();
+    let (a, b) = (
+        job.instance(1, two).unwrap(),
+        job.instance(1, three).unwrap(),
+    );
+    assert_eq!((b.angle, b.mirror), (a.angle, a.mirror));
+    assert!(b.at[0] > a.at[0], "beside it: {:?} vs {:?}", b.at, a.at);
+    // Moved where asked.
+    let (job, four) = duplicate_instance(&job, 1, two, Some([5.0, 6.0])).unwrap();
+    assert_eq!(job.instance(1, four).unwrap().at, [5.0, 6.0]);
+    assert!(duplicate_instance(&job, 1, 99, None).is_err());
+}

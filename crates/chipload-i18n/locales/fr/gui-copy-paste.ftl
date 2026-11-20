@@ -21,3 +21,4 @@ copy-paste-mirrored = Miroir appliqué
 copy-paste-mirrored-drawn = Miroir appliqué (les formes importées de la sélection restent telles quelles)
 # Followed by the reason on the next line.
 copy-paste-cannot-mirror = Impossible d'appliquer le miroir :
+copy-paste-instance-copied = Instance #{ $number } copiée : Ctrl+V en place une autre pareille

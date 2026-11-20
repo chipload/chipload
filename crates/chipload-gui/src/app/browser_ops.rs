@@ -112,12 +112,13 @@ pub(super) enum OpAction {
     /// A new instance of part `0`, mirrored left to right with `1`
     /// (docs/specs/instances.md §4).
     InstanceAdd(u64, bool),
-    /// Part `0`'s instance `1`: open it, turn it on or off, mirror it, turn it a quarter,
-    /// remove it.
+    /// Part `0`'s instance `1`: open it, turn it on or off, mirror it, turn it a quarter
+    /// (left with `2`), duplicate it, remove it.
     InstanceFocus(u64, u32),
     InstanceToggle(u64, u32),
     InstanceMirror(u64, u32),
-    InstanceTurn(u64, u32),
+    InstanceTurn(u64, u32, bool),
+    InstanceDuplicate(u64, u32),
     InstanceRemove(u64, u32),
     /// Part `.0` placed on setup `.1` where it is drawn, a new instance
     /// (docs/specs/parts-and-setups.md §8).
@@ -201,7 +202,10 @@ impl ChiploadApp {
             OpAction::InstanceFocus(part, id) => self.focus = Focus::Instance(part, id),
             OpAction::InstanceToggle(part, id) => self.toggle_instance(part, id),
             OpAction::InstanceMirror(part, id) => self.mirror_instance(part, id),
-            OpAction::InstanceTurn(part, id) => self.turn_instance(part, id),
+            OpAction::InstanceTurn(part, id, left) => self.turn_instance(part, id, left),
+            OpAction::InstanceDuplicate(part, id) => {
+                self.duplicate_instance(part, id);
+            }
             OpAction::InstanceRemove(part, id) => self.remove_instance(part, id),
             OpAction::PartPlace(part) => self.place_part(part),
             OpAction::PartPlaceOn(part, setup) => self.place_part_on(part, setup),
@@ -517,11 +521,8 @@ impl ChiploadApp {
         }
         let hover = t!(ui, "browser-instance-hover");
         out.response.on_hover_text(hover).context_menu(|ui| {
-            if ui.button(t!(ui, "browser-instance-mirror")).clicked() {
-                action = Some(OpAction::InstanceMirror(p, id));
-            }
-            if ui.button(t!(ui, "browser-instance-turn")).clicked() {
-                action = Some(OpAction::InstanceTurn(p, id));
+            if let Some(chosen) = self.instance_menu_items(ui, p, id) {
+                action = Some(chosen);
             }
             if several {
                 let here = self

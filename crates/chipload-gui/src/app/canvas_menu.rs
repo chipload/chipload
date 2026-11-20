@@ -20,7 +20,10 @@ impl ChiploadApp {
             self.drag.context_tab = at.and_then(|pos| self.tab_marker_at(pos));
             self.drag.context_ring = at.and_then(|pos| self.tab_ring_at(pos));
             self.context_pick = at.and_then(|pos| self.scene.pick(&self.view, pos));
+            self.drag.context_instance = at.and_then(|pos| self.context_instance_at(pos));
         }
+        let context_instance = self.drag.context_instance;
+        let mut instance_action = None;
         let context_start = self.drag.context_start;
         let (context_tab, context_ring) = (self.drag.context_tab, self.drag.context_ring);
         let picked = self
@@ -49,6 +52,19 @@ impl ChiploadApp {
         }
         if corner_clicked.is_none() && !self.compass_pick_menu_open() {
             response.context_menu(|ui| {
+                // An instance: its own menu (docs/specs/canvas-handling.md §3).
+                if let Some((part, id)) = context_instance {
+                    instance_action = self.instance_menu_items(ui, part, id);
+                    ui.separator();
+                    if ui.button(t!(ui, "browser-instance-remove")).clicked() {
+                        instance_action =
+                            Some(super::browser_ops::OpAction::InstanceRemove(part, id));
+                    }
+                    if instance_action.is_some() {
+                        ui.close();
+                    }
+                    return;
+                }
                 // A tab, or the ring a tab can be added to (docs/specs/tabs-by-hand.md §1).
                 if let (None, Some(marker)) = (context_start, context_tab) {
                     if ui.button(t!(ui, "canvas-tab-remove")).clicked() {
@@ -132,6 +148,23 @@ impl ChiploadApp {
                 }
             });
         }
+        if let Some(action) = instance_action {
+            self.apply_op_action(action);
+        }
+    }
+
+    /// The instance a right-click at `pos` is on: its badge, or its outline where no shape
+    /// lies under it unless it is the selected one, as a drag takes it.
+    fn context_instance_at(&self, pos: egui::Pos2) -> Option<(u64, u32)> {
+        if self.display.three_d {
+            return None;
+        }
+        self.instance_badge_at(pos).or_else(|| {
+            self.instance_at(pos).filter(|i| {
+                self.scene.pick(&self.view, pos).is_none()
+                    || self.focus == Focus::Instance(i.0, i.1)
+            })
+        })
     }
 
     /// The right-click menu's items for a contour: select it, its layer, similar shapes,

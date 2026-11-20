@@ -21,3 +21,4 @@ copy-paste-mirrored = Reflejado
 copy-paste-mirrored-drawn = Reflejado (las formas importadas de la selección quedan como estaban)
 # Followed by the reason on the next line.
 copy-paste-cannot-mirror = No se puede reflejar:
+copy-paste-instance-copied = Instancia #{ $number } copiada: Ctrl+V coloca otra igual

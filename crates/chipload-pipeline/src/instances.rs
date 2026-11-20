@@ -90,6 +90,32 @@ pub fn add_instance(
     Ok((checked(job)?, id))
 }
 
+/// A new instance of part `part` like instance `like`: on its setup, turned and mirrored
+/// as it is, moved by `at` or, with None, put beside what the part cuts
+/// (docs/specs/canvas-handling.md §3). Returns the project and the new number.
+pub fn duplicate_instance(
+    job: &Job,
+    part: u64,
+    like: u32,
+    at: Option<[f64; 2]>,
+) -> Result<(Job, u32), PipelineError> {
+    let index = part_index(job, part)?;
+    instance_exists(job, index, like)?;
+    let Some((setup, original)) = job
+        .instances_of(part)
+        .into_iter()
+        .find(|(_, i)| i.id == like)
+        .map(|(setup, i)| (setup, *i))
+    else {
+        return Err(refused(
+            Message::new("pipeline-no-instance")
+                .arg("part", job.parts[index].name.as_str())
+                .arg("id", like),
+        ));
+    };
+    add_instance(job, part, Some(setup), at, original.angle, original.mirror)
+}
+
 /// Instance `id` of part `part` moved onto setup `setup` (docs/specs/parts-and-setups.md
 /// §10), after the instances there, keeping its number and placement.
 pub fn move_instance(job: &Job, part: u64, id: u32, setup: u64) -> Result<Job, PipelineError> {

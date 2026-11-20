@@ -49,6 +49,10 @@ pub enum InstanceAction {
         /// none. Climb stays climb.
         #[arg(long, value_parser = crate::parts::mirror)]
         mirror: Option<MirrorChoice>,
+        /// Like this instance (its number): on its setup, turned and mirrored as it is;
+        /// --setup, --angle and --mirror still override each.
+        #[arg(long)]
+        like: Option<u32>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -235,6 +239,7 @@ pub fn instance(out: &mut Out, action: InstanceAction) -> ExitCode {
             at,
             angle,
             mirror,
+            like,
             output,
         } => {
             let job = match load(out, &project) {
@@ -244,8 +249,27 @@ pub fn instance(out: &mut Out, action: InstanceAction) -> ExitCode {
             let made = (|| {
                 let id = part_of(&job, part)?;
                 let at = at_arg(at.as_deref())?;
-                let angle = radians(angle.unwrap_or(0.0))?;
-                let mirror = mirror.and_then(|MirrorChoice(m)| m);
+                let like = match like {
+                    Some(number) => Some(
+                        job.instances_of(id)
+                            .into_iter()
+                            .find(|(_, i)| i.id == number)
+                            .map(|(setup, i)| (setup, *i))
+                            .ok_or_else(|| format!("part {id} has no instance {number}"))?,
+                    ),
+                    None => None,
+                };
+                let setup = setup.or(like.map(|(setup, _)| setup));
+                let angle = match (angle, like) {
+                    (Some(degrees), _) => radians(degrees)?,
+                    (None, Some((_, i))) => i.angle,
+                    (None, None) => 0.0,
+                };
+                let mirror = match (mirror, like) {
+                    (Some(MirrorChoice(m)), _) => m,
+                    (None, Some((_, i))) => i.mirror,
+                    (None, None) => None,
+                };
                 let (job, number) =
                     add_instance(&job, id, setup, at, angle, mirror).map_err(|e| e.to_string())?;
                 Ok::<_, String>((job, id, number))
