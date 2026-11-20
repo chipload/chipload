@@ -244,6 +244,11 @@ holes on, a guide at 45°) and are **never cut**.
   hold Alt to turn snapping off. Hold Shift to keep a point (or a centre, or a corner) to
   15° steps from where it was, so straight across, up or at 45°; on a turn handle or a
   polygon's corner, Shift turns the shape in 15° steps.
+- **Several points at once:** on a selected polyline or spline, Ctrl+click (⌘ on a Mac) its
+  points to pick them; they turn solid. Drag any of them and all move together, as one
+  undo step (Shift keeps the move to 15° steps). Ctrl+click a picked point to leave it out;
+  Escape, or a click elsewhere, lets go of them. Rounded corners keep their radius; a move
+  that leaves no room for one is held back, and the form says why.
 - **Polyline segments:** on a selected polyline, drag one of its lines (anywhere, or its
   round middle handle) to move that segment; the segments either side stretch to stay
   joined. **Ctrl+drag** inserts a new point there instead, and **Shift+drag** bends the

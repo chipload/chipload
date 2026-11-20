@@ -344,7 +344,8 @@ to a program you trust. It was about four per operation; with the defaults and s
    dragging, Ctrl-select points and drag them together, more instances from the canvas).
    Spec approved (docs/specs/canvas-handling.md), three steps: (1) Shift keeps a point's,
    a centre's, a corner's and an instance's drag to 15° steps, a turn handle to 15° turns:
-   **done**; (2) Ctrl+click points of one polyline or spline and drag them together;
+   **done**; (2) Ctrl+click points of one polyline or spline and drag them together:
+   **done**;
    (3) instances from the canvas: right-click menu (duplicate, turn ±90°, mirror, on/off,
    remove), Ctrl+drag a copy, Ctrl+C/Ctrl+V, `part instance add --like`.
 13. **Small follow-ups:**

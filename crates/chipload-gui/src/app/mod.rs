@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 
 use chipload_core::Point;
 use chipload_core::chain::Contour;
-use chipload_job::edit::{Handle, SegmentDrag, handles, try_drag};
+use chipload_job::edit::{Handle, SegmentDrag, handles, move_points, try_drag};
 use chipload_job::library::Theme;
 use chipload_job::{
     Direction, Drawing, Geometry, Job, Operation, Selector, Side, Source, Spindle, StockCorner,
@@ -310,6 +310,8 @@ struct HandleDrag {
     /// From the point grabbed to the handle, mm: zero on a handle, the way to the
     /// segment's middle when a polyline's line is grabbed elsewhere.
     grab: Point,
+    /// The points moving with a dragged point (it among them), when several are picked.
+    group: Vec<usize>,
 }
 
 /// The material-removal simulation of the last result, and what playback made of it.
@@ -338,6 +340,9 @@ struct Drag {
     snapped: Option<(Point, Option<SnapPoint>)>,
     /// The handle being dragged, if any.
     handle: Option<HandleDrag>,
+    /// The selected shape's points picked with Ctrl+click, to drag together: the shape's id
+    /// and the points' indices (docs/specs/canvas-handling.md §2).
+    points: Option<(u64, BTreeSet<usize>)>,
     /// Drawn shapes being moved with the mouse (docs/specs/drawing-input.md §3).
     moving: Option<select_drag::MoveDrag>,
     /// A selection box being dragged: where it started and its far corner.

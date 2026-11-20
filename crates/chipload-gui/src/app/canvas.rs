@@ -312,6 +312,12 @@ impl ChiploadApp {
             .iter()
             .partition(|(h, _)| matches!(h, Handle::Middle(_)));
         self.scene.handles = others.into_iter().map(|&(_, p)| p).collect();
+        let picked = self.picked_points();
+        self.scene.picked_handles = shape_handles
+            .iter()
+            .filter(|(h, _)| matches!(h, Handle::Point(i) if picked.contains(i)))
+            .map(|&(_, p)| p)
+            .collect();
         self.scene.middle_handles = middles.into_iter().map(|&(_, p)| p).collect();
         // A selected picture's or text's box handles (docs/specs/box-handles.md).
         let box_handles = if editing && !compass_on {
@@ -742,7 +748,7 @@ impl ChiploadApp {
         labels: &[DimensionLabel],
         editing: bool,
     ) {
-        let Keys { alt, .. } = keys;
+        let Keys { alt, ctrl, .. } = keys;
         let view = self.view;
         let on_handle = |pos: egui::Pos2| grips.shape_at(&view, pos);
         let on_box_handle = |pos: egui::Pos2| grips.box_at(&view, pos);
@@ -750,6 +756,17 @@ impl ChiploadApp {
         self.scene.preview.clear();
         self.scene.sketch_points.clear();
         self.scene.measure = None;
+        // Ctrl+click on a point picks it, to drag several together
+        // (docs/specs/canvas-handling.md §2).
+        if editing
+            && ctrl
+            && response.clicked()
+            && let Some(pos) = response.interact_pointer_pos()
+            && let Some(Handle::Point(i)) = on_handle(pos)
+            && self.toggle_point(i)
+        {
+            return;
+        }
         // A corner marker opens its menu (docs/specs/dogbone-per-corner.md §6).
         let corner = (editing && response.clicked())
             .then(|| response.interact_pointer_pos())
@@ -812,6 +829,9 @@ impl ChiploadApp {
             && self.show_drawing()
         {
             let toggle = ui.input(|i| i.modifiers.command || i.modifiers.ctrl);
+            if !toggle {
+                self.clear_points();
+            }
             let picked = self.scene.pick(&self.view, pos);
             // A double-click on a grouped shape, or a DXF's contour, picks it alone, to
             // work on it (docs/specs/shape-groups.md, decision 3; dxf-whole-on-canvas.md

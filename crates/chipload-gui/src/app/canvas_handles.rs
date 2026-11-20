@@ -171,12 +171,71 @@ impl ChiploadApp {
         let Some(shape) = self.selected_shape().and_then(|id| self.shape(id)) else {
             return;
         };
+        // A picked point dragged takes the other picked points with it.
+        let picked = self.picked_points();
+        let group = match handle {
+            Handle::Point(i) if picked.len() > 1 && picked.contains(&i) => {
+                picked.into_iter().collect()
+            }
+            _ => Vec::new(),
+        };
         self.drag.handle = Some(HandleDrag {
             handle,
             layer: shape.layer.clone(),
             start: shape.geometry.clone(),
             grab,
+            group,
         });
+    }
+
+    /// The selected shape's points picked with Ctrl+click (docs/specs/canvas-handling.md
+    /// §2): none when another shape, or none, is selected since.
+    pub(super) fn picked_points(&self) -> BTreeSet<usize> {
+        let selected = self.selected_shape();
+        let count =
+            selected
+                .and_then(|id| self.shape(id))
+                .map_or(0, |shape| match &shape.geometry {
+                    chipload_job::Geometry::Polyline { points, .. }
+                    | chipload_job::Geometry::Spline { points, .. } => points.len(),
+                    _ => 0,
+                });
+        match &self.drag.points {
+            Some((id, points)) if Some(*id) == selected => {
+                points.iter().copied().filter(|&i| i < count).collect()
+            }
+            _ => BTreeSet::new(),
+        }
+    }
+
+    /// Point `i` of the selected polyline or spline picked, or left out when it was. False
+    /// when no such shape is selected.
+    pub(super) fn toggle_point(&mut self, i: usize) -> bool {
+        let Some(id) = self.selected_shape() else {
+            return false;
+        };
+        let movable = self.shape(id).is_some_and(|s| {
+            matches!(
+                s.geometry,
+                chipload_job::Geometry::Polyline { .. } | chipload_job::Geometry::Spline { .. }
+            )
+        });
+        if !movable {
+            return false;
+        }
+        let mut picked = self.picked_points();
+        if !picked.remove(&i) {
+            picked.insert(i);
+        }
+        self.drag.points = Some((id, picked));
+        true
+    }
+
+    /// The picked points let go of; false when there were none.
+    pub(super) fn clear_points(&mut self) -> bool {
+        let had = !self.picked_points().is_empty();
+        self.drag.points = None;
+        had
     }
 
     /// The segment of the selected polyline (with its handles showing) under screen point
@@ -229,7 +288,17 @@ impl ChiploadApp {
             SegmentDrag::Move => (to.0 + drag.grab.0, to.1 + drag.grab.1),
             SegmentDrag::Insert | SegmentDrag::Bend => to,
         };
-        let refused = match try_drag(&drag.start, drag.handle, [to.0, to.1], segment) {
+        let result = match (drag.handle, drag.group.is_empty()) {
+            (Handle::Point(i), false) => {
+                let from = handles(&drag.start, 0.0)
+                    .into_iter()
+                    .find(|(h, _)| *h == Handle::Point(i))
+                    .map_or([to.0, to.1], |(_, p)| p);
+                move_points(&drag.start, &drag.group, [to.0 - from[0], to.1 - from[1]])
+            }
+            _ => try_drag(&drag.start, drag.handle, [to.0, to.1], segment),
+        };
+        let refused = match result {
             Ok(geometry) => self.set_selected_shape(&drag.layer, geometry).err(),
             Err(why) => Some(why),
         };

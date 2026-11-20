@@ -135,3 +135,88 @@ fn shift_keeps_a_dragged_point_to_15_degree_steps() {
     assert_eq!(app.handle_point((130.0, 60.0), true, true), (130.0, 60.0));
     app.end_handle_drag();
 }
+
+#[test]
+fn picked_points_are_dragged_together_in_one_undo_step() {
+    let mut app = drawn_part();
+    app.commit();
+    // S3 is the triangle (110, 65) (140, 65) (125, 95): its bottom two points picked.
+    app.click(Some(contour_of(&app, 3)), false);
+    assert!(app.toggle_point(0) && app.toggle_point(1));
+    assert_eq!(app.picked_points().len(), 2);
+    draw_canvas(&mut app);
+    assert_eq!(app.scene.picked_handles.len(), 2);
+    // Picked again: left out, and back in.
+    app.toggle_point(1);
+    assert_eq!(app.picked_points().len(), 1);
+    app.toggle_point(1);
+    // Dragging one moves both by as much; the third stays.
+    app.start_handle_drag(Handle::Point(1));
+    app.drag_handle_to((140.0, 55.0), SegmentDrag::Move);
+    app.end_handle_drag();
+    app.commit();
+    let Geometry::Polyline { points, .. } = &app.shape(3).unwrap().geometry else {
+        panic!("polyline");
+    };
+    assert_eq!(points[..], [[110.0, 55.0], [140.0, 55.0], [125.0, 95.0]]);
+    app.undo();
+    let Geometry::Polyline { points, .. } = &app.shape(3).unwrap().geometry else {
+        panic!("polyline");
+    };
+    assert_eq!(points[0], [110.0, 65.0], "one undo step");
+    // An unpicked point alone moves alone.
+    app.click(Some(contour_of(&app, 3)), false);
+    app.start_handle_drag(Handle::Point(2));
+    app.drag_handle_to((125.0, 100.0), SegmentDrag::Move);
+    app.end_handle_drag();
+    let Geometry::Polyline { points, .. } = &app.shape(3).unwrap().geometry else {
+        panic!("polyline");
+    };
+    assert_eq!(points[0], [110.0, 65.0]);
+    // Another shape selected: the picked points are gone.
+    app.click(Some(contour_of(&app, 1)), false);
+    assert!(app.picked_points().is_empty());
+    // A rectangle's handles aren't points to pick.
+    assert!(!app.toggle_point(0));
+}
+
+#[test]
+fn ctrl_click_on_a_point_in_the_window_picks_it() {
+    let mut h = egui_kittest::Harness::builder()
+        .with_size(egui::vec2(1200.0, 800.0))
+        .build_eframe(|_| {
+            let mut app = drawn_part();
+            app.fit_pending = true;
+            app.click(Some(contour_of(&app, 3)), false);
+            app
+        });
+    h.run_steps(6);
+    let at = h.state().view.to_screen((110.0, 65.0));
+    let click = |h: &mut egui_kittest::Harness<'_, ChiploadApp>, modifiers| {
+        h.hover_at(at);
+        h.run_steps(1);
+        h.event(egui::Event::ModifiersChanged(modifiers));
+        for pressed in [true, false] {
+            h.event(egui::Event::PointerButton {
+                pos: at,
+                button: egui::PointerButton::Primary,
+                pressed,
+                modifiers,
+            });
+            h.run_steps(1);
+        }
+        h.event(egui::Event::ModifiersChanged(egui::Modifiers::NONE));
+        h.run_steps(2);
+    };
+    click(&mut h, egui::Modifiers::COMMAND);
+    assert_eq!(h.state().selected_shape(), Some(3), "still selected");
+    assert_eq!(
+        h.state().picked_points().into_iter().collect::<Vec<_>>(),
+        [0]
+    );
+    // Escape lets go of the points first; the shape stays selected.
+    h.key_press(egui::Key::Escape);
+    h.run_steps(2);
+    assert!(h.state().picked_points().is_empty());
+    assert_eq!(h.state().selected_shape(), Some(3));
+}

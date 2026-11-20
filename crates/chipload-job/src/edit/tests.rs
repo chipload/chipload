@@ -652,3 +652,35 @@ fn corner_radii_stay_on_their_corners() {
         .unwrap();
     assert_eq!(radii[k], 1.0);
 }
+
+#[test]
+fn points_move_together_keeping_bulges_and_radii() {
+    let start = Geometry::Polyline {
+        closed: true,
+        points: vec![[0.0, 0.0], [100.0, 0.0], [100.0, 50.0], [0.0, 50.0]],
+        bulges: vec![0.0, 0.5, 0.0, 0.0],
+        radii: vec![0.0, 0.0, 0.0, 5.0],
+    };
+    let moved = move_points(&start, &[1, 2], [10.0, 0.0]).unwrap();
+    let Geometry::Polyline {
+        points,
+        bulges,
+        radii,
+        ..
+    } = moved
+    else {
+        panic!("a polyline");
+    };
+    assert_eq!(
+        points,
+        [[0.0, 0.0], [110.0, 0.0], [110.0, 50.0], [0.0, 50.0]]
+    );
+    assert_eq!(bulges[1], 0.5);
+    assert_eq!(radii[3], 5.0);
+    assert!(move_points(&start, &[7], [1.0, 0.0]).is_err());
+    let circle = Geometry::Circle {
+        center: [0.0, 0.0],
+        radius: 5.0,
+    };
+    assert!(move_points(&circle, &[0], [1.0, 0.0]).is_err());
+}

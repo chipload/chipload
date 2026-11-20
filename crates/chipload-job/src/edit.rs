@@ -385,6 +385,24 @@ pub fn drag(
     try_drag(start, handle, to, segment).ok()
 }
 
+/// Points `indices` of a polyline or a spline (`start`, as the drag began) moved together
+/// by `by` (docs/specs/canvas-handling.md §2): their bulges and corner radii stay. Refused
+/// for another kind of shape or an index it doesn't have.
+pub fn move_points(start: &Geometry, indices: &[usize], by: [f64; 2]) -> Result<Geometry, String> {
+    let mut geometry = start.clone();
+    let (Geometry::Polyline { points, .. } | Geometry::Spline { points, .. }) = &mut geometry
+    else {
+        return Err("only a polyline's or a spline's points move together".into());
+    };
+    for &i in indices {
+        let Some(p) = points.get_mut(i) else {
+            return Err(format!("there is no point {}", i + 1));
+        };
+        *p = [p[0] + by[0], p[1] + by[1]];
+    }
+    Ok(geometry)
+}
+
 /// As [`drag`], with the reason when the result would be invalid.
 pub fn try_drag(
     start: &Geometry,

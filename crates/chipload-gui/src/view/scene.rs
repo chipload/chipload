@@ -196,6 +196,8 @@ pub struct Scene {
     pub sketch_points: Vec<Point>,
     /// Handles of the selected drawn shape (top view only).
     pub handles: Vec<Point>,
+    /// Its points picked to move together, drawn filled (top view only).
+    pub picked_handles: Vec<Point>,
     /// Middles of the selected polyline's segments, drawn as round handles in their own
     /// colour (top view only).
     pub middle_handles: Vec<Point>,
@@ -917,6 +919,10 @@ impl Scene {
                 Stroke::new(1.5, pal.selected),
                 eframe::egui::StrokeKind::Middle,
             );
+        }
+        for &p in self.picked_handles.iter().filter(|_| flat) {
+            let square = Rect::from_center_size(view.to_screen(p), Vec2::splat(7.0));
+            painter.rect_filled(square, 0.0, pal.selected);
         }
         if let Some((p, selected)) = self.zero_handle.filter(|_| flat) {
             let at = view.to_screen(p);

@@ -82,6 +82,8 @@ impl ChiploadApp {
                 self.end_tool();
             } else if self.hide_compass() {
                 // The selection stays; another Escape clears it.
+            } else if self.clear_points() {
+                // The shape stays selected (docs/specs/canvas-handling.md §2).
             } else {
                 self.selection = CanvasSelection::Nothing;
             }
