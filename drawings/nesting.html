@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Nesting - Chipload 0.38.0 user guide</title>
+        <title>Nesting - Chipload 0.39.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bf4381fb.js";
+            window.path_to_searchindex_js = "../searchindex-6e70ea5e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ccd7e32c.js"></script>
+        <script src="../toc-edc691ed.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.38.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.39.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -191,7 +191,8 @@ planned and checked as any project is before it is kept.</p>
 <p>In the window:</p>
 <ul>
 <li><strong>Right-click the setup</strong> in the Browser and choose <em>Nest…</em>, or <em>Wizards &gt; Nest…</em> for the
-active setup. The window shows the board’s size, the gap and the margin, the goal, and a
+active setup. The canvas shows that setup’s tab, where the preview is drawn. The window
+shows the board’s size, the gap and the margin, the goal, and a
 row per part with how many times it is cut and how it may turn.</li>
 <li><strong>The goal</strong> says what the nest makes as small as it can, once it has placed as much as
 it can:
@@ -206,10 +207,12 @@ so a strip down the right is left.</li>
 </li>
 <li><strong>The preview</strong> is worked out as soon as the window opens, and again with <em>Preview</em>
 after a change: the instances show on the board where they would go, outlined in the
-selection colour, the board dashed; what didn’t fit is parked to the right of the board
-in amber and named in the window. Nothing changes until you choose <em>Apply</em>.</li>
-<li><strong>Apply</strong> places them as one undo step (Ctrl+Z puts everything back) and lists what was
-switched off in the Report. <em>Apply</em> before a preview nests and applies in one go.</li>
+selection colour, the board dashed, and the boards taking what doesn’t fit in a row to
+its right. An instance larger than an empty board is parked beside them in amber and
+named in the window. Nothing changes until you choose <em>Apply</em>.</li>
+<li><strong>Apply</strong> places them as one undo step (Ctrl+Z puts everything back) and lists in the
+Report what went onto other boards and what was switched off; click an instance’s line
+to select it. <em>Apply</em> before a preview nests and applies in one go.</li>
 <li><strong>Nest again</strong>, in the setup’s right-click menu once it has been nested, nests it again
 with the same gap and margin and each part’s turns, the instances there are now, without
 the window: after you change a part, or moved instances by hand. It searches on from the
@@ -219,6 +222,7 @@ better nest and it searches on from there.</li>
 </ul>
 <p>On the command line:</p>
 <pre><code class="language-sh">chipload nest part.chipload                         # the active setup, on its board
+chipload nest part.chipload --all                   # every setup again, one pool per stock
 chipload nest part.chipload --count 2=4             # part 2 cut four times: instances added first
 chipload nest part.chipload --turns 2=none          # part 2 never turned (wood grain); others quarter turns
 chipload nest part.chipload --gap 5 --margin 15     # more room between parts and at the edge
@@ -227,6 +231,14 @@ chipload nest part.chipload --dry-run               # say what would go where, w
 chipload part set part.chipload 2 --turns half      # part 2 turned 180° at most, kept for the next nest
 </code></pre>
 <ul>
+<li><strong>Nest all setups again</strong>, in the project’s menu, the <em>Setups</em> folder’s menu and
+<em>Wizards</em>, with two boards or more that can be nested: every board of one stock is
+nested as one pool, the first filled first, then the next, each with its own gap, margin
+and goal; what fits on none goes onto new boards. Parts you removed or counts you lowered
+free room on the first boards, and instances move back to them. It keeps the new layout
+when it places more, or as many on fewer boards; otherwise each board is nested again on
+its own, as <em>Nest again</em>, never worse. A board left empty is kept (the Report says
+“Setup 3 is empty now”); remove it if you don’t need it. One undo step.</li>
 <li><strong>How it fills:</strong> from the board’s lower-left corner, by the goal: for <em>compact</em> each part
 where the box round everything placed grows least, for the others as low (or as far left)
 as it fits. It tries many orders of the parts and turns of each, for a moment (the window
@@ -238,15 +250,17 @@ part (<code>--turns quarter</code>) or one (<code>--turns 2=none</code>). They a
 <li><strong>Counts:</strong> <code>--count ID=N</code> cuts part ID N times: instances are added (not mirrored), or
 the highest-numbered ones that are on removed; at least one stays.</li>
 <li><strong>Mirrored instances</strong> stay mirrored; nesting turns and moves them, never mirrors them.</li>
-<li><strong>What doesn’t fit</strong> is switched off, kept where it was, and named (“Part 2, instance 4
-didn’t fit: switched off”). Make the board larger, allow turns, or let it go onto more
-boards.</li>
-<li><strong>Onto more boards</strong> (<em>What doesn’t fit: Onto more boards</em> in the window, <code>--overflow new-boards</code> on the command line), as a slicer adds plates: what doesn’t fit goes to the
-next <a href="../concepts/setups.html">setup</a> with the same stock and a size of its own, else to a
-new one made like this board (its size, work zero, gap and margin), nested there in
-turn, and so on until everything is placed. The preview shows each board in a row to the
-right; the Report says “2 more on Setup 2, a new board like the first”. Instances keep
-their numbers. A part larger than an empty board is still switched off. A part whose
+<li><strong>What doesn’t fit goes onto more boards,</strong> as a slicer adds plates: to the next
+<a href="../concepts/setups.html">setup</a> with the same stock and a size of its own, else to a new
+one made like this board (its size, work zero, gap and margin), nested there in turn, and
+so on until everything is placed. This is the same in the window, with <em>Nest again</em> and
+on the command line. The preview shows each board in a row to the right; the Report says
+“2 more on Setup 2, a new board like the first”. Instances keep their numbers. Don’t
+want a board it made? Remove that setup.</li>
+<li><strong>Larger than an empty board:</strong> an instance no board can take is switched off, kept
+where it was, and named (“Part 2, instance 4 is larger than an empty board: switched
+off”). Its row in the Browser turns amber with a dot, saying so when you hover it. Make
+the board larger, allow turns, or make the part smaller. A part whose
 <a href="../operations/parts.html#a-parts-stock">stock</a> isn’t this board’s goes to a board of its
 own stock instead.</li>
 <li><strong>The board</strong> must have a size of its own. A board that follows the drawing (fitted to it

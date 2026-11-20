@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Your first part - Chipload 0.38.0 user guide</title>
+        <title>Your first part - Chipload 0.39.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-bf4381fb.js";
+            window.path_to_searchindex_js = "searchindex-6e70ea5e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-ccd7e32c.js"></script>
+        <script src="toc-edc691ed.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.38.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.39.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -178,59 +178,82 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="your-first-part"><a class="header" href="#your-first-part">Your first part</a></h1>
-<p>This walks through one part, from a DXF to G-code: a plate with holes, cut out with an
-outside profile. The same steps follow in the app and on the command line.</p>
+<p>This walks through one part, from nothing to G-code: a plate of 160 × 100 mm with rounded
+corners and four holes, drawn in Chipload and cut out with profiles. The same steps follow
+in the app and on the command line. Starting from a DXF or an SVG instead differs only in
+the first steps (<a href="#starting-from-a-drawing-file">below</a>).</p>
 <h2 id="in-the-app"><a class="header" href="#in-the-app">In the app</a></h2>
 <ol>
 <li>
-<p><strong>Import the drawing:</strong> <em>File &gt; Import DXF…</em> (Ctrl+I).</p>
+<p><strong>A new project:</strong> <em>File &gt; New project</em> (Ctrl+N).</p>
 <ul>
-<li>If the DXF doesn’t say whether it’s in mm or inches, Chipload asks. It never guesses.</li>
 <li>The <a href="drawings/import.html#the-new-project-dialog">new project dialog</a> asks for the
 material, the board’s thickness and size, Z zero, the machine and the tools. Set the
-real thickness: depths are measured from the board’s top. Enter creates the project.</li>
-<li>The report under the canvas lists what was imported, and anything skipped or
-repaired: duplicate lines, gaps it closed, splines turned into arcs.</li>
+real thickness, 12 mm here: depths are measured from the board’s top. Leave the board
+on <em>Fit the drawing</em>: it grows round what you draw. Enter creates the project.</li>
 </ul>
 </li>
 <li>
-<p><strong>Check the stock and the machine:</strong> <strong>Stock</strong> in the <a href="window.html#the-browser">Browser</a> on
-the left is the board you chose; <strong>Machine</strong> shows the machine.
-<a href="concepts/stock.html#work-zero">Work zero</a> is at the stock’s bottom-left corner (the <em>Work
-zero</em> row; drag it in the view to move it). Without a
-<a href="library/tools.html">tool library</a> and <a href="library/machines.html">machine profiles</a>, a project
-has the GRBL post, a safe height of 5 mm and a 6 mm endmill at 18 000 rpm.</p>
+<p><strong>Draw the plate:</strong> press <strong>R</strong> (or the rectangle in the ribbon’s DRAW group) and click
+two opposite corners on the canvas, anywhere. You draw on the canvas’s <em>Drawing</em> tab,
+where a new project opens (<a href="window.html#the-canvas">the canvas</a>).</p>
+<ul>
+<li>The rectangle stays selected, and its values are under <em>Selection</em> in the
+<a href="window.html#properties">Properties</a> panel on the right. Type the exact ones: centre
+0, 0, length 160, width 100, corner radius 8.</li>
+<li>Clicks land on the <a href="window.html#the-canvas">grid</a> and <a href="drawings/shapes.html#snapping">snap</a>
+to what is drawn, so values usually start out round.</li>
+</ul>
 </li>
 <li>
-<p><strong>Select what to cut:</strong></p>
+<p><strong>Draw the holes:</strong> press <strong>C</strong>, then type <code>-65,-35</code> and Enter for the centre, and <code>4</code>
+and Enter for the radius. A typed value opens beside the cursor as you type
+(<a href="drawings/shapes.html#exact-values">Exact values</a>).</p>
 <ul>
-<li>double-click the outline on the canvas (a single click takes the whole DXF);</li>
-<li>Ctrl+click adds more;</li>
-<li>right-click selects a whole layer;</li>
-<li>right-click a shape for <strong>Select similar</strong> (every circle of its diameter, on any
-layer, or every shape of its size on its layer) or <strong>Select inside</strong> (the closed
-shapes within an outline: a part’s pockets and holes). With Ctrl held they add to the
-selection. On the command line, <code>chipload shape similar part.chipload 5</code> and
-<code>chipload shape inside part.chipload 1</code> print the shape ids, for <code>op add … --shapes</code>;</li>
-<li>or click a DXF or one of its layers in the Browser.</li>
+<li><strong>Enter</strong> starts the circle again: <code>65,-35</code>, <code>65,35</code> and <code>-65,35</code>, each with radius 4.</li>
+<li>Esc ends the tool. Every drawn shape can be changed later: drag its handles, or type
+its values under <em>Selection</em>. <a href="drawings/shapes.html">Drawing shapes</a> has the other
+tools: lines and arcs, polygons, slots, offsets, fillets, arrays.</li>
+</ul>
+</li>
+<li>
+<p><strong>Check the stock and the machine:</strong> <strong>Stock</strong> in the <a href="window.html#the-browser">Browser</a>
+on the left is the board you chose; <strong>Machine</strong> shows the machine. Clicking <strong>Stock</strong>
+shows the board’s own tab, <em>Setup 1</em>: the plate as it will be cut. Click <em>Drawing</em> to
+go back.
+<a href="concepts/stock.html#work-zero">Work zero</a> is at the stock’s bottom-left corner (the <em>Work
+zero</em> row; drag it in the view to move it). Without a <a href="library/tools.html">tool library</a>
+and <a href="library/machines.html">machine profiles</a>, a project has the GRBL post, a safe height
+of 5 mm and a 6 mm endmill at 18 000 rpm.</p>
+</li>
+<li>
+<p><strong>Select what to cut:</strong> drag a box from left to right round the whole plate: it selects
+every shape wholly inside it.</p>
+<ul>
+<li>A click selects one shape, Ctrl+click adds one; right-click selects a whole layer.</li>
+<li>Right-click a shape for <strong>Select similar</strong> (every circle of its diameter, or every
+shape of its size on its layer) or <strong>Select inside</strong> (the closed shapes within an
+outline: a part’s pockets and holes). With Ctrl held they add to the selection. On
+the command line, <code>chipload shape similar plate.chipload 2</code> and <code>chipload shape inside plate.chipload 1</code> print the shape ids, for <code>op add … --shapes</code>.</li>
 </ul>
 </li>
 <li>
 <p><strong>Add an operation:</strong> <strong>Profile</strong>, in the ribbon’s OPERATION group.</p>
 <ul>
-<li>Quicker: press <strong>S</strong> over the canvas, then <strong>P</strong>. The quick menu opens at the mouse with a
-key for each kind (P profile, K pocket, H holes, V V-carve, F follow path, C chamfer, L flute, E pattern, R prism, M moulding) and a digit
-for each of your <a href="library/styles.html">styles</a>. A kind the selection can’t take is
-greyed out, and its hover says why (holes need a circle, a pocket a closed shape).
-Escape closes it.</li>
-<li><strong>Side:</strong> Chipload picks <em>outside</em> for an outline and <em>inside</em> for holes, and asks
-when a selection mixes both.</li>
-<li><strong>End depth:</strong> for a cut-out, the stock thickness plus a little, e.g. 10.3 mm into a
+<li>Quicker: press <strong>S</strong> over the canvas, then <strong>P</strong>. The quick menu opens at the mouse
+with a key for each kind (P profile, K pocket, H holes, V V-carve, F follow path, C
+chamfer, L flute, E pattern, R prism, M moulding) and a digit for each of your
+<a href="library/styles.html">styles</a>. A kind the selection can’t take is greyed out, and its
+hover says why (holes need a circle, a pocket a closed shape). Escape closes it.</li>
+<li><strong>Side:</strong> an outline is cut <em>outside</em> and holes <em>inside</em>. Selected together, as here,
+they become two profiles, the holes first, so the plate is still held while they are
+cut.</li>
+<li><strong>End depth:</strong> for a cut-out, the stock thickness plus a little, e.g. 12.5 mm into a
 spoilboard. More than the allowed overcut (0.5 mm by default, in the setup’s Stock) is
 refused.</li>
 <li><strong>Step down:</strong> how deep each pass goes.</li>
-<li><strong>Tabs:</strong> they keep the part from coming loose on the last pass. Add them under
-<em>Tabs</em>.</li>
+<li><strong>Tabs:</strong> they keep the part from coming loose on the last pass. The outline’s
+profile has them; change them under <em>Tabs</em>.</li>
 </ul>
 </li>
 <li>
@@ -256,36 +279,51 @@ back to editing.</p>
 without asking, as Ctrl+S saves, so a changed depth is one key away from the machine.
 The project remembers its file for next time. <em>File &gt; Export G-code as…</em>
 (Ctrl+Shift+E) always asks.</li>
-<li>Next to the G-code comes a setup sheet (<code>part-sheet.html</code>) for the operator: stock,
+<li>Next to the G-code comes a setup sheet (<code>plate-sheet.html</code>) for the operator: stock,
 zero, tools in order, operations and times.</li>
 </ul>
 </li>
 <li>
-<p><strong>Save the project:</strong> Ctrl+S. A project (<code>.chipload</code>) keeps the drawing itself, so the DXF
-isn’t needed again unless it changes.</p>
+<p><strong>Save the project:</strong> Ctrl+S, as <code>plate.chipload</code>.</p>
 </li>
 </ol>
 <h2 id="on-the-command-line"><a class="header" href="#on-the-command-line">On the command line</a></h2>
-<pre><code class="language-sh">chipload import plate.dxf -o plate.chipload        # add --units mm if the DXF doesn't say
-chipload inspect plate.chipload                    # contours with their numbers and layers
-chipload set plate.chipload stock.thickness=12 \
-  'operations.0={"type": "profile", "name": "Outline", "part": 1,
-    "select": {"layer": "CUT_OUTSIDE"}, "side": "outside", "direction": "climb", "tool": 1, "start_depth": 0,
-    "end_depth": 12.3, "clearance": 0, "step_down": 3, "feed": 1500, "plunge_feed": 400,
-    "ramp_angle": 0.0524,
-    "tabs": {"count": 4, "width": 6, "height": 2, "flank_angle": 1.5707963267948966}}'
+<pre><code class="language-sh">chipload new -o plate.chipload --thickness 12 --size 200x150    # an empty project
+chipload shape add plate.chipload rectangle --center 0,0 --length 160 --width 100 \
+  --corner-radius 8                                              # shape 1
+for at in -65,-35 65,-35 65,35 -65,35; do
+  chipload shape add plate.chipload circle --center $at --radius 4   # shapes 2 to 5
+done
+chipload op add plate.chipload profile --shapes 1 2 3 4 5 --through
 chipload plan plate.chipload                       # warnings, cycle time, chip load
 chipload run plate.chipload -o plate.nc            # checked G-code and plate-sheet.html
 </code></pre>
 <ul>
-<li><code>set</code> adds the operation (see <a href="scripting.html">Scripting</a>); <code>part</code> is the project’s one
-part, which a new project has as part 1.</li>
-<li><code>select</code> picks the outline by its layer, as <code>inspect</code> lists it. To pick single shapes
-instead, use <code>{"shapes": [ids]}</code>: <code>inspect --json</code> gives each contour’s shape ids.</li>
-<li>Angles in project files are in radians: 0.0524 is the 3° spiral ramp every profile goes
-down at, and 1.5707963267948966 is 90°, a straight tab.</li>
-<li>The app makes the same project. Open <code>plate.chipload</code> in it to see and change the
-operation.</li>
+<li><code>new</code> takes the rest from your library’s defaults, as the dialog does; <code>--fit 10</code> in
+place of <code>--size</code> fits the board round the drawing.</li>
+<li><code>op add</code> makes the same two profiles the app does, the holes first, with the defaults
+the app gives (<code>--through</code>: through the board, into the spoilboard by the allowed
+overcut). Every value can be changed afterwards with <code>set</code> (see
+<a href="scripting.html">Scripting</a>).</li>
+<li>The app makes the same project. Open <code>plate.chipload</code> in it to see and change it.</li>
+</ul>
+<h2 id="starting-from-a-drawing-file"><a class="header" href="#starting-from-a-drawing-file">Starting from a drawing file</a></h2>
+<p>A part drawn in a CAD program comes in as a DXF or an SVG, and the rest is the same:</p>
+<ul>
+<li><strong>In the app:</strong> <em>File &gt; Import DXF, SVG or STL…</em> (Ctrl+I) in place of <em>New project</em>: the same dialog
+opens, and the drawing becomes part of the project. If a DXF doesn’t say whether it’s
+in mm or inches, Chipload asks; it never guesses. The report under the canvas lists
+what was imported, and anything skipped or repaired: duplicate lines, gaps it closed,
+splines turned into arcs.</li>
+<li><strong>Selecting:</strong> a single click on the canvas takes the whole drawing file; double-click
+takes one outline. A drawing file or one of its layers can be clicked in the Browser.</li>
+<li><strong>On the command line:</strong> <code>chipload import plate.dxf -o plate.chipload</code> (add <code>--units mm</code>
+if the DXF doesn’t say), then <code>chipload inspect plate.chipload</code> for the contours with
+their numbers and layers, and <code>op add plate.chipload profile --layer CUT</code> for every
+shape on a layer.</li>
+<li>The project keeps the drawing itself, so the file isn’t needed again unless it changes;
+then <em>File &gt; Update drawing from DXF or SVG…</em> takes the new version and keeps your operations
+(<a href="drawings/update.html">Updating</a>). Imported and drawn shapes mix freely in one project.</li>
 </ul>
 <h2 id="the-checker"><a class="header" href="#the-checker">The checker</a></h2>
 <p>Before Chipload writes a program, an independent checker reads the G-code back and refuses

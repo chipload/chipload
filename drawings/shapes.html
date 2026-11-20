@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Drawing shapes - Chipload 0.38.0 user guide</title>
+        <title>Drawing shapes - Chipload 0.39.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bf4381fb.js";
+            window.path_to_searchindex_js = "../searchindex-6e70ea5e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ccd7e32c.js"></script>
+        <script src="../toc-edc691ed.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.38.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.39.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -180,25 +180,89 @@
                         <h1 id="drawing-shapes"><a class="header" href="#drawing-shapes">Drawing shapes</a></h1>
 <p>Chipload draws the parts it cuts, with or without a DXF:</p>
 <ul>
-<li><strong>Circle</strong> (key <strong>C</strong>): the centre, then a point on it.</li>
+<li><strong>Circle</strong> (key <strong>C</strong>): the centre, then a point on it. Two more ways, from the small
+arrow on its button (below):
+<ul>
+<li><strong>Two points:</strong> the two ends of a diameter (type a length after the first for the
+diameter).</li>
+<li><strong>Three points:</strong> three points on it, such as three corners it must pass through.
+Three points on one line make no circle, and the status bar says so.</li>
+</ul>
+</li>
 <li><strong>Rectangle</strong> (<strong>R</strong>): two opposite corners. It keeps its centre, length and width, a
-rotation, and a corner radius (0: sharp corners).</li>
+rotation, and a corner radius (0: sharp corners). Two more ways to draw it, from the
+small arrow on its button (below):
+<ul>
+<li><strong>Centre and corner:</strong> the centre, then a corner.</li>
+<li><strong>Aligned (three points):</strong> the two ends of one edge, at any angle, then its width (a
+click on either side of the edge, or type it). The rectangle is turned to the edge.</li>
+</ul>
+</li>
 <li><strong>Polyline</strong> (<strong>L</strong>): points joined by straight or arc segments, open or closed. Click
-the first point again to close it; Enter or a double-click finishes it open.</li>
+the first point again to close it; Enter or a double-click finishes it open.
+<ul>
+<li><strong>Rounded corners:</strong> each corner between two straight sides can have a <em>Radius</em>, an
+arc tangent to both sides. The point stays at the sharp corner, so the numbers you
+drew stay as they were. Set it in the form’s points table (the <em>Radius</em> column), or
+give <em>Radius</em> on the status bar while drawing: every corner gets it, and a corner whose
+sides are too short gets the most that fits. An open polyline’s ends have no corner. On
+the command line: <code>chipload shape add P polyline --points "0,0 100,0 100,60 0,60" --radii "0 5 5 0"</code>, <code>shape set P ID --radii …</code>.</li>
+</ul>
+</li>
 <li><strong>Arc</strong> (<strong>A</strong>): where it starts, where it ends, then a point it passes through (or type
 its radius: it bows to the cursor’s side). It becomes an open polyline of one or two arc
-segments.</li>
+segments. Another way, from the arrow on its button:
+<ul>
+<li><strong>Centre, start, end:</strong> the centre, where it starts (the radius; type a length for it),
+then where it ends: only the direction from the centre counts. The arc goes round the
+way you move the cursor from the start, so move the other way round for the other
+side. Type <code>&lt;90</code> for the end at 90° on the circle.</li>
+</ul>
+</li>
 <li><strong>Slot</strong> (<strong>U</strong>): the centres of its two ends, then its width (a click, or type it). It
 is a rectangle whose corner radius is half its width; it shows as <em>Slot</em>, and stays one
-when you change its width.</li>
+when you change its width. Another way, from the arrow on its button:
+<ul>
+<li><strong>Arc slot:</strong> the centre of its arc, where its centre line starts (the radius; type a
+length for it), where it ends (the way you move round, as the arc by its centre does;
+<code>&lt;120</code> types the end’s angle), then its width (a click, or type it). It becomes a
+closed polyline of arcs with round ends, for clamp and adjustment slots; afterwards it
+is edited as a polyline. <code>chipload shape add P arc-slot --center 0,0 --radius 40 --start-deg 30 --end-deg 150 --width 8</code>.</li>
+</ul>
+</li>
 <li><strong>Polygon</strong> (<strong>N</strong>): the centre, then a corner. Its number of sides is on the status bar
 while you draw (6 to start with, then the last you chose). Its form has the radius to
 the corners and the size <strong>across flats</strong>, either of which sets the other (a hexagon
-nut’s spanner size), and the angle of its first corner. <code>chipload shape add P polygon --center 50,30 --sides 6 --across-flats 13</code>.</li>
+nut’s spanner size), and the angle of its first corner. <code>chipload shape add P polygon --center 50,30 --sides 6 --across-flats 13</code>. Two more ways, from the arrow on its button:
+<ul>
+<li><strong>Centre and side:</strong> the centre, then the middle of a side: the size across flats is
+twice that distance (type it as a length: <code>6.5</code> for a 13 mm nut). Snapping
+perpendicular from the centre onto a line makes a polygon that touches it.</li>
+<li><strong>On an edge:</strong> the two ends of one side. The polygon lies to the side’s left, so
+click from left to right for a polygon above the side, right to left for one below.</li>
+</ul>
+</li>
+<li><strong>Spline</strong> (<strong>B</strong>): click the points a smooth curve passes through, as for a polyline:
+Enter or a double-click finishes it open, clicking the first point closes it, Backspace
+drops the last point. The preview shows the curve through the cursor. It bends evenly
+through each point, never kinks or loops between two, and keeps its points: drag one,
+or change them in its form (a table of X, Y, as a polyline’s, and <em>Closed</em>). Snapping
+to a spline takes its points (as ends), the nearest point on it, and tangents and
+perpendiculars. It is cut as lines
+and arcs within 0.01 mm of the curve, since controllers have no spline move. On the
+command line: <code>chipload shape add P spline --points "0,0 20,15 45,5 60,20" [--closed]</code>,
+and <code>shape set P ID --points … --closed</code>. Moving, turning, mirroring and scaling move
+its points, and the curve follows exactly.</li>
 </ul>
 <p>Pick the tool in the ribbon’s DRAW group (the small buttons; hover over one for its name
 and key) or by its key, then click on the canvas. With no
-tool active, <strong>Enter</strong> starts the last one again. Clicks snap to the drawing (below), else
+tool active, <strong>Enter</strong> starts the last one again.</p>
+<p>A button with a small triangle in its corner draws its shape more than one way. Click the
+triangle, or right-click the button, for the list; the way you choose stays on the button
+until you close Chipload. The <em>Draw</em> menu lists them under the shape. Pressing the key again
+before the first click moves to the next way (<strong>R</strong>, <strong>R</strong>, <strong>R</strong>: two corners, centre,
+aligned; <strong>C</strong>, <strong>A</strong>, <strong>U</strong> and <strong>N</strong> go round theirs the same way) and the status bar names
+it. Clicks snap to the drawing (below), else
 to the <a href="../window.html#the-canvas">grid</a>, whose step the status bar gives (“grid 1 mm”).</p>
 <h2 id="snapping"><a class="header" href="#snapping">Snapping</a></h2>
 <p>Within 8 pixels of the cursor, a click or a drag lands exactly on a point of the drawing,
@@ -226,12 +290,16 @@ uses it, <strong>Esc</strong> closes it.</p>
 <tr><td><code>@30,-10</code></td><td>30 to the right of the last point and 10 down</td></tr>
 <tr><td><code>30</code></td><td>30 from the last point, towards the cursor</td></tr>
 <tr><td><code>30&lt;45</code></td><td>30 from the last point at 45° (counter-clockwise from the X axis)</td></tr>
+<tr><td><code>&lt;45</code></td><td>at 45° from the last point, as far as the cursor is (an arc by its centre: its end at 45°)</td></tr>
 </tbody>
 </table>
 </div>
-<p>Lengths are in the units the app shows, unless you name them: <code>1/2in</code>, <code>12mm</code>. Where the
+<p>Lengths are in the units the app shows, unless you name them: <code>1/2in</code>, <code>12mm</code>. Every
+value can be a sum: <code>600/4,18+0.2</code>, <code>(100-6)/2</code>, <code>&lt;360/7</code>
+(<a href="../concepts/units.html">arithmetic</a>). Where the
 decimal point is a comma, separate X and Y with a semicolon: <code>12,5;30</code>. For a circle, a
-plain length after the centre is its radius. The preview shows where the value lands before
+plain length after the centre is its radius; for an aligned rectangle, after the edge, its
+width. The preview shows where the value lands before
 you press Enter; a value that can’t be used turns red and the status bar says why.</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../images/typing.png" alt="Drawing a polyline: 40&lt;120 typed, the preview at 120° and the length and angle beside the cursor"><span class="img-wrapper"><img src="../images/typing.png" alt="Drawing a polyline: 40&lt;120 typed, the preview at 120° and the length and angle beside the cursor"></span></label></p>
 <p>Beside the cursor, the size being drawn: the line’s length and angle, a circle’s radius, a
@@ -256,8 +324,10 @@ click a corner (it is marked when the cursor is near it) to round it with an arc
 <em>Radius</em> on the status bar, or cut it straight across, the <em>Distance</em> back along each
 side. Shift+click does every corner. A corner is a point between two straight sides; a
 radius too large for the sides is refused with the most that fits (two corners on one
-side share it). A rectangle rounded all round keeps its kind (its corner radius); any
-other shape becomes a polyline and keeps its number, so operations still cut it.
+side share it). A polyline’s corner gets that <em>Radius</em> (above), so it stays editable; a
+rectangle rounded all round keeps its kind (its corner radius); any other shape becomes
+a polyline and keeps its number, so operations still cut it. Chamfer leaves rounded
+corners as they are.
 <code>chipload shape fillet P 3 --radius 2 [--corner 0]</code>, <code>chipload shape chamfer P 3 --distance 1</code>.</li>
 <li><strong>Trim</strong> (<strong>X</strong>), <strong>Extend</strong> and <strong>Break</strong> work on the drawn shape under the cursor; no
 need to select it first. Trim shows the piece it will remove before you click, Extend
@@ -293,6 +363,16 @@ first keeps its number). For <em>Subtract</em>, select the shapes to cut out, ch
 <em>Subtract</em>, then click the shape to cut them from: the preview shows the result under
 the cursor. On the command line: <code>chipload shape union P 1 2 3</code>, <code>chipload shape subtract P 1 4 5</code> (4
 and 5 cut out of 1), <code>chipload shape intersect P 1 2</code>.</li>
+<li><strong>Mirror</strong> (<strong>I</strong>): select drawn shapes, then click two points of the mirror line (they
+snap; Shift keeps the line to 15° steps), or click a straight line, such as a
+construction centre line, to mirror about it. The preview shows the result before the
+last click. With <em>Keep the original</em> (on the status bar, on to start with) the mirrored
+shapes are copies; a half outline whose two ends lie on the line joins its mirror image
+into one closed shape that keeps its number, so drawing half a part against a centre
+line and mirroring it gives the whole outline, ready to cut. Unticked, the shapes flip in
+place and keep their numbers, and operations’ start points and tabs on them follow. On
+the command line: <code>chipload shape mirror P 3 4 --line "0,0 0,100" [--copy]</code>, or
+<code>--about-shape 7</code> for a drawn line.</li>
 <li><strong>Arrays</strong> add copies of drawn shapes in a grid or round a centre; the originals stay
 and the copies go on their layers with new numbers. A grid counts the originals in its
 columns and rows and spaces them centre to centre (negative goes left or down). A polar
@@ -345,7 +425,14 @@ steps, Alt turns snapping off. Select several with a box first (drag on empty ca
 <a href="../window.html#the-canvas">the canvas</a>). Shapes from a DXF, a picture or a text move as a
 whole with their own handles.</li>
 <li><strong>Handles:</strong> drag a selected shape’s handles to change it. A drag snaps as drawing does;
-hold Alt to turn snapping off.</li>
+hold Alt to turn snapping off. Hold Shift to keep a point (or a centre, or a corner) to
+15° steps from where it was, so straight across, up or at 45°; on a turn handle or a
+polygon’s corner, Shift turns the shape in 15° steps.</li>
+<li><strong>Several points at once:</strong> on a selected polyline or spline, Ctrl+click (⌘ on a Mac) its
+points to pick them; they turn solid. Drag any of them and all move together, as one
+undo step (Shift keeps the move to 15° steps). Ctrl+click a picked point to leave it out;
+Escape, or a click elsewhere, lets go of them. Rounded corners keep their radius; a move
+that leaves no room for one is held back, and the form says why.</li>
 <li><strong>Polyline segments:</strong> on a selected polyline, drag one of its lines (anywhere, or its
 round middle handle) to move that segment; the segments either side stretch to stay
 joined. <strong>Ctrl+drag</strong> inserts a new point there instead, and <strong>Shift+drag</strong> bends the
@@ -361,7 +448,17 @@ end moves along it, a rectangle keeps its centre.</li>
 (G2/G3 in the program). It can be at most half the shorter side: half of it rounds the
 short ends fully, into a slot. A larger radius is refused rather than shrunk, and a corner
 handle won’t drag the rectangle smaller than its corners allow; lower the radius first.
-The reset button makes the corners sharp again.</li>
+The reset button makes the corners sharp again.
+<ul>
+<li><strong>Each corner its own:</strong> tick <em>Each corner</em> under <em>Corners</em> in a rectangle’s or a
+polygon’s form for a radius per corner, numbered counter-clockwise from the first (a
+rectangle’s from its lower left as drawn at 0°). The shape stays a rectangle or a
+polygon, its size, angle and sides still editable. Unticked, one radius rounds every
+corner (for a polygon, <em>Corner radius</em>). Fillet on one corner of either sets that
+corner’s radius. On the command line: <code>--radii "0 10 10 0"</code> (<code>--corner-radius</code> sets
+every corner alike).</li>
+</ul>
+</li>
 <li><strong>Move, turn and size:</strong> select a polyline, or several drawn shapes (Ctrl+click), and a
 dashed box shows round them: drag the square in the middle to move them, the round handle
 beyond the right side to turn them (in steps of 15°; hold Alt for 0.1°), a corner to
@@ -375,8 +472,8 @@ corner of a rectangle you move or resize).</li>
 drawn shapes are selected, have <em>Position</em> (the lower-left corner of the box round them:
 type a value to move them there) and <em>Turn</em>: ⟲ 90, ⟳ 90, or type an angle and press
 Enter. A polyline keeps no angle of its own; turning moves its points.</li>
-<li><strong>In the Browser:</strong> under <em>Drawing</em>, the <em>Circles</em>, <em>Rectangles</em>, <em>Polylines</em> and
-<em>Polygons</em> groups list their shapes in a folder per layer. Click a row to select the
+<li><strong>In the Browser:</strong> under <em>Drawing</em>, the <em>Circles</em>, <em>Rectangles</em>, <em>Polylines</em>,
+<em>Polygons</em> and <em>Splines</em> groups list their shapes in a folder per layer. Click a row to select the
 shape (Ctrl+click adds or removes); right-click to rename, copy or delete it. A group
 with more than 20 shapes starts closed.</li>
 <li><strong>Names:</strong> give a drawn shape a <em>Name</em> in its form (or <em>Rename…</em> in the Browser); the
@@ -385,7 +482,7 @@ start without a name.</li>
 <li><strong>Copy and paste:</strong> Ctrl+C and Ctrl+V. <em>Draw &gt; Paste</em> puts the copy 10 mm right and up;
 Ctrl+V over the canvas pastes at the cursor.</li>
 <li><strong>Mirror:</strong> <em>Draw &gt; Mirror left–right</em> and <em>Mirror up–down</em> flip shapes about the middle
-of their box.</li>
+of their box; <em>Mirror</em> in MODIFY mirrors about any line (above).</li>
 <li><strong>Delete:</strong> Del (or right-click &gt; <em>Delete</em>). Operations that cut the shape are flagged.
 Del also deletes a text, a picture or a DXF selected as a whole (by a click on a letter,
 or on its Browser row), as its <em>Remove</em> does; a box round a sign takes its words with the
@@ -457,11 +554,11 @@ clockwise.</p>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../drawings/several.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../concepts/checker.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../drawings/explode.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../drawings/import.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -471,11 +568,11 @@ clockwise.</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../drawings/several.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../concepts/checker.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../drawings/explode.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../drawings/import.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

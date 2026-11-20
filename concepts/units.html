@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Units and coordinates - Chipload 0.38.0 user guide</title>
+        <title>Units and coordinates - Chipload 0.39.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bf4381fb.js";
+            window.path_to_searchindex_js = "../searchindex-6e70ea5e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ccd7e32c.js"></script>
+        <script src="../toc-edc691ed.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.38.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.39.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -215,6 +215,11 @@ are in inches;</li>
 the stock allowed, and a 1/4“ endmill.</li>
 </ul>
 <p>In mm, fields also take a length in inches: type <code>1/4in</code> or <code>0.25"</code>.</p>
+<p><strong>Arithmetic:</strong> any length or number field, a value typed while drawing, and any length on
+the command line take <code>+ - * /</code> and brackets: <code>18+0.2</code>, <code>600/4</code>, <code>(100-6)/2</code>, <code>2*1/4in</code>.
+<code>*</code> and <code>/</code> go first. A unit can follow any number (<code>1in+3mm</code>); a number without one is in
+the field’s units. A length can’t be multiplied by a length, nor divide anything. The field
+keeps the result, not the sum.</p>
 <p><strong>On the command line</strong> a plain number is mm, as always, so scripts don’t change. A length
 can carry its unit: <code>--height 0.5in</code>, <code>--diameter 1/4in</code>, <code>--at 1in,2in</code>, <code>--width 1 1/2in</code>
 (quoted), <code>--travel 30in,30in,4in</code>; feeds <code>--max-feed 200in/min</code>. <code>chipload run --sheet-units inch</code> and <code>chipload sheet --units inch</code> write the setup sheet in inches.

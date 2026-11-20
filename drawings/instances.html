@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Instances - Chipload 0.38.0 user guide</title>
+        <title>Instances - Chipload 0.39.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bf4381fb.js";
+            window.path_to_searchindex_js = "../searchindex-6e70ea5e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ccd7e32c.js"></script>
+        <script src="../toc-edc691ed.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.38.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.39.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -186,18 +186,44 @@ instance follows.</p>
 <ul>
 <li><strong>Right-click the part</strong> in the Browser: <em>Add instance</em> places it again beside what it
 cuts, 10 mm away; <em>Add mirrored instance</em> does the same, mirrored left to right.</li>
-<li><strong>On the canvas</strong>, each instance is drawn faded where it is cut, with a badge above its
-top left: its number (<code>#2</code>) and a four-way arrow. One that is off is dashed. The badge is
-the handle: click it to select the instance, drag it to move it (the outline can be
-dragged too, where no shape lies under it). A selected instance has a round turn handle
+<li><strong>On the canvas</strong>, instances are placed in their setup’s tab
+(<a href="../window.html#the-canvas">the canvas</a>): each drawn where it is cut, with a badge below
+its bottom left: a four-way arrow, its part’s name and its number (<code>Side #2</code>), and a
+mirror mark when it is mirrored. One that is off is dashed. Click an instance (its badge
+or outline) to select it, drag it to move it. Double-click it to open its part in
+<em>Drawing</em>. A selected instance has a round turn handle
 with a curved arrow: drag it to turn the instance about its middle. Under the pointer an
 instance’s outline thickens and the pointer becomes a hand, so you see what a drag
-takes. Turning snaps to quarter turns within 3°; hold
+takes. Hold Shift while moving to keep it to 15° steps from where you grabbed it
+(straight across, up or at 45°). Turning snaps to quarter turns within 3°; hold
 Alt to turn freely. Escape during a drag puts it back; each drag is one undo step.</li>
+<li><strong>Drag the part in:</strong> drag a part’s row from the Browser onto a setup’s tab of the
+canvas: its outline follows the pointer, on the grid’s steps (hold Alt to place it
+freely), and letting go places a new instance there, not turned or mirrored, selected.
+Dropped on another setup’s sheet beside the board, it goes on that setup. From
+<em>Drawing</em>, hold the dragged part over a setup’s tab for half a second: the tab opens.
+Escape during the drag places nothing. A board cut in
+<a href="../concepts/pieces.html">pieces</a> that already holds the part refuses it, and the Report
+says why.</li>
+<li><strong>More of them on the canvas:</strong>
+<ul>
+<li><strong>Right-click an instance</strong> (its badge, or its outline): <em>Duplicate</em>, <em>Turn 90° left</em>,
+<em>Turn 90° right</em>, <em>Mirror</em>, <em>Reset to where drawn</em>, <em>Don’t cut</em> (or <em>Cut</em>) and
+<em>Remove</em>. <em>Reset to where drawn</em> puts it back where the part is drawn, not turned; its
+mirror and whether it is cut stay.</li>
+<li><strong>Duplicate</strong> places a new instance, turned and mirrored like this one and on the same
+board, beside everything the part cuts, and selects it. Duplicate again and the next
+goes beside that one.</li>
+<li><strong>Ctrl+drag</strong> (⌘ on a Mac) an instance to drag a copy of it off; the original stays.
+Escape during the drag drops the copy.</li>
+<li><strong>Ctrl+C, then Ctrl+V,</strong> with an instance selected, works as <em>Duplicate</em>, as many times
+as you paste. It copies the placement, not the shapes.</li>
+</ul>
+</li>
 <li><strong>In the Browser</strong>, each instance has a row with its tick under its setup (“Side #2”),
 never under its part: copies and placing are setups’ work, so they are listed under the
-setup that cuts them, even with one board (<em>Setup 1</em>). Right-click it to <em>Mirror</em> it, <em>Turn
-90°</em>, <em>Move to setup ▸</em> or <em>Remove</em> it; Delete removes the selected one.</li>
+setup that cuts them, even with one board (<em>Setup 1</em>). Right-click it for the same menu
+as on the canvas, and <em>Move to setup ▸</em>; Delete removes the selected one.</li>
 <li><strong>Several setups:</strong> drag a part’s row onto a setup to cut it there, every instance of it
 moved (right-click it for <em>Move to setup ▸</em>); hold Ctrl (⌘ on a Mac) as you drop to
 place it there too, a new instance where the part is drawn (<em>Place on setup ▸</em>). Drag an
@@ -212,8 +238,10 @@ give <code>--part</code>.</p>
 <pre><code class="language-sh">chipload part instance add part.chipload                  # beside the part, 10 mm from its cut
 chipload part instance add part.chipload --angle 90 --mirror left-right
 chipload part instance add part.chipload --at 300,0       # moved 300 mm right of the part
+chipload part instance add part.chipload --like 3         # turned, mirrored and on the board of instance 3
 chipload part instance list part.chipload                 # their numbers, places and turns
 chipload part instance set part.chipload 3 --angle 45     # turn instance 3 (also --at, --mirror, --off, --on)
+chipload part instance set part.chipload 3 --reset        # back where the part is drawn, not turned
 chipload part instance remove part.chipload 3             # or --all: the part is cut once
 chipload part instance array part.chipload --grid 3x2 --gap 10   # a grid in place of them
 chipload part instance move part.chipload 3 --setup 2     # instance 3 cut from setup 2's board instead
@@ -276,7 +304,8 @@ project is run, and the commands warn as soon as you place one there;</li>
 <p><strong>Limits:</strong> up to 100 columns or rows in a grid, and 1 000 instances.</p>
 </li>
 <li>
-<p><strong>Display:</strong> the canvas and the setup sheet draw the instances faded where they are cut.
+<p><strong>Display:</strong> the setup’s tab draws the instances where they are cut, the setup sheet
+faded.
 The setup sheet and the playback say which instance is being cut, and the sheet says
 where a part placed elsewhere than drawn is cut.</p>
 </li>
@@ -288,14 +317,14 @@ the first included, is a placement of them. This lets you lay parts out on a she
 moving the drawing, for instance when several parts come from one DXF.</p>
 <p>In the window:</p>
 <ul>
-<li><strong>Right-click the part</strong> in the Browser, <em>Place…</em>: its first instance is selected, a
-ghost <code>#1</code> on its shapes with its round turn handle, and its form opens with its
-rotation and how far it is moved. Drag it by its badge <code>#1</code> (above its shapes, so the
-shapes underneath aren’t in the way), turn it by its handle, or press Q for the Compass.
+<li><strong>Right-click the part</strong> in the Browser, <em>Place…</em>: its first instance is selected in
+its setup’s tab, with its round turn handle, and its form opens with its rotation and
+how far it is moved. Drag it, turn it by its handle, or press Q for the Compass.
 <em>Reset placement</em> puts it back where drawn.</li>
-<li><strong>On the canvas</strong>, once placed, it is a ghost <code>#1</code> where it is cut, picked, dragged and
-turned like any instance. Its shapes, where they are drawn, get a dashed box saying
-“not cut here”; edit them there, and every instance follows.</li>
+<li><strong>On the canvas</strong>, once placed, it is <code>#1</code> in its setup’s tab where it is cut, picked,
+dragged and turned like any instance. Its shapes stay where they are drawn, in
+<em>Drawing</em>; edit them there, and every instance follows. <em>Drawing</em> shows no board behind
+a part that isn’t cut where it is drawn.</li>
 <li><strong>In the Browser</strong>, its instances are under <em>Setup 1</em> (“Side #1”, “Side #2”), the
 setups listed once the part is placed.</li>
 <li><strong>The Compass</strong> (Q) works on a selected instance, the first included: drag an arrow to

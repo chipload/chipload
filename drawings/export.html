@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Exporting the drawing - Chipload 0.38.0 user guide</title>
+        <title>Exporting the drawing - Chipload 0.39.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bf4381fb.js";
+            window.path_to_searchindex_js = "../searchindex-6e70ea5e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ccd7e32c.js"></script>
+        <script src="../toc-edc691ed.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.38.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.39.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -195,7 +195,9 @@ and groups are left out unless you ask for them (<code>--hidden</code>, or the c
 </ul>
 </li>
 <li><strong>Circles as circles, everything else as polylines</strong> whose arcs stay true arcs (bulges),
-so round corners and holes are cut as arcs by whatever reads the file.</li>
+so round corners and holes are cut as arcs by whatever reads the file. A spline goes
+out as the lines and arcs it is cut with, within 0.01 mm of its curve: the file’s
+classic DXF layout, which every program reads, has no spline entity.</li>
 <li><strong>Only some of it:</strong> <code>--layer NAME</code> (repeatable) or <code>--shape ID …</code> on the command line;
 <em>Only the selected shapes</em> in the window.</li>
 <li><strong>Construction geometry</strong> only when you ask (<code>--construction</code>, or the checkbox), each on

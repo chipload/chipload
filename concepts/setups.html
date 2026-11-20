@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Setups - Chipload 0.38.0 user guide</title>
+        <title>Setups - Chipload 0.39.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bf4381fb.js";
+            window.path_to_searchindex_js = "../searchindex-6e70ea5e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ccd7e32c.js"></script>
+        <script src="../toc-edc691ed.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.38.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.39.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -215,15 +215,18 @@ menu: <strong>New part</strong> (on the active setup), <strong>Add a setup</stro
 the first, empty, and becomes the active one), <strong>Face the board</strong>, <strong>Nest…</strong> and <strong>Nest
 again</strong> for the active setup, and <strong>Export all setups…</strong> with two or more. Click a setup for its name, whether it is cut and its parts; right-click it for
 what is done to that board: <strong>New part</strong> in it, <strong>Nest…</strong>, <strong>Add the back side</strong>.</p>
-<p>With two or more, the setup you click is the <strong>active setup</strong>: it is shown in full colour,
-generated, simulated and exported, its board on the drawing where it is cut. Every other
-setup is a <strong>sheet</strong> beside it: its board, faint, in a row to the right (50 mm apart; a
-back right beside its front, 10 mm apart with a turn-over mark between them), with the outlines of what is cut from it and its name above. A click on a
-sheet makes that setup the active one: its board moves into place, the point you clicked
-staying under the pointer. Sheets are only drawn beside the board: the project, the G-code
-and the setup sheet keep each board where it is. Shapes only another setup cuts stay where
-they are drawn, faint. Right-click a part for <strong>Move to setup ▸</strong>. The machine, shared by
+<p>Each setup has a tab over the canvas, beside <em>Drawing</em> (<a href="../window.html#the-canvas">the canvas</a>):
+its board with its instances where they are cut, no drawn shapes. With two or more, the
+setup you click is the <strong>active setup</strong>: it is shown in full colour, generated, simulated
+and exported, its board where it is cut. The boards lie in <strong>one row</strong>, in the setups’
+order from left to right (50 mm apart; a back right beside its front, 10 mm apart with a
+turn-over mark between them); every other setup is a <strong>sheet</strong> in it, its board faint with
+the outlines of what is cut from it and its name above. <strong>The row stays put:</strong> click a
+sheet, a setup’s tab or its Browser row, and that setup becomes the active one where it
+lies on screen; only its colours change. Sheets are only drawn beside the board: the project, the G-code
+and the setup sheet keep each board where it is. Right-click a part for <strong>Move to setup ▸</strong>. The machine, shared by
 every setup, is under <strong>Machine</strong>.</p>
+<p>The same menu opens with a right-click on empty canvas in the setup’s tab.</p>
 <p>Right-click a setup for <strong>Export G-code of this setup…</strong>: it becomes the active setup, is
 planned if it isn’t shown already, and its program and sheet are written. <strong>Export G-code</strong>
 writes the active setup’s program, named <code>-S1</code>, <code>-S2</code> as <code>run</code> names them,

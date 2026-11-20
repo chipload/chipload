@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Parts - Chipload 0.38.0 user guide</title>
+        <title>Parts - Chipload 0.39.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bf4381fb.js";
+            window.path_to_searchindex_js = "../searchindex-6e70ea5e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ccd7e32c.js"></script>
+        <script src="../toc-edc691ed.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.38.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.39.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -194,12 +194,13 @@ changes.</li>
 <li><strong>Off:</strong> a part that is off is left out with all its operations.</li>
 <li><strong>The active part:</strong> new operations go into it. Adding a part makes the new one active.</li>
 <li><strong>A part or a setup is shown, never both.</strong> Select a part, or one of its operations, in
-the Browser: that part is shown alone, once, where it is drawn, and Generate, the
-automatic update, the simulation and playback are of it, so a change to part 2 doesn’t
-plan part 1 again. The status bar says “part 2 of 2 · cycle …”. Other parts’ shapes are
-ghosts. Select the setup, the project, the Stock or the Work zero (or click a setup’s
-sheet) to see every instance on the board again. Selecting a tool or a shape leaves the
-view as it is.</li>
+the Browser: the canvas shows <em>Drawing</em> (<a href="../window.html#the-canvas">the canvas</a>), that
+part alone, once, where it is drawn, and Generate, the automatic update, the simulation
+and playback are of it, so a change to part 2 doesn’t plan part 1 again. The status bar
+says “part 2 of 2 · cycle …”. Other parts’ shapes are dimmed. Select the setup, the
+Stock, the Work zero or an instance (or click a setup’s tab or sheet) to see every
+instance on the board again. Selecting the project or a tool leaves the canvas as it
+is.</li>
 <li><strong>Its board:</strong> a part drawn in place is shown on its own board. A part placed elsewhere,
 or cut only as copies, is shown where it is drawn on a board fitted round it, its own
 thickness when it <a href="#a-parts-stock">asks for one</a>.</li>

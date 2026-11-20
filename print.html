@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Chipload 0.38.0 user guide</title>
+        <title>Chipload 0.39.0 user guide</title>
         <meta name="robots" content="noindex">
 
 
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-bf4381fb.js";
+            window.path_to_searchindex_js = "searchindex-6e70ea5e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-ccd7e32c.js"></script>
+        <script src="toc-edc691ed.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -138,7 +138,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.38.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.39.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -182,10 +182,11 @@
 <img src="images/chipload-wordmark.svg" alt="Chipload" height="64">
 <p>Chipload is 2.5D CAM for CNC routers and mills: a drawing in, checked G-code out.</p>
 <ul>
-<li><strong>In:</strong> DXF and SVG drawings, text in built-in fonts, pictures traced into shapes, 3D
-models (STL) and depth maps for reliefs, and
-shapes drawn and edited in Chipload (lines, arcs, circles, rectangles, polygons, slots;
-offset, fillet, trim, union and subtract, arrays; the Compass to move, turn and copy). The drawing exports as a DXF too.</li>
+<li><strong>In:</strong> shapes drawn and edited in Chipload (lines, arcs, circles, rectangles,
+polygons, slots; offset, fillet, trim, union and subtract, arrays; the Compass to move,
+turn and copy), DXF and SVG drawings, text in built-in fonts, pictures traced into
+shapes, and 3D models (STL) and depth maps for reliefs. Drawn and imported shapes mix
+in one project, and the drawing exports as a DXF too.</li>
 <li><strong>Out:</strong> G-code for your controller, in mm or inches, through a post-processor: GRBL,
 LinuxCNC and Mach3/4 are built in, and you can write your own.</li>
 <li><strong>Operations:</strong>
@@ -367,59 +368,82 @@ of the window’s panels (<code>layout.json</code>) in one folder:</p>
 any computer, whatever that computer’s library holds.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="your-first-part"><a class="header" href="#your-first-part">Your first part</a></h1>
-<p>This walks through one part, from a DXF to G-code: a plate with holes, cut out with an
-outside profile. The same steps follow in the app and on the command line.</p>
+<p>This walks through one part, from nothing to G-code: a plate of 160 × 100 mm with rounded
+corners and four holes, drawn in Chipload and cut out with profiles. The same steps follow
+in the app and on the command line. Starting from a DXF or an SVG instead differs only in
+the first steps (<a href="#starting-from-a-drawing-file">below</a>).</p>
 <h2 id="in-the-app"><a class="header" href="#in-the-app">In the app</a></h2>
 <ol>
 <li>
-<p><strong>Import the drawing:</strong> <em>File &gt; Import DXF…</em> (Ctrl+I).</p>
+<p><strong>A new project:</strong> <em>File &gt; New project</em> (Ctrl+N).</p>
 <ul>
-<li>If the DXF doesn’t say whether it’s in mm or inches, Chipload asks. It never guesses.</li>
 <li>The <a href="#the-new-project-dialog">new project dialog</a> asks for the
 material, the board’s thickness and size, Z zero, the machine and the tools. Set the
-real thickness: depths are measured from the board’s top. Enter creates the project.</li>
-<li>The report under the canvas lists what was imported, and anything skipped or
-repaired: duplicate lines, gaps it closed, splines turned into arcs.</li>
+real thickness, 12 mm here: depths are measured from the board’s top. Leave the board
+on <em>Fit the drawing</em>: it grows round what you draw. Enter creates the project.</li>
 </ul>
 </li>
 <li>
-<p><strong>Check the stock and the machine:</strong> <strong>Stock</strong> in the <a href="#the-browser">Browser</a> on
-the left is the board you chose; <strong>Machine</strong> shows the machine.
-<a href="#work-zero">Work zero</a> is at the stock’s bottom-left corner (the <em>Work
-zero</em> row; drag it in the view to move it). Without a
-<a href="#tool-library">tool library</a> and <a href="#machine-profiles">machine profiles</a>, a project
-has the GRBL post, a safe height of 5 mm and a 6 mm endmill at 18 000 rpm.</p>
+<p><strong>Draw the plate:</strong> press <strong>R</strong> (or the rectangle in the ribbon’s DRAW group) and click
+two opposite corners on the canvas, anywhere. You draw on the canvas’s <em>Drawing</em> tab,
+where a new project opens (<a href="#the-canvas">the canvas</a>).</p>
+<ul>
+<li>The rectangle stays selected, and its values are under <em>Selection</em> in the
+<a href="#properties">Properties</a> panel on the right. Type the exact ones: centre
+0, 0, length 160, width 100, corner radius 8.</li>
+<li>Clicks land on the <a href="#the-canvas">grid</a> and <a href="#snapping">snap</a>
+to what is drawn, so values usually start out round.</li>
+</ul>
 </li>
 <li>
-<p><strong>Select what to cut:</strong></p>
+<p><strong>Draw the holes:</strong> press <strong>C</strong>, then type <code>-65,-35</code> and Enter for the centre, and <code>4</code>
+and Enter for the radius. A typed value opens beside the cursor as you type
+(<a href="#exact-values">Exact values</a>).</p>
 <ul>
-<li>double-click the outline on the canvas (a single click takes the whole DXF);</li>
-<li>Ctrl+click adds more;</li>
-<li>right-click selects a whole layer;</li>
-<li>right-click a shape for <strong>Select similar</strong> (every circle of its diameter, on any
-layer, or every shape of its size on its layer) or <strong>Select inside</strong> (the closed
-shapes within an outline: a part’s pockets and holes). With Ctrl held they add to the
-selection. On the command line, <code>chipload shape similar part.chipload 5</code> and
-<code>chipload shape inside part.chipload 1</code> print the shape ids, for <code>op add … --shapes</code>;</li>
-<li>or click a DXF or one of its layers in the Browser.</li>
+<li><strong>Enter</strong> starts the circle again: <code>65,-35</code>, <code>65,35</code> and <code>-65,35</code>, each with radius 4.</li>
+<li>Esc ends the tool. Every drawn shape can be changed later: drag its handles, or type
+its values under <em>Selection</em>. <a href="#drawing-shapes">Drawing shapes</a> has the other
+tools: lines and arcs, polygons, slots, offsets, fillets, arrays.</li>
+</ul>
+</li>
+<li>
+<p><strong>Check the stock and the machine:</strong> <strong>Stock</strong> in the <a href="#the-browser">Browser</a>
+on the left is the board you chose; <strong>Machine</strong> shows the machine. Clicking <strong>Stock</strong>
+shows the board’s own tab, <em>Setup 1</em>: the plate as it will be cut. Click <em>Drawing</em> to
+go back.
+<a href="#work-zero">Work zero</a> is at the stock’s bottom-left corner (the <em>Work
+zero</em> row; drag it in the view to move it). Without a <a href="#tool-library">tool library</a>
+and <a href="#machine-profiles">machine profiles</a>, a project has the GRBL post, a safe height
+of 5 mm and a 6 mm endmill at 18 000 rpm.</p>
+</li>
+<li>
+<p><strong>Select what to cut:</strong> drag a box from left to right round the whole plate: it selects
+every shape wholly inside it.</p>
+<ul>
+<li>A click selects one shape, Ctrl+click adds one; right-click selects a whole layer.</li>
+<li>Right-click a shape for <strong>Select similar</strong> (every circle of its diameter, or every
+shape of its size on its layer) or <strong>Select inside</strong> (the closed shapes within an
+outline: a part’s pockets and holes). With Ctrl held they add to the selection. On
+the command line, <code>chipload shape similar plate.chipload 2</code> and <code>chipload shape inside plate.chipload 1</code> print the shape ids, for <code>op add … --shapes</code>.</li>
 </ul>
 </li>
 <li>
 <p><strong>Add an operation:</strong> <strong>Profile</strong>, in the ribbon’s OPERATION group.</p>
 <ul>
-<li>Quicker: press <strong>S</strong> over the canvas, then <strong>P</strong>. The quick menu opens at the mouse with a
-key for each kind (P profile, K pocket, H holes, V V-carve, F follow path, C chamfer, L flute, E pattern, R prism, M moulding) and a digit
-for each of your <a href="#styles">styles</a>. A kind the selection can’t take is
-greyed out, and its hover says why (holes need a circle, a pocket a closed shape).
-Escape closes it.</li>
-<li><strong>Side:</strong> Chipload picks <em>outside</em> for an outline and <em>inside</em> for holes, and asks
-when a selection mixes both.</li>
-<li><strong>End depth:</strong> for a cut-out, the stock thickness plus a little, e.g. 10.3 mm into a
+<li>Quicker: press <strong>S</strong> over the canvas, then <strong>P</strong>. The quick menu opens at the mouse
+with a key for each kind (P profile, K pocket, H holes, V V-carve, F follow path, C
+chamfer, L flute, E pattern, R prism, M moulding) and a digit for each of your
+<a href="#styles">styles</a>. A kind the selection can’t take is greyed out, and its
+hover says why (holes need a circle, a pocket a closed shape). Escape closes it.</li>
+<li><strong>Side:</strong> an outline is cut <em>outside</em> and holes <em>inside</em>. Selected together, as here,
+they become two profiles, the holes first, so the plate is still held while they are
+cut.</li>
+<li><strong>End depth:</strong> for a cut-out, the stock thickness plus a little, e.g. 12.5 mm into a
 spoilboard. More than the allowed overcut (0.5 mm by default, in the setup’s Stock) is
 refused.</li>
 <li><strong>Step down:</strong> how deep each pass goes.</li>
-<li><strong>Tabs:</strong> they keep the part from coming loose on the last pass. Add them under
-<em>Tabs</em>.</li>
+<li><strong>Tabs:</strong> they keep the part from coming loose on the last pass. The outline’s
+profile has them; change them under <em>Tabs</em>.</li>
 </ul>
 </li>
 <li>
@@ -445,36 +469,51 @@ back to editing.</p>
 without asking, as Ctrl+S saves, so a changed depth is one key away from the machine.
 The project remembers its file for next time. <em>File &gt; Export G-code as…</em>
 (Ctrl+Shift+E) always asks.</li>
-<li>Next to the G-code comes a setup sheet (<code>part-sheet.html</code>) for the operator: stock,
+<li>Next to the G-code comes a setup sheet (<code>plate-sheet.html</code>) for the operator: stock,
 zero, tools in order, operations and times.</li>
 </ul>
 </li>
 <li>
-<p><strong>Save the project:</strong> Ctrl+S. A project (<code>.chipload</code>) keeps the drawing itself, so the DXF
-isn’t needed again unless it changes.</p>
+<p><strong>Save the project:</strong> Ctrl+S, as <code>plate.chipload</code>.</p>
 </li>
 </ol>
 <h2 id="on-the-command-line"><a class="header" href="#on-the-command-line">On the command line</a></h2>
-<pre><code class="language-sh">chipload import plate.dxf -o plate.chipload        # add --units mm if the DXF doesn't say
-chipload inspect plate.chipload                    # contours with their numbers and layers
-chipload set plate.chipload stock.thickness=12 \
-  'operations.0={"type": "profile", "name": "Outline", "part": 1,
-    "select": {"layer": "CUT_OUTSIDE"}, "side": "outside", "direction": "climb", "tool": 1, "start_depth": 0,
-    "end_depth": 12.3, "clearance": 0, "step_down": 3, "feed": 1500, "plunge_feed": 400,
-    "ramp_angle": 0.0524,
-    "tabs": {"count": 4, "width": 6, "height": 2, "flank_angle": 1.5707963267948966}}'
+<pre><code class="language-sh">chipload new -o plate.chipload --thickness 12 --size 200x150    # an empty project
+chipload shape add plate.chipload rectangle --center 0,0 --length 160 --width 100 \
+  --corner-radius 8                                              # shape 1
+for at in -65,-35 65,-35 65,35 -65,35; do
+  chipload shape add plate.chipload circle --center $at --radius 4   # shapes 2 to 5
+done
+chipload op add plate.chipload profile --shapes 1 2 3 4 5 --through
 chipload plan plate.chipload                       # warnings, cycle time, chip load
 chipload run plate.chipload -o plate.nc            # checked G-code and plate-sheet.html
 </code></pre>
 <ul>
-<li><code>set</code> adds the operation (see <a href="#scripting-chipload">Scripting</a>); <code>part</code> is the project’s one
-part, which a new project has as part 1.</li>
-<li><code>select</code> picks the outline by its layer, as <code>inspect</code> lists it. To pick single shapes
-instead, use <code>{"shapes": [ids]}</code>: <code>inspect --json</code> gives each contour’s shape ids.</li>
-<li>Angles in project files are in radians: 0.0524 is the 3° spiral ramp every profile goes
-down at, and 1.5707963267948966 is 90°, a straight tab.</li>
-<li>The app makes the same project. Open <code>plate.chipload</code> in it to see and change the
-operation.</li>
+<li><code>new</code> takes the rest from your library’s defaults, as the dialog does; <code>--fit 10</code> in
+place of <code>--size</code> fits the board round the drawing.</li>
+<li><code>op add</code> makes the same two profiles the app does, the holes first, with the defaults
+the app gives (<code>--through</code>: through the board, into the spoilboard by the allowed
+overcut). Every value can be changed afterwards with <code>set</code> (see
+<a href="#scripting-chipload">Scripting</a>).</li>
+<li>The app makes the same project. Open <code>plate.chipload</code> in it to see and change it.</li>
+</ul>
+<h2 id="starting-from-a-drawing-file"><a class="header" href="#starting-from-a-drawing-file">Starting from a drawing file</a></h2>
+<p>A part drawn in a CAD program comes in as a DXF or an SVG, and the rest is the same:</p>
+<ul>
+<li><strong>In the app:</strong> <em>File &gt; Import DXF, SVG or STL…</em> (Ctrl+I) in place of <em>New project</em>: the same dialog
+opens, and the drawing becomes part of the project. If a DXF doesn’t say whether it’s
+in mm or inches, Chipload asks; it never guesses. The report under the canvas lists
+what was imported, and anything skipped or repaired: duplicate lines, gaps it closed,
+splines turned into arcs.</li>
+<li><strong>Selecting:</strong> a single click on the canvas takes the whole drawing file; double-click
+takes one outline. A drawing file or one of its layers can be clicked in the Browser.</li>
+<li><strong>On the command line:</strong> <code>chipload import plate.dxf -o plate.chipload</code> (add <code>--units mm</code>
+if the DXF doesn’t say), then <code>chipload inspect plate.chipload</code> for the contours with
+their numbers and layers, and <code>op add plate.chipload profile --layer CUT</code> for every
+shape on a layer.</li>
+<li>The project keeps the drawing itself, so the file isn’t needed again unless it changes;
+then <em>File &gt; Update drawing from DXF or SVG…</em> takes the new version and keeps your operations
+(<a href="#updating-from-a-new-dxf">Updating</a>). Imported and drawn shapes mix freely in one project.</li>
 </ul>
 <h2 id="the-checker"><a class="header" href="#the-checker">The checker</a></h2>
 <p>Before Chipload writes a program, an independent checker reads the G-code back and refuses
@@ -658,27 +697,64 @@ that part.</li>
 <p>The canvas shows the stock, the drawing and the toolpath on a soft gradient. It follows the
 colour theme: dark, or light grey.</p>
 <ul>
-<li><strong>The grid</strong> lies on the stock top, in top view and in 3D.
+<li>
+<p><strong>Two kinds of space, a tab each,</strong> along the canvas’s top left. <em>Drawing</em> has a pencil
+and the app’s green when shown; a setup’s tab has a board (a back the turn-over mark)
+and its own teal, underlined while another space is shown. When the canvas is too narrow
+for every name, the tabs not shown keep only their icon (hover for the name):</p>
+<ul>
+<li><strong>Drawing:</strong> every part’s shapes where they are drawn, to draw and change. The part
+you work on is in full colour, the others dimmed (still clicked and edited; clicking
+one makes its part the active one). The toolpath is that part’s, where it is drawn.
+When the part is cut where it is drawn, its board shows faintly behind it, to draw
+against; no instances are shown here.</li>
+<li><strong>A tab per setup</strong> (“Setup 1”, a back “Setup 2 (back)”): its board with its name
+above it, and every
+<a href="#instances">instance</a> on it drawn where it is cut, with its badge
+(<code>Side #2</code>, and a mirror mark when mirrored) and the setup’s toolpath. No drawn shapes: here you place, turn, copy and
+<a href="#nesting">nest</a> the instances. Double-click an instance to open its part
+in <em>Drawing</em>. Drag a part’s row from the Browser onto the board to place it there
+again. Right-click empty canvas for the setup’s own menu, as on its Browser row:
+export it, face or nest its board, a new part or setup, its back side. The other setups lie beside the board as before.</li>
+<li><strong>+</strong> adds a setup.</li>
+<li><strong>What you select picks the tab:</strong> a part, an operation, a shape, a text or a
+picture shows <em>Drawing</em>; a setup, its stock, its work zero or an instance shows that
+setup’s tab. The project and the tools leave the tab as it is. A drawing tool (or its
+key) started from a setup’s tab goes to <em>Drawing</em> first.</li>
+<li><strong>Each space keeps its own view:</strong> zoom into a corner of the drawing, look at the
+boards, and coming back finds the corner as you left it. The setups’ tabs share one
+view: their boards lie in one row that stays put, whichever is active.</li>
+<li><strong>A simple project,</strong> one board with each part on it once where drawn, looks the same
+in both: projects open on <em>Drawing</em>, and you can draw, add operations, generate and
+export without leaving it.</li>
+</ul>
+</li>
+<li>
+<p><strong>The grid</strong> lies on the stock top, in top view and in 3D.</p>
 <ul>
 <li>Its fine lines are where clicks snap while drawing. A stronger line comes every ten.</li>
 <li>It follows the zoom, and the status bar gives its step (“grid 5 mm”).</li>
 <li><strong>G</strong> or <em>View &gt; Show grid</em> hides it, and Chipload remembers that.</li>
 </ul>
 </li>
-<li><strong>Rulers</strong> run along the canvas’s top (X) and left (Y) edges in top view, in drawing
+<li>
+<p><strong>Rulers</strong> run along the canvas’s top (X) and left (Y) edges in top view, in drawing
 coordinates (0 at the drawing origin, as the shapes’ <em>Position</em> fields), in mm or inches
-as the app shows lengths; the unit is in their corner.
+as the app shows lengths; the unit is in their corner.</p>
 <ul>
 <li>Their ticks fall on the grid’s lines, and the stronger lines are numbered.</li>
 <li>The cursor’s place is marked on both.</li>
 <li><em>View &gt; Show rulers</em> hides them, and Chipload remembers that.</li>
 </ul>
 </li>
-<li><strong>The axes:</strong> a red line along X and a green one along Y run through the program’s zero.
+<li>
+<p><strong>The axes:</strong> a red line along X and a green one along Y run through the program’s zero.
 Short thick strokes point the positive way, and in 3D a blue one points up Z. In top view
 a round handle sits at their foot: click it to select the
-<a href="#work-zero">work zero</a>, then drag it.</li>
-<li><strong>Edit and Simulate:</strong> the canvas works in one of two modes.
+<a href="#work-zero">work zero</a>, then drag it.</p>
+</li>
+<li>
+<p><strong>Edit and Simulate:</strong> the canvas works in one of two modes.</p>
 <ul>
 <li><strong>Edit</strong> (projects open in it) is the drawing board: the drawing and the toolpath’s
 lines; selecting, box selection, drawing, handles, tabs and start points.</li>
@@ -696,40 +772,50 @@ as you left them there. The first time, Simulate starts in 3D with only the
 simulation shown (the toolpath, drawing and pictures hidden).</li>
 </ul>
 </li>
-<li><strong>The navigation bar</strong> floats at the bottom, each button an icon over its name:
+<li>
+<p><strong>The navigation bar</strong> floats at the bottom, each button an icon over its name:</p>
 <ul>
 <li>the mode: <strong>Edit | Simulate</strong> (F6 switches);</li>
 <li>how you look: <strong>Measure</strong> (M), <strong>Fit</strong> (F), <strong>Top</strong> (T) and <strong>3D</strong>. When the canvas changes size (the
 window, or a panel opening or folding), a fitted view is fitted again, and a view you
 zoomed or moved keeps showing the same area;</li>
 <li>what is shown: <strong>Toolpath</strong>, <strong>Drawing</strong> (in Simulate; Edit always shows the drawing),
-<strong>Images</strong> and <strong>Grid</strong> (G). What the toolpath is of follows the Browser: a part
-selected shows <a href="#parts">that part alone</a>, a setup or the project every
-part on its board.</li>
+<strong>Images</strong> and <strong>Grid</strong> (G). What the toolpath is of follows the tab: <em>Drawing</em>
+shows <a href="#parts">that part alone</a>, where it is drawn; a setup’s tab every
+instance on its board.</li>
 <li>When the canvas is too narrow for the names, the buttons show only their icons; hover
 over one to see its name.</li>
 </ul>
 </li>
-<li><strong>Drawing off</strong> (in Simulate) hides the drawing’s contours, to see the simulated stock or
-the toolpath alone. Back in Edit the drawing shows again.</li>
-<li><strong>The corner:</strong>
+<li>
+<p><strong>Drawing off</strong> (in Simulate) hides the drawing’s contours, to see the simulated stock or
+the toolpath alone. Back in Edit the drawing shows again.</p>
+</li>
+<li>
+<p><strong>The corner:</strong></p>
 <ul>
 <li>In 3D, the top right corner has a cube that turns with the view. Click a face (TOP,
 FRONT, RIGHT, BACK, LEFT) to look straight at it.</li>
 <li>In top view, the corner has an X–Y sign instead.</li>
 </ul>
 </li>
-<li><strong>The toolpath’s numbers:</strong> each operation’s first plunge has a circle and the
-operation’s number. Click it to open that operation.</li>
-<li><strong>The legend</strong> (bottom left) explains the colours.</li>
-<li><strong>The mouse:</strong> the wheel zooms. In Edit, in top view, a left drag on empty canvas
+<li>
+<p><strong>The toolpath’s numbers:</strong> each operation’s first plunge has a circle and the
+operation’s number. Click it to open that operation.</p>
+</li>
+<li>
+<p><strong>The legend</strong> (bottom left) explains the colours.</p>
+</li>
+<li>
+<p><strong>The mouse:</strong> the wheel zooms. In Edit, in top view, on <em>Drawing</em>, a left drag on empty canvas
 selects with a box: from left to right it takes what lies wholly inside, from right to left also what
 it touches; Shift adds to the selection, Ctrl adds or takes out. A left drag on a drawn
 shape <a href="#editing">moves it</a>. To pan, drag with the right or middle
 button, or hold Space and drag (the way on a touchpad; the status bar’s hint starts with
 it). In 3D, a left drag orbits: the model turns with the mouse. To have a left-right
 drag move the view round the model instead, tick <em>View &gt; Reverse left-right orbit in 3D</em>. In Simulate a left drag pans (in 3D it orbits). On a
-touchpad, a two-finger scroll or a pinch zooms.</li>
+touchpad, a two-finger scroll or a pinch zooms.</p>
+</li>
 </ul>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/simulation-3d.png" alt="The canvas in 3D: the simulated stock on the grid, the cube in the corner and the navigation bar"><span class="img-wrapper"><img src="images/simulation-3d.png" alt="The canvas in 3D: the simulated stock on the grid, the cube in the corner and the navigation bar"></span></label></p>
 <h2 id="properties"><a class="header" href="#properties">Properties</a></h2>
@@ -850,6 +936,11 @@ are in inches;</li>
 the stock allowed, and a 1/4“ endmill.</li>
 </ul>
 <p>In mm, fields also take a length in inches: type <code>1/4in</code> or <code>0.25"</code>.</p>
+<p><strong>Arithmetic:</strong> any length or number field, a value typed while drawing, and any length on
+the command line take <code>+ - * /</code> and brackets: <code>18+0.2</code>, <code>600/4</code>, <code>(100-6)/2</code>, <code>2*1/4in</code>.
+<code>*</code> and <code>/</code> go first. A unit can follow any number (<code>1in+3mm</code>); a number without one is in
+the field’s units. A length can’t be multiplied by a length, nor divide anything. The field
+keeps the result, not the sum.</p>
 <p><strong>On the command line</strong> a plain number is mm, as always, so scripts don’t change. A length
 can carry its unit: <code>--height 0.5in</code>, <code>--diameter 1/4in</code>, <code>--at 1in,2in</code>, <code>--width 1 1/2in</code>
 (quoted), <code>--travel 30in,30in,4in</code>; feeds <code>--max-feed 200in/min</code>. <code>chipload run --sheet-units inch</code> and <code>chipload sheet --units inch</code> write the setup sheet in inches.
@@ -973,15 +1064,18 @@ menu: <strong>New part</strong> (on the active setup), <strong>Add a setup</stro
 the first, empty, and becomes the active one), <strong>Face the board</strong>, <strong>Nest…</strong> and <strong>Nest
 again</strong> for the active setup, and <strong>Export all setups…</strong> with two or more. Click a setup for its name, whether it is cut and its parts; right-click it for
 what is done to that board: <strong>New part</strong> in it, <strong>Nest…</strong>, <strong>Add the back side</strong>.</p>
-<p>With two or more, the setup you click is the <strong>active setup</strong>: it is shown in full colour,
-generated, simulated and exported, its board on the drawing where it is cut. Every other
-setup is a <strong>sheet</strong> beside it: its board, faint, in a row to the right (50 mm apart; a
-back right beside its front, 10 mm apart with a turn-over mark between them), with the outlines of what is cut from it and its name above. A click on a
-sheet makes that setup the active one: its board moves into place, the point you clicked
-staying under the pointer. Sheets are only drawn beside the board: the project, the G-code
-and the setup sheet keep each board where it is. Shapes only another setup cuts stay where
-they are drawn, faint. Right-click a part for <strong>Move to setup ▸</strong>. The machine, shared by
+<p>Each setup has a tab over the canvas, beside <em>Drawing</em> (<a href="#the-canvas">the canvas</a>):
+its board with its instances where they are cut, no drawn shapes. With two or more, the
+setup you click is the <strong>active setup</strong>: it is shown in full colour, generated, simulated
+and exported, its board where it is cut. The boards lie in <strong>one row</strong>, in the setups’
+order from left to right (50 mm apart; a back right beside its front, 10 mm apart with a
+turn-over mark between them); every other setup is a <strong>sheet</strong> in it, its board faint with
+the outlines of what is cut from it and its name above. <strong>The row stays put:</strong> click a
+sheet, a setup’s tab or its Browser row, and that setup becomes the active one where it
+lies on screen; only its colours change. Sheets are only drawn beside the board: the project, the G-code
+and the setup sheet keep each board where it is. Right-click a part for <strong>Move to setup ▸</strong>. The machine, shared by
 every setup, is under <strong>Machine</strong>.</p>
+<p>The same menu opens with a right-click on empty canvas in the setup’s tab.</p>
 <p>Right-click a setup for <strong>Export G-code of this setup…</strong>: it becomes the active setup, is
 planned if it isn’t shown already, and its program and sheet are written. <strong>Export G-code</strong>
 writes the active setup’s program, named <code>-S1</code>, <code>-S2</code> as <code>run</code> names them,
@@ -1412,6 +1506,379 @@ made by another program, against a project’s stock and machine. With several t
 is really there, and whether the zero is set right. The <a href="README.html#safety">safety rules</a>
 still apply.</p>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="drawing-shapes"><a class="header" href="#drawing-shapes">Drawing shapes</a></h1>
+<p>Chipload draws the parts it cuts, with or without a DXF:</p>
+<ul>
+<li><strong>Circle</strong> (key <strong>C</strong>): the centre, then a point on it. Two more ways, from the small
+arrow on its button (below):
+<ul>
+<li><strong>Two points:</strong> the two ends of a diameter (type a length after the first for the
+diameter).</li>
+<li><strong>Three points:</strong> three points on it, such as three corners it must pass through.
+Three points on one line make no circle, and the status bar says so.</li>
+</ul>
+</li>
+<li><strong>Rectangle</strong> (<strong>R</strong>): two opposite corners. It keeps its centre, length and width, a
+rotation, and a corner radius (0: sharp corners). Two more ways to draw it, from the
+small arrow on its button (below):
+<ul>
+<li><strong>Centre and corner:</strong> the centre, then a corner.</li>
+<li><strong>Aligned (three points):</strong> the two ends of one edge, at any angle, then its width (a
+click on either side of the edge, or type it). The rectangle is turned to the edge.</li>
+</ul>
+</li>
+<li><strong>Polyline</strong> (<strong>L</strong>): points joined by straight or arc segments, open or closed. Click
+the first point again to close it; Enter or a double-click finishes it open.
+<ul>
+<li><strong>Rounded corners:</strong> each corner between two straight sides can have a <em>Radius</em>, an
+arc tangent to both sides. The point stays at the sharp corner, so the numbers you
+drew stay as they were. Set it in the form’s points table (the <em>Radius</em> column), or
+give <em>Radius</em> on the status bar while drawing: every corner gets it, and a corner whose
+sides are too short gets the most that fits. An open polyline’s ends have no corner. On
+the command line: <code>chipload shape add P polyline --points "0,0 100,0 100,60 0,60" --radii "0 5 5 0"</code>, <code>shape set P ID --radii …</code>.</li>
+</ul>
+</li>
+<li><strong>Arc</strong> (<strong>A</strong>): where it starts, where it ends, then a point it passes through (or type
+its radius: it bows to the cursor’s side). It becomes an open polyline of one or two arc
+segments. Another way, from the arrow on its button:
+<ul>
+<li><strong>Centre, start, end:</strong> the centre, where it starts (the radius; type a length for it),
+then where it ends: only the direction from the centre counts. The arc goes round the
+way you move the cursor from the start, so move the other way round for the other
+side. Type <code>&lt;90</code> for the end at 90° on the circle.</li>
+</ul>
+</li>
+<li><strong>Slot</strong> (<strong>U</strong>): the centres of its two ends, then its width (a click, or type it). It
+is a rectangle whose corner radius is half its width; it shows as <em>Slot</em>, and stays one
+when you change its width. Another way, from the arrow on its button:
+<ul>
+<li><strong>Arc slot:</strong> the centre of its arc, where its centre line starts (the radius; type a
+length for it), where it ends (the way you move round, as the arc by its centre does;
+<code>&lt;120</code> types the end’s angle), then its width (a click, or type it). It becomes a
+closed polyline of arcs with round ends, for clamp and adjustment slots; afterwards it
+is edited as a polyline. <code>chipload shape add P arc-slot --center 0,0 --radius 40 --start-deg 30 --end-deg 150 --width 8</code>.</li>
+</ul>
+</li>
+<li><strong>Polygon</strong> (<strong>N</strong>): the centre, then a corner. Its number of sides is on the status bar
+while you draw (6 to start with, then the last you chose). Its form has the radius to
+the corners and the size <strong>across flats</strong>, either of which sets the other (a hexagon
+nut’s spanner size), and the angle of its first corner. <code>chipload shape add P polygon --center 50,30 --sides 6 --across-flats 13</code>. Two more ways, from the arrow on its button:
+<ul>
+<li><strong>Centre and side:</strong> the centre, then the middle of a side: the size across flats is
+twice that distance (type it as a length: <code>6.5</code> for a 13 mm nut). Snapping
+perpendicular from the centre onto a line makes a polygon that touches it.</li>
+<li><strong>On an edge:</strong> the two ends of one side. The polygon lies to the side’s left, so
+click from left to right for a polygon above the side, right to left for one below.</li>
+</ul>
+</li>
+<li><strong>Spline</strong> (<strong>B</strong>): click the points a smooth curve passes through, as for a polyline:
+Enter or a double-click finishes it open, clicking the first point closes it, Backspace
+drops the last point. The preview shows the curve through the cursor. It bends evenly
+through each point, never kinks or loops between two, and keeps its points: drag one,
+or change them in its form (a table of X, Y, as a polyline’s, and <em>Closed</em>). Snapping
+to a spline takes its points (as ends), the nearest point on it, and tangents and
+perpendiculars. It is cut as lines
+and arcs within 0.01 mm of the curve, since controllers have no spline move. On the
+command line: <code>chipload shape add P spline --points "0,0 20,15 45,5 60,20" [--closed]</code>,
+and <code>shape set P ID --points … --closed</code>. Moving, turning, mirroring and scaling move
+its points, and the curve follows exactly.</li>
+</ul>
+<p>Pick the tool in the ribbon’s DRAW group (the small buttons; hover over one for its name
+and key) or by its key, then click on the canvas. With no
+tool active, <strong>Enter</strong> starts the last one again.</p>
+<p>A button with a small triangle in its corner draws its shape more than one way. Click the
+triangle, or right-click the button, for the list; the way you choose stays on the button
+until you close Chipload. The <em>Draw</em> menu lists them under the shape. Pressing the key again
+before the first click moves to the next way (<strong>R</strong>, <strong>R</strong>, <strong>R</strong>: two corners, centre,
+aligned; <strong>C</strong>, <strong>A</strong>, <strong>U</strong> and <strong>N</strong> go round theirs the same way) and the status bar names
+it. Clicks snap to the drawing (below), else
+to the <a href="#the-canvas">grid</a>, whose step the status bar gives (“grid 1 mm”).</p>
+<h2 id="snapping"><a class="header" href="#snapping">Snapping</a></h2>
+<p>Within 8 pixels of the cursor, a click or a drag lands exactly on a point of the drawing,
+marked with a small diamond and named on the status bar (“intersection of #3 and #4”):</p>
+<ul>
+<li><strong>End</strong> of a line or arc, <strong>intersection</strong> where two cross or touch, <strong>centre</strong> of an arc
+or circle, <strong>quadrant</strong> (an arc’s points at 0°, 90°, 180° and 270°), <strong>middle</strong> of a line
+or arc.</li>
+<li>While drawing a polyline or measuring, from the last point: <strong>perpendicular</strong> to a line
+or arc, and <strong>tangent</strong> to an arc.</li>
+<li><strong>On</strong> a line or arc: the nearest point of it, when none of the others is near.</li>
+</ul>
+<p>The nearest of them wins; at the same spot, they count in the order above. Hold <strong>Alt</strong> to
+turn snapping off.</p>
+<h2 id="exact-values"><a class="header" href="#exact-values">Exact values</a></h2>
+<p>While a tool waits for a point, type a number: an entry opens beside the cursor. <strong>Enter</strong>
+uses it, <strong>Esc</strong> closes it.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Type</th><th>For</th></tr>
+</thead>
+<tbody>
+<tr><td><code>120,40</code></td><td>the point X 120, Y 40</td></tr>
+<tr><td><code>@30,-10</code></td><td>30 to the right of the last point and 10 down</td></tr>
+<tr><td><code>30</code></td><td>30 from the last point, towards the cursor</td></tr>
+<tr><td><code>30&lt;45</code></td><td>30 from the last point at 45° (counter-clockwise from the X axis)</td></tr>
+<tr><td><code>&lt;45</code></td><td>at 45° from the last point, as far as the cursor is (an arc by its centre: its end at 45°)</td></tr>
+</tbody>
+</table>
+</div>
+<p>Lengths are in the units the app shows, unless you name them: <code>1/2in</code>, <code>12mm</code>. Every
+value can be a sum: <code>600/4,18+0.2</code>, <code>(100-6)/2</code>, <code>&lt;360/7</code>
+(<a href="#units-and-coordinates">arithmetic</a>). Where the
+decimal point is a comma, separate X and Y with a semicolon: <code>12,5;30</code>. For a circle, a
+plain length after the centre is its radius; for an aligned rectangle, after the edge, its
+width. The preview shows where the value lands before
+you press Enter; a value that can’t be used turns red and the status bar says why.</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/typing.png" alt="Drawing a polyline: 40&lt;120 typed, the preview at 120° and the length and angle beside the cursor"><span class="img-wrapper"><img src="images/typing.png" alt="Drawing a polyline: 40&lt;120 typed, the preview at 120° and the length and angle beside the cursor"></span></label></p>
+<p>Beside the cursor, the size being drawn: the line’s length and angle, a circle’s radius, a
+rectangle’s length × width. Hold <strong>Shift</strong> to keep the line from the last point at a
+multiple of 15° (0° and 90° for straight lines), its length on the grid.</p>
+<h2 id="editing-operations"><a class="header" href="#editing-operations">Editing operations</a></h2>
+<p>The ribbon’s MODIFY group (and the <em>Modify</em> menu) holds tools that make new shapes from
+drawn ones. Shapes from a DXF, a picture or a text can’t be changed by them (explode a
+DXF first, <a href="#several-drawings">Explode</a>).</p>
+<ul>
+<li><strong>Offset</strong> (<strong>O</strong>): select the shapes (or click one with the tool), then move the cursor
+to the side you want, outside or inside a closed shape, left or right of an open one:
+the preview follows at the cursor’s distance on the grid (Alt: off the grid). Click, or
+type the distance and press Enter. The status bar has the corners, <em>round</em> (the exact
+offset, arcs round the corners) or <em>sharp</em> (the sides extended until they meet, as a
+frame), and a <em>Count</em> for several rings, each the distance further. The shapes stay; the
+new ones go on the same layer and are selected. A circle, a rectangle or slot, and a
+polygon inward or with sharp corners keep their kind; anything else becomes a polyline
+with true arcs. On the command line: <code>chipload shape offset P 1 2 --distance 3 [--side inside] [--corners sharp] [--count 2]</code>.</li>
+<li><strong>Fillet</strong> and <strong>Chamfer</strong>: select one drawn shape (or click it with the tool), then
+click a corner (it is marked when the cursor is near it) to round it with an arc of the
+<em>Radius</em> on the status bar, or cut it straight across, the <em>Distance</em> back along each
+side. Shift+click does every corner. A corner is a point between two straight sides; a
+radius too large for the sides is refused with the most that fits (two corners on one
+side share it). A polyline’s corner gets that <em>Radius</em> (above), so it stays editable; a
+rectangle rounded all round keeps its kind (its corner radius); any other shape becomes
+a polyline and keeps its number, so operations still cut it. Chamfer leaves rounded
+corners as they are.
+<code>chipload shape fillet P 3 --radius 2 [--corner 0]</code>, <code>chipload shape chamfer P 3 --distance 1</code>.</li>
+<li><strong>Trim</strong> (<strong>X</strong>), <strong>Extend</strong> and <strong>Break</strong> work on the drawn shape under the cursor; no
+need to select it first. Trim shows the piece it will remove before you click, Extend
+the shape grown to the next one ahead (click near the end to extend), Break a mark where
+it will split. Each click is one step, and the changed shape is selected; a click on
+empty space deselects it, another ends the tool, as Esc does. On the command line:
+<ul>
+<li><code>chipload shape trim P ID --at X,Y</code> removes the piece of a drawn shape at that point,
+between the nearest places where shown shapes cross it: an open shape cut in its
+middle becomes two, a closed one opens, a circle becomes an arc. What is left joins
+the drawn open shapes on its layer whose ends meet its own into one shape (closed when
+it comes round): a slot trimmed in half by a line, and the line’s ends trimmed, is one
+closed shape. Construction geometry never joins, and nothing joins where three ends
+meet.</li>
+<li><code>chipload shape extend P ID --end start|end</code> lengthens a straight end along itself
+to the next shape ahead.</li>
+<li><code>chipload shape break P ID --at X,Y</code> splits an open shape there, or opens a closed
+one.</li>
+<li>The shape keeps its id for the first piece, so operations follow it.</li>
+</ul>
+</li>
+<li><strong>Union</strong>, <strong>Subtract</strong> and <strong>Intersect</strong> combine closed drawn shapes, with true arcs
+where they have arcs: a union is everything any of them covers, a subtraction the first
+shape with the others cut out of it, an intersection what they all cover. The result
+takes the first shape’s number, so operations that cut it follow; the other shapes go,
+and operations that cut those are flagged until you choose their geometry again. A
+result that is one of the shapes unchanged (a hole cut where a circle already lies, a
+shape a union swallows whole) stays as drawn, a circle still a circle; anything else
+becomes a polyline. A ring of shapes united gives the outline and the hole inside as
+two shapes. Open shapes are refused, and so is a result with nothing left. In the
+window: select the shapes, then <em>Union</em> or <em>Intersect</em> acts at once (the shape drawn
+first keeps its number). For <em>Subtract</em>, select the shapes to cut out, choose
+<em>Subtract</em>, then click the shape to cut them from: the preview shows the result under
+the cursor. On the command line: <code>chipload shape union P 1 2 3</code>, <code>chipload shape subtract P 1 4 5</code> (4
+and 5 cut out of 1), <code>chipload shape intersect P 1 2</code>.</li>
+<li><strong>Mirror</strong> (<strong>I</strong>): select drawn shapes, then click two points of the mirror line (they
+snap; Shift keeps the line to 15° steps), or click a straight line, such as a
+construction centre line, to mirror about it. The preview shows the result before the
+last click. With <em>Keep the original</em> (on the status bar, on to start with) the mirrored
+shapes are copies; a half outline whose two ends lie on the line joins its mirror image
+into one closed shape that keeps its number, so drawing half a part against a centre
+line and mirroring it gives the whole outline, ready to cut. Unticked, the shapes flip in
+place and keep their numbers, and operations’ start points and tabs on them follow. On
+the command line: <code>chipload shape mirror P 3 4 --line "0,0 0,100" [--copy]</code>, or
+<code>--about-shape 7</code> for a drawn line.</li>
+<li><strong>Arrays</strong> add copies of drawn shapes in a grid or round a centre; the originals stay
+and the copies go on their layers with new numbers. A grid counts the originals in its
+columns and rows and spaces them centre to centre (negative goes left or down). A polar
+array counts the originals too: over 360° the copies spread evenly round, over a
+smaller angle the first and last sit at its ends; each copy turns with its place unless
+you say not to. This adds shapes to the drawing; a part’s
+<a href="#instances">instances</a> are different: they repeat the whole part with its
+operations. In the window: select the shapes, choose <em>Array</em> or <em>Polar array</em>,
+and set the copies under <em>Selection</em>; for a polar array click the centre on the canvas
+(it snaps as drawing does). The preview shows the copies; <em>Create</em> adds them and ends
+the tool. <em>Cancel</em>, Esc or the tool’s button again ends it without copies. On the
+command line: <code>chipload shape array P 2 3 --columns 4 --rows 2 --dx 30 --dy 20</code>, <code>chipload shape array-polar P 5 --count 6 --center 100,80 [--angle-deg 180] [--no-rotate]</code>.</li>
+<li><strong>Align</strong> and <strong>Distribute</strong> sit under <em>Selection</em> when drawn shapes are selected.
+Align lines up each shape’s box (its left or right side, top or bottom, or middle) with
+that of the shape you picked <strong>first</strong>, which stays put, however many times you align
+the same selection. Shapes picked all at once with a box have no first: they line up
+with the box round them all. With <em>To the stock</em> they line up with the stock’s box
+(then one shape is enough). Hover over <em>Align</em> to see which applies. Distribute, with three shapes or more, evens out the gaps between their boxes
+across or up and down; the outermost two stay put. Shapes move whole and keep their
+numbers. Pieces that join into one outline (a slot drawn as four lines and arcs) line
+up as one, and so does a <a href="#groups">group</a> with its texts. On the command line, the first shape named stays put: <code>chipload shape align P 2 3 --to left|centre|right|top| middle|bottom [--stock]</code>, <code>chipload shape distribute P 2 3 4 --horizontal</code> (or
+<code>--vertical</code>).</li>
+<li>New shapes on a layer that an operation selects by its name are cut by that operation
+too, as a shape drawn there is; the status bar names those operations.</li>
+</ul>
+<h2 id="construction-geometry"><a class="header" href="#construction-geometry">Construction geometry</a></h2>
+<p>Lines and circles that help you draw (a centre line to mirror about, a circle to place
+holes on, a guide at 45°) and are <strong>never cut</strong>.</p>
+<ul>
+<li><strong>Draw one:</strong> with a drawing tool active, press <strong>K</strong> (or tick <em>Construction</em> on the
+status bar): the shapes you draw next are construction geometry, until you press K again.</li>
+<li><strong>Make a shape one,</strong> or an ordinary shape again: select drawn shapes and press K, tick
+<em>Construction</em> under <em>Selection</em>, or right-click.</li>
+<li><strong>It shows</strong> finely dotted and faint, and the cursor snaps to it like any shape: its
+ends, middles, centres and where it crosses other shapes.</li>
+<li><strong>It is never cut:</strong> it never joins other shapes into a contour, an operation never picks
+it up from a layer, and an operation that names it by its number is refused until it
+cuts something else. Trim and extend can use it as the edge to cut back to; offsets,
+copies, pasted copies and arrays of it are construction geometry too.</li>
+<li><strong>Exported</strong> only when you ask (<code>chipload dxf export … --construction</code>, or the
+checkbox), on a layer of its own named after its layer with <code>_construction</code>.</li>
+<li>On the command line: <code>chipload shape add P polyline --points "0,0 100,0" --open --construction</code>, <code>chipload shape set P 4 --construction false</code>.</li>
+</ul>
+<h2 id="editing"><a class="header" href="#editing">Editing</a></h2>
+<ul>
+<li><strong>Moving with the mouse:</strong> drag a drawn shape to move it; if it is selected, the whole
+selection moves with it. The point you grab snaps as drawing does, so a corner can be
+dropped exactly on another shape’s corner or a crossing; Shift keeps the move to 15°
+steps, Alt turns snapping off. Select several with a box first (drag on empty canvas,
+<a href="#the-canvas">the canvas</a>). Shapes from a DXF, a picture or a text move as a
+whole with their own handles.</li>
+<li><strong>Handles:</strong> drag a selected shape’s handles to change it. A drag snaps as drawing does;
+hold Alt to turn snapping off. Hold Shift to keep a point (or a centre, or a corner) to
+15° steps from where it was, so straight across, up or at 45°; on a turn handle or a
+polygon’s corner, Shift turns the shape in 15° steps.</li>
+<li><strong>Several points at once:</strong> on a selected polyline or spline, Ctrl+click (⌘ on a Mac) its
+points to pick them; they turn solid. Drag any of them and all move together, as one
+undo step (Shift keeps the move to 15° steps). Ctrl+click a picked point to leave it out;
+Escape, or a click elsewhere, lets go of them. Rounded corners keep their radius; a move
+that leaves no room for one is held back, and the form says why.</li>
+<li><strong>Polyline segments:</strong> on a selected polyline, drag one of its lines (anywhere, or its
+round middle handle) to move that segment; the segments either side stretch to stay
+joined. <strong>Ctrl+drag</strong> inserts a new point there instead, and <strong>Shift+drag</strong> bends the
+segment into an arc. The dashed box round the polyline moves it whole.</li>
+<li><strong>Exact values:</strong> under <em>Selection</em> in the <a href="#properties">Properties</a> panel, a
+selected shape has its exact numbers and its layer.</li>
+<li><strong>Lengths on the canvas:</strong> a selected drawn shape shows its lengths beside it: each
+straight side of a polyline, a rectangle’s length and width, a circle’s or polygon’s
+radius (a side too short on screen to hold its label shows none until you zoom in).
+Click one, type the new length and press Enter: a polyline side keeps its start and its
+end moves along it, a rectangle keeps its centre.</li>
+<li><strong>Rounded corners:</strong> a rectangle’s <em>Corner radius</em> rounds all four corners with true arcs
+(G2/G3 in the program). It can be at most half the shorter side: half of it rounds the
+short ends fully, into a slot. A larger radius is refused rather than shrunk, and a corner
+handle won’t drag the rectangle smaller than its corners allow; lower the radius first.
+The reset button makes the corners sharp again.
+<ul>
+<li><strong>Each corner its own:</strong> tick <em>Each corner</em> under <em>Corners</em> in a rectangle’s or a
+polygon’s form for a radius per corner, numbered counter-clockwise from the first (a
+rectangle’s from its lower left as drawn at 0°). The shape stays a rectangle or a
+polygon, its size, angle and sides still editable. Unticked, one radius rounds every
+corner (for a polygon, <em>Corner radius</em>). Fillet on one corner of either sets that
+corner’s radius. On the command line: <code>--radii "0 10 10 0"</code> (<code>--corner-radius</code> sets
+every corner alike).</li>
+</ul>
+</li>
+<li><strong>Move, turn and size:</strong> select a polyline, or several drawn shapes (Ctrl+click), and a
+dashed box shows round them: drag the square in the middle to move them, the round handle
+beyond the right side to turn them (in steps of 15°; hold Alt for 0.1°), a corner to
+scale them evenly, the opposite corner staying put. One circle or rectangle keeps its own
+handles instead. The shapes keep their ids, so the operations that cut them follow, and so
+do the operations’ start points, <a href="#corner-by-corner">corner choices</a>
+and tabs placed by hand on them (also with <code>shape move</code>, <code>turn</code> and <code>scale</code>, and when you
+change one shape through its own handles or form: a corner’s choice stays with that
+corner of a rectangle you move or resize).</li>
+<li><strong>Position and Turn:</strong> a selected polyline’s form, and the <em>Selection</em> section when several
+drawn shapes are selected, have <em>Position</em> (the lower-left corner of the box round them:
+type a value to move them there) and <em>Turn</em>: ⟲ 90, ⟳ 90, or type an angle and press
+Enter. A polyline keeps no angle of its own; turning moves its points.</li>
+<li><strong>In the Browser:</strong> under <em>Drawing</em>, the <em>Circles</em>, <em>Rectangles</em>, <em>Polylines</em>,
+<em>Polygons</em> and <em>Splines</em> groups list their shapes in a folder per layer. Click a row to select the
+shape (Ctrl+click adds or removes); right-click to rename, copy or delete it. A group
+with more than 20 shapes starts closed.</li>
+<li><strong>Names:</strong> give a drawn shape a <em>Name</em> in its form (or <em>Rename…</em> in the Browser); the
+Browser shows it, with its number beside it. Empty: it’s shown by its number. Copies
+start without a name.</li>
+<li><strong>Copy and paste:</strong> Ctrl+C and Ctrl+V. <em>Draw &gt; Paste</em> puts the copy 10 mm right and up;
+Ctrl+V over the canvas pastes at the cursor.</li>
+<li><strong>Mirror:</strong> <em>Draw &gt; Mirror left–right</em> and <em>Mirror up–down</em> flip shapes about the middle
+of their box; <em>Mirror</em> in MODIFY mirrors about any line (above).</li>
+<li><strong>Delete:</strong> Del (or right-click &gt; <em>Delete</em>). Operations that cut the shape are flagged.
+Del also deletes a text, a picture or a DXF selected as a whole (by a click on a letter,
+or on its Browser row), as its <em>Remove</em> does; a box round a sign takes its words with the
+frame. A shape picked out of an imported DXF or traced picture stays: it changes only
+with its file.</li>
+<li><strong>Undo:</strong> Ctrl+Z.</li>
+</ul>
+<p>Imported shapes can’t be edited: they change only with the DXF, unless you
+<a href="#exploding-a-dxf-picture-or-text-joining-ends">explode it</a>. Lines whose ends almost meet can be joined into one shape with
+<em>Draw &gt; Join ends…</em> (same page).</p>
+<h2 id="the-compass"><a class="header" href="#the-compass">The Compass</a></h2>
+<p>The <strong>Compass</strong> moves, turns and copies the selection from one handle: two arrows (its X
+and Y axes), a ring and a centre. Select drawn shapes, a group, or a whole picture, text,
+3D model or drawing, then press <strong>Q</strong> (also MODIFY &gt; <em>Compass</em> in the ribbon, or <em>Compass</em>
+in the canvas’s right-click menu). It shows on the middle of the selection, and the
+selection’s own handles hide while it shows. <strong>Q</strong> again or <strong>Esc</strong> hides it.</p>
+<ul>
+<li><strong>An arrow:</strong> drag to move along that axis. The distance goes in steps of the grid, or
+to where a point of another shape lies along the axis.</li>
+<li><strong>The ring:</strong> drag to turn about the centre, in steps of 15° (Alt: 0.1°).</li>
+<li><strong>The centre:</strong> drag to move freely; the centre snaps to points, so a point of the
+selection lands exactly on a point of another shape.</li>
+<li><strong>Exact values:</strong> double-click an arrow, the ring or the centre and type the distance,
+the angle, or ΔX and ΔY (two numbers), then Enter.</li>
+<li><strong>Put the Compass on a point first:</strong> tap <strong>Space</strong> (press and let go). The Compass
+turns grey: drag its centre onto a corner, a hole’s centre or a line’s middle (the
+selection’s own points count too), or drag an arrow to turn its axes, which lie along a
+line under the cursor. Tap Space again to lock it: the next drag is measured from
+there. Holding Space while dragging still moves the view.</li>
+<li><strong>Right-drag</strong> an arrow, the ring or the centre, and choose when you let go:
+<em>Move here</em> (or <em>Turn here</em>), <em>Copy here</em> (the copy is then selected, so you can place
+the next one), <strong>Linear array…</strong> (from an arrow or the centre: count and step, the step
+as dragged) or <strong>Circular array…</strong> (from the ring: count and angle, round the Compass’s
+centre, the angle as dragged). The arrays show their copies before <em>Create</em>. The menu
+starts with the dragged distance or angle (ΔX and ΔY from the centre), selected: type an
+exact value over it before choosing, or press <strong>Enter</strong> to move or turn by it.</li>
+<li><strong>Right-click</strong> the centre or an arrow (without dragging) for <strong>To point</strong> or <strong>To centre
+point</strong>, then click: the selection moves so that the Compass’s centre comes to the
+clicked point, snapping as when dragging (Alt: no snapping), or to the centre of the
+shape you click (a circle’s or an arc’s centre, else the middle of its box). From the
+centre it moves in X and Y; from an arrow only along that axis, as far as the point
+lies along it. The outline shows where it will go while you point; <strong>Esc</strong> cancels.
+Unlocked, the same moves the Compass itself the same way, and the selection stays.</li>
+</ul>
+<p>Every move or turn is one undo step, and the shapes keep their ids, so the operations
+that cut them follow. Copies and arrays are for drawn shapes; a picture, text, 3D model or
+whole drawing only moves and turns. The command line does the same with <code>shape move</code>,
+<code>shape turn --about</code>, <code>shape copy</code>, <code>shape array-linear</code> and <code>shape array-polar</code>.</p>
+<h2 id="on-the-command-line-3"><a class="header" href="#on-the-command-line-3">On the command line</a></h2>
+<pre><code class="language-sh">chipload shape add part.chipload circle --center 40,30 --radius 5 --layer HOLES   # prints its id
+chipload shape add part.chipload rectangle --center 80,30 --length 40 --width 10 --angle-deg 15
+chipload shape set part.chipload 9 --corner-radius 3  # round the rectangle's corners
+chipload shape add part.chipload polyline --points "0,0 50,0 50,20" --bulges "0 1" --open
+chipload shape set part.chipload 8 --radius 6         # change a value or the layer
+chipload shape set part.chipload 8 --name "Lid"       # its name in the Browser ("" takes it away)
+chipload shape copy part.chipload 8 9 --dx 25 --dy 0  # copies, with new ids
+chipload shape array-linear part.chipload 8 --count 5 --step 20,10   # a line of copies, any direction
+chipload shape mirror part.chipload 8 9 --axis x      # flip in place; ids kept
+chipload shape move part.chipload 8 9 --dx 10 --dy -5
+chipload shape turn part.chipload 8 9 --angle-deg 30  # about the middle of their box (or --about X,Y)
+chipload shape scale part.chipload 8 --factor 1.5
+chipload shape remove part.chipload 8
+chipload shape join part.chipload --gap 0.05   # join ends that almost meet
+</code></pre>
+<p>Bulges are as in DXF: tan(sweep / 4), 0 straight, 1 a counter-clockwise half circle, −1
+clockwise.</p>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="importing-a-dxf"><a class="header" href="#importing-a-dxf">Importing a DXF</a></h1>
 <p><em>File &gt; Import DXF, SVG or STL…</em> (Ctrl+I), or <code>chipload import part.dxf -o part.chipload</code>, makes a new
 project from a DXF. <em>File &gt; Open…</em> also opens a <code>.dxf</code> directly. An STL file picked here starts a project with that <a href="#3d-models">3D model</a>. <code>chipload inspect part.dxf</code>
@@ -1497,8 +1964,12 @@ takes the next free one, and the T column shows it.</li>
 project, which is often the same, so New project, Enter is enough.</p>
 <p>The first time, your library’s defaults are offered: the default machine, material and tool,
 the material’s thickness (else the default thickness, else 10 mm), the board fitted with a
-10 mm margin, and Z zero on top. Without a library you get GRBL, a safe Z of 5 mm, and a
-6 mm endmill at 18 000 rpm.</p>
+10 mm margin, and Z zero on top. Without a library you get GRBL, a safe Z of 5 mm, a
+travel of 800 × 800 × 100 mm (set your machine’s own under <strong>Machine</strong>, so the checker
+keeps every program inside it), and a centre-cutting 6 mm endmill at 18 000 rpm. New
+pockets go down round a helix, and new follow paths and chamfers ramp in, whatever the
+tool; only a V-bit plunges. Choose <em>Plunge</em> in an operation’s form for a straight
+plunge.</p>
 <p>On the command line, <code>chipload new</code> and <code>chipload import</code> take the same choices and
 otherwise use your library’s defaults:</p>
 <pre><code>chipload import part.dxf -o part.chipload --material Plywood --thickness 18 \
@@ -1750,282 +2221,6 @@ in lid and part; it cuts all of them</em>.</p>
 <p>The <a href="#setup-sheet">setup sheet</a> lists every DXF and image with where it was
 put, when there is more than one.</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="drawing-shapes"><a class="header" href="#drawing-shapes">Drawing shapes</a></h1>
-<p>Chipload draws the parts it cuts, with or without a DXF:</p>
-<ul>
-<li><strong>Circle</strong> (key <strong>C</strong>): the centre, then a point on it.</li>
-<li><strong>Rectangle</strong> (<strong>R</strong>): two opposite corners. It keeps its centre, length and width, a
-rotation, and a corner radius (0: sharp corners).</li>
-<li><strong>Polyline</strong> (<strong>L</strong>): points joined by straight or arc segments, open or closed. Click
-the first point again to close it; Enter or a double-click finishes it open.</li>
-<li><strong>Arc</strong> (<strong>A</strong>): where it starts, where it ends, then a point it passes through (or type
-its radius: it bows to the cursor’s side). It becomes an open polyline of one or two arc
-segments.</li>
-<li><strong>Slot</strong> (<strong>U</strong>): the centres of its two ends, then its width (a click, or type it). It
-is a rectangle whose corner radius is half its width; it shows as <em>Slot</em>, and stays one
-when you change its width.</li>
-<li><strong>Polygon</strong> (<strong>N</strong>): the centre, then a corner. Its number of sides is on the status bar
-while you draw (6 to start with, then the last you chose). Its form has the radius to
-the corners and the size <strong>across flats</strong>, either of which sets the other (a hexagon
-nut’s spanner size), and the angle of its first corner. <code>chipload shape add P polygon --center 50,30 --sides 6 --across-flats 13</code>.</li>
-</ul>
-<p>Pick the tool in the ribbon’s DRAW group (the small buttons; hover over one for its name
-and key) or by its key, then click on the canvas. With no
-tool active, <strong>Enter</strong> starts the last one again. Clicks snap to the drawing (below), else
-to the <a href="#the-canvas">grid</a>, whose step the status bar gives (“grid 1 mm”).</p>
-<h2 id="snapping"><a class="header" href="#snapping">Snapping</a></h2>
-<p>Within 8 pixels of the cursor, a click or a drag lands exactly on a point of the drawing,
-marked with a small diamond and named on the status bar (“intersection of #3 and #4”):</p>
-<ul>
-<li><strong>End</strong> of a line or arc, <strong>intersection</strong> where two cross or touch, <strong>centre</strong> of an arc
-or circle, <strong>quadrant</strong> (an arc’s points at 0°, 90°, 180° and 270°), <strong>middle</strong> of a line
-or arc.</li>
-<li>While drawing a polyline or measuring, from the last point: <strong>perpendicular</strong> to a line
-or arc, and <strong>tangent</strong> to an arc.</li>
-<li><strong>On</strong> a line or arc: the nearest point of it, when none of the others is near.</li>
-</ul>
-<p>The nearest of them wins; at the same spot, they count in the order above. Hold <strong>Alt</strong> to
-turn snapping off.</p>
-<h2 id="exact-values"><a class="header" href="#exact-values">Exact values</a></h2>
-<p>While a tool waits for a point, type a number: an entry opens beside the cursor. <strong>Enter</strong>
-uses it, <strong>Esc</strong> closes it.</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Type</th><th>For</th></tr>
-</thead>
-<tbody>
-<tr><td><code>120,40</code></td><td>the point X 120, Y 40</td></tr>
-<tr><td><code>@30,-10</code></td><td>30 to the right of the last point and 10 down</td></tr>
-<tr><td><code>30</code></td><td>30 from the last point, towards the cursor</td></tr>
-<tr><td><code>30&lt;45</code></td><td>30 from the last point at 45° (counter-clockwise from the X axis)</td></tr>
-</tbody>
-</table>
-</div>
-<p>Lengths are in the units the app shows, unless you name them: <code>1/2in</code>, <code>12mm</code>. Where the
-decimal point is a comma, separate X and Y with a semicolon: <code>12,5;30</code>. For a circle, a
-plain length after the centre is its radius. The preview shows where the value lands before
-you press Enter; a value that can’t be used turns red and the status bar says why.</p>
-<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/typing.png" alt="Drawing a polyline: 40&lt;120 typed, the preview at 120° and the length and angle beside the cursor"><span class="img-wrapper"><img src="images/typing.png" alt="Drawing a polyline: 40&lt;120 typed, the preview at 120° and the length and angle beside the cursor"></span></label></p>
-<p>Beside the cursor, the size being drawn: the line’s length and angle, a circle’s radius, a
-rectangle’s length × width. Hold <strong>Shift</strong> to keep the line from the last point at a
-multiple of 15° (0° and 90° for straight lines), its length on the grid.</p>
-<h2 id="editing-operations"><a class="header" href="#editing-operations">Editing operations</a></h2>
-<p>The ribbon’s MODIFY group (and the <em>Modify</em> menu) holds tools that make new shapes from
-drawn ones. Shapes from a DXF, a picture or a text can’t be changed by them (explode a
-DXF first, <a href="#several-drawings">Explode</a>).</p>
-<ul>
-<li><strong>Offset</strong> (<strong>O</strong>): select the shapes (or click one with the tool), then move the cursor
-to the side you want, outside or inside a closed shape, left or right of an open one:
-the preview follows at the cursor’s distance on the grid (Alt: off the grid). Click, or
-type the distance and press Enter. The status bar has the corners, <em>round</em> (the exact
-offset, arcs round the corners) or <em>sharp</em> (the sides extended until they meet, as a
-frame), and a <em>Count</em> for several rings, each the distance further. The shapes stay; the
-new ones go on the same layer and are selected. A circle, a rectangle or slot, and a
-polygon inward or with sharp corners keep their kind; anything else becomes a polyline
-with true arcs. On the command line: <code>chipload shape offset P 1 2 --distance 3 [--side inside] [--corners sharp] [--count 2]</code>.</li>
-<li><strong>Fillet</strong> and <strong>Chamfer</strong>: select one drawn shape (or click it with the tool), then
-click a corner (it is marked when the cursor is near it) to round it with an arc of the
-<em>Radius</em> on the status bar, or cut it straight across, the <em>Distance</em> back along each
-side. Shift+click does every corner. A corner is a point between two straight sides; a
-radius too large for the sides is refused with the most that fits (two corners on one
-side share it). A rectangle rounded all round keeps its kind (its corner radius); any
-other shape becomes a polyline and keeps its number, so operations still cut it.
-<code>chipload shape fillet P 3 --radius 2 [--corner 0]</code>, <code>chipload shape chamfer P 3 --distance 1</code>.</li>
-<li><strong>Trim</strong> (<strong>X</strong>), <strong>Extend</strong> and <strong>Break</strong> work on the drawn shape under the cursor; no
-need to select it first. Trim shows the piece it will remove before you click, Extend
-the shape grown to the next one ahead (click near the end to extend), Break a mark where
-it will split. Each click is one step, and the changed shape is selected; a click on
-empty space deselects it, another ends the tool, as Esc does. On the command line:
-<ul>
-<li><code>chipload shape trim P ID --at X,Y</code> removes the piece of a drawn shape at that point,
-between the nearest places where shown shapes cross it: an open shape cut in its
-middle becomes two, a closed one opens, a circle becomes an arc. What is left joins
-the drawn open shapes on its layer whose ends meet its own into one shape (closed when
-it comes round): a slot trimmed in half by a line, and the line’s ends trimmed, is one
-closed shape. Construction geometry never joins, and nothing joins where three ends
-meet.</li>
-<li><code>chipload shape extend P ID --end start|end</code> lengthens a straight end along itself
-to the next shape ahead.</li>
-<li><code>chipload shape break P ID --at X,Y</code> splits an open shape there, or opens a closed
-one.</li>
-<li>The shape keeps its id for the first piece, so operations follow it.</li>
-</ul>
-</li>
-<li><strong>Union</strong>, <strong>Subtract</strong> and <strong>Intersect</strong> combine closed drawn shapes, with true arcs
-where they have arcs: a union is everything any of them covers, a subtraction the first
-shape with the others cut out of it, an intersection what they all cover. The result
-takes the first shape’s number, so operations that cut it follow; the other shapes go,
-and operations that cut those are flagged until you choose their geometry again. A
-result that is one of the shapes unchanged (a hole cut where a circle already lies, a
-shape a union swallows whole) stays as drawn, a circle still a circle; anything else
-becomes a polyline. A ring of shapes united gives the outline and the hole inside as
-two shapes. Open shapes are refused, and so is a result with nothing left. In the
-window: select the shapes, then <em>Union</em> or <em>Intersect</em> acts at once (the shape drawn
-first keeps its number). For <em>Subtract</em>, select the shapes to cut out, choose
-<em>Subtract</em>, then click the shape to cut them from: the preview shows the result under
-the cursor. On the command line: <code>chipload shape union P 1 2 3</code>, <code>chipload shape subtract P 1 4 5</code> (4
-and 5 cut out of 1), <code>chipload shape intersect P 1 2</code>.</li>
-<li><strong>Arrays</strong> add copies of drawn shapes in a grid or round a centre; the originals stay
-and the copies go on their layers with new numbers. A grid counts the originals in its
-columns and rows and spaces them centre to centre (negative goes left or down). A polar
-array counts the originals too: over 360° the copies spread evenly round, over a
-smaller angle the first and last sit at its ends; each copy turns with its place unless
-you say not to. This adds shapes to the drawing; a part’s
-<a href="#instances">instances</a> are different: they repeat the whole part with its
-operations. In the window: select the shapes, choose <em>Array</em> or <em>Polar array</em>,
-and set the copies under <em>Selection</em>; for a polar array click the centre on the canvas
-(it snaps as drawing does). The preview shows the copies; <em>Create</em> adds them and ends
-the tool. <em>Cancel</em>, Esc or the tool’s button again ends it without copies. On the
-command line: <code>chipload shape array P 2 3 --columns 4 --rows 2 --dx 30 --dy 20</code>, <code>chipload shape array-polar P 5 --count 6 --center 100,80 [--angle-deg 180] [--no-rotate]</code>.</li>
-<li><strong>Align</strong> and <strong>Distribute</strong> sit under <em>Selection</em> when drawn shapes are selected.
-Align lines up each shape’s box (its left or right side, top or bottom, or middle) with
-that of the shape you picked <strong>first</strong>, which stays put, however many times you align
-the same selection. Shapes picked all at once with a box have no first: they line up
-with the box round them all. With <em>To the stock</em> they line up with the stock’s box
-(then one shape is enough). Hover over <em>Align</em> to see which applies. Distribute, with three shapes or more, evens out the gaps between their boxes
-across or up and down; the outermost two stay put. Shapes move whole and keep their
-numbers. Pieces that join into one outline (a slot drawn as four lines and arcs) line
-up as one, and so does a <a href="#groups">group</a> with its texts. On the command line, the first shape named stays put: <code>chipload shape align P 2 3 --to left|centre|right|top| middle|bottom [--stock]</code>, <code>chipload shape distribute P 2 3 4 --horizontal</code> (or
-<code>--vertical</code>).</li>
-<li>New shapes on a layer that an operation selects by its name are cut by that operation
-too, as a shape drawn there is; the status bar names those operations.</li>
-</ul>
-<h2 id="construction-geometry"><a class="header" href="#construction-geometry">Construction geometry</a></h2>
-<p>Lines and circles that help you draw (a centre line to mirror about, a circle to place
-holes on, a guide at 45°) and are <strong>never cut</strong>.</p>
-<ul>
-<li><strong>Draw one:</strong> with a drawing tool active, press <strong>K</strong> (or tick <em>Construction</em> on the
-status bar): the shapes you draw next are construction geometry, until you press K again.</li>
-<li><strong>Make a shape one,</strong> or an ordinary shape again: select drawn shapes and press K, tick
-<em>Construction</em> under <em>Selection</em>, or right-click.</li>
-<li><strong>It shows</strong> finely dotted and faint, and the cursor snaps to it like any shape: its
-ends, middles, centres and where it crosses other shapes.</li>
-<li><strong>It is never cut:</strong> it never joins other shapes into a contour, an operation never picks
-it up from a layer, and an operation that names it by its number is refused until it
-cuts something else. Trim and extend can use it as the edge to cut back to; offsets,
-copies, pasted copies and arrays of it are construction geometry too.</li>
-<li><strong>Exported</strong> only when you ask (<code>chipload dxf export … --construction</code>, or the
-checkbox), on a layer of its own named after its layer with <code>_construction</code>.</li>
-<li>On the command line: <code>chipload shape add P polyline --points "0,0 100,0" --open --construction</code>, <code>chipload shape set P 4 --construction false</code>.</li>
-</ul>
-<h2 id="editing"><a class="header" href="#editing">Editing</a></h2>
-<ul>
-<li><strong>Moving with the mouse:</strong> drag a drawn shape to move it; if it is selected, the whole
-selection moves with it. The point you grab snaps as drawing does, so a corner can be
-dropped exactly on another shape’s corner or a crossing; Shift keeps the move to 15°
-steps, Alt turns snapping off. Select several with a box first (drag on empty canvas,
-<a href="#the-canvas">the canvas</a>). Shapes from a DXF, a picture or a text move as a
-whole with their own handles.</li>
-<li><strong>Handles:</strong> drag a selected shape’s handles to change it. A drag snaps as drawing does;
-hold Alt to turn snapping off.</li>
-<li><strong>Polyline segments:</strong> on a selected polyline, drag one of its lines (anywhere, or its
-round middle handle) to move that segment; the segments either side stretch to stay
-joined. <strong>Ctrl+drag</strong> inserts a new point there instead, and <strong>Shift+drag</strong> bends the
-segment into an arc. The dashed box round the polyline moves it whole.</li>
-<li><strong>Exact values:</strong> under <em>Selection</em> in the <a href="#properties">Properties</a> panel, a
-selected shape has its exact numbers and its layer.</li>
-<li><strong>Lengths on the canvas:</strong> a selected drawn shape shows its lengths beside it: each
-straight side of a polyline, a rectangle’s length and width, a circle’s or polygon’s
-radius (a side too short on screen to hold its label shows none until you zoom in).
-Click one, type the new length and press Enter: a polyline side keeps its start and its
-end moves along it, a rectangle keeps its centre.</li>
-<li><strong>Rounded corners:</strong> a rectangle’s <em>Corner radius</em> rounds all four corners with true arcs
-(G2/G3 in the program). It can be at most half the shorter side: half of it rounds the
-short ends fully, into a slot. A larger radius is refused rather than shrunk, and a corner
-handle won’t drag the rectangle smaller than its corners allow; lower the radius first.
-The reset button makes the corners sharp again.</li>
-<li><strong>Move, turn and size:</strong> select a polyline, or several drawn shapes (Ctrl+click), and a
-dashed box shows round them: drag the square in the middle to move them, the round handle
-beyond the right side to turn them (in steps of 15°; hold Alt for 0.1°), a corner to
-scale them evenly, the opposite corner staying put. One circle or rectangle keeps its own
-handles instead. The shapes keep their ids, so the operations that cut them follow, and so
-do the operations’ start points, <a href="#corner-by-corner">corner choices</a>
-and tabs placed by hand on them (also with <code>shape move</code>, <code>turn</code> and <code>scale</code>, and when you
-change one shape through its own handles or form: a corner’s choice stays with that
-corner of a rectangle you move or resize).</li>
-<li><strong>Position and Turn:</strong> a selected polyline’s form, and the <em>Selection</em> section when several
-drawn shapes are selected, have <em>Position</em> (the lower-left corner of the box round them:
-type a value to move them there) and <em>Turn</em>: ⟲ 90, ⟳ 90, or type an angle and press
-Enter. A polyline keeps no angle of its own; turning moves its points.</li>
-<li><strong>In the Browser:</strong> under <em>Drawing</em>, the <em>Circles</em>, <em>Rectangles</em>, <em>Polylines</em> and
-<em>Polygons</em> groups list their shapes in a folder per layer. Click a row to select the
-shape (Ctrl+click adds or removes); right-click to rename, copy or delete it. A group
-with more than 20 shapes starts closed.</li>
-<li><strong>Names:</strong> give a drawn shape a <em>Name</em> in its form (or <em>Rename…</em> in the Browser); the
-Browser shows it, with its number beside it. Empty: it’s shown by its number. Copies
-start without a name.</li>
-<li><strong>Copy and paste:</strong> Ctrl+C and Ctrl+V. <em>Draw &gt; Paste</em> puts the copy 10 mm right and up;
-Ctrl+V over the canvas pastes at the cursor.</li>
-<li><strong>Mirror:</strong> <em>Draw &gt; Mirror left–right</em> and <em>Mirror up–down</em> flip shapes about the middle
-of their box.</li>
-<li><strong>Delete:</strong> Del (or right-click &gt; <em>Delete</em>). Operations that cut the shape are flagged.
-Del also deletes a text, a picture or a DXF selected as a whole (by a click on a letter,
-or on its Browser row), as its <em>Remove</em> does; a box round a sign takes its words with the
-frame. A shape picked out of an imported DXF or traced picture stays: it changes only
-with its file.</li>
-<li><strong>Undo:</strong> Ctrl+Z.</li>
-</ul>
-<p>Imported shapes can’t be edited: they change only with the DXF, unless you
-<a href="#exploding-a-dxf-picture-or-text-joining-ends">explode it</a>. Lines whose ends almost meet can be joined into one shape with
-<em>Draw &gt; Join ends…</em> (same page).</p>
-<h2 id="the-compass"><a class="header" href="#the-compass">The Compass</a></h2>
-<p>The <strong>Compass</strong> moves, turns and copies the selection from one handle: two arrows (its X
-and Y axes), a ring and a centre. Select drawn shapes, a group, or a whole picture, text,
-3D model or drawing, then press <strong>Q</strong> (also MODIFY &gt; <em>Compass</em> in the ribbon, or <em>Compass</em>
-in the canvas’s right-click menu). It shows on the middle of the selection, and the
-selection’s own handles hide while it shows. <strong>Q</strong> again or <strong>Esc</strong> hides it.</p>
-<ul>
-<li><strong>An arrow:</strong> drag to move along that axis. The distance goes in steps of the grid, or
-to where a point of another shape lies along the axis.</li>
-<li><strong>The ring:</strong> drag to turn about the centre, in steps of 15° (Alt: 0.1°).</li>
-<li><strong>The centre:</strong> drag to move freely; the centre snaps to points, so a point of the
-selection lands exactly on a point of another shape.</li>
-<li><strong>Exact values:</strong> double-click an arrow, the ring or the centre and type the distance,
-the angle, or ΔX and ΔY (two numbers), then Enter.</li>
-<li><strong>Put the Compass on a point first:</strong> tap <strong>Space</strong> (press and let go). The Compass
-turns grey: drag its centre onto a corner, a hole’s centre or a line’s middle (the
-selection’s own points count too), or drag an arrow to turn its axes, which lie along a
-line under the cursor. Tap Space again to lock it: the next drag is measured from
-there. Holding Space while dragging still moves the view.</li>
-<li><strong>Right-drag</strong> an arrow, the ring or the centre, and choose when you let go:
-<em>Move here</em> (or <em>Turn here</em>), <em>Copy here</em> (the copy is then selected, so you can place
-the next one), <strong>Linear array…</strong> (from an arrow or the centre: count and step, the step
-as dragged) or <strong>Circular array…</strong> (from the ring: count and angle, round the Compass’s
-centre, the angle as dragged). The arrays show their copies before <em>Create</em>. The menu
-starts with the dragged distance or angle (ΔX and ΔY from the centre), selected: type an
-exact value over it before choosing, or press <strong>Enter</strong> to move or turn by it.</li>
-<li><strong>Right-click</strong> the centre or an arrow (without dragging) for <strong>To point</strong> or <strong>To centre
-point</strong>, then click: the selection moves so that the Compass’s centre comes to the
-clicked point, snapping as when dragging (Alt: no snapping), or to the centre of the
-shape you click (a circle’s or an arc’s centre, else the middle of its box). From the
-centre it moves in X and Y; from an arrow only along that axis, as far as the point
-lies along it. The outline shows where it will go while you point; <strong>Esc</strong> cancels.
-Unlocked, the same moves the Compass itself the same way, and the selection stays.</li>
-</ul>
-<p>Every move or turn is one undo step, and the shapes keep their ids, so the operations
-that cut them follow. Copies and arrays are for drawn shapes; a picture, text, 3D model or
-whole drawing only moves and turns. The command line does the same with <code>shape move</code>,
-<code>shape turn --about</code>, <code>shape copy</code>, <code>shape array-linear</code> and <code>shape array-polar</code>.</p>
-<h2 id="on-the-command-line-3"><a class="header" href="#on-the-command-line-3">On the command line</a></h2>
-<pre><code class="language-sh">chipload shape add part.chipload circle --center 40,30 --radius 5 --layer HOLES   # prints its id
-chipload shape add part.chipload rectangle --center 80,30 --length 40 --width 10 --angle-deg 15
-chipload shape set part.chipload 9 --corner-radius 3  # round the rectangle's corners
-chipload shape add part.chipload polyline --points "0,0 50,0 50,20" --bulges "0 1" --open
-chipload shape set part.chipload 8 --radius 6         # change a value or the layer
-chipload shape set part.chipload 8 --name "Lid"       # its name in the Browser ("" takes it away)
-chipload shape copy part.chipload 8 9 --dx 25 --dy 0  # copies, with new ids
-chipload shape array-linear part.chipload 8 --count 5 --step 20,10   # a line of copies, any direction
-chipload shape mirror part.chipload 8 9 --axis x      # flip in place; ids kept
-chipload shape move part.chipload 8 9 --dx 10 --dy -5
-chipload shape turn part.chipload 8 9 --angle-deg 30  # about the middle of their box (or --about X,Y)
-chipload shape scale part.chipload 8 --factor 1.5
-chipload shape remove part.chipload 8
-chipload shape join part.chipload --gap 0.05   # join ends that almost meet
-</code></pre>
-<p>Bulges are as in DXF: tan(sweep / 4), 0 straight, 1 a counter-clockwise half circle, −1
-clockwise.</p>
-<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="exploding-a-dxf-picture-or-text-joining-ends"><a class="header" href="#exploding-a-dxf-picture-or-text-joining-ends">Exploding a DXF, picture or text, joining ends</a></h1>
 <p>A DXF’s shapes are read-only: they change only when the DXF is
 <a href="#updating-from-a-new-dxf">updated</a>. A traced picture’s shapes and a text’s letters are read-only too:
@@ -2113,7 +2308,9 @@ and groups are left out unless you ask for them (<code>--hidden</code>, or the c
 </ul>
 </li>
 <li><strong>Circles as circles, everything else as polylines</strong> whose arcs stay true arcs (bulges),
-so round corners and holes are cut as arcs by whatever reads the file.</li>
+so round corners and holes are cut as arcs by whatever reads the file. A spline goes
+out as the lines and arcs it is cut with, within 0.01 mm of its curve: the file’s
+classic DXF layout, which every program reads, has no spline entity.</li>
 <li><strong>Only some of it:</strong> <code>--layer NAME</code> (repeatable) or <code>--shape ID …</code> on the command line;
 <em>Only the selected shapes</em> in the window.</li>
 <li><strong>Construction geometry</strong> only when you ask (<code>--construction</code>, or the checkbox), each on
@@ -3060,18 +3257,44 @@ instance follows.</p>
 <ul>
 <li><strong>Right-click the part</strong> in the Browser: <em>Add instance</em> places it again beside what it
 cuts, 10 mm away; <em>Add mirrored instance</em> does the same, mirrored left to right.</li>
-<li><strong>On the canvas</strong>, each instance is drawn faded where it is cut, with a badge above its
-top left: its number (<code>#2</code>) and a four-way arrow. One that is off is dashed. The badge is
-the handle: click it to select the instance, drag it to move it (the outline can be
-dragged too, where no shape lies under it). A selected instance has a round turn handle
+<li><strong>On the canvas</strong>, instances are placed in their setup’s tab
+(<a href="#the-canvas">the canvas</a>): each drawn where it is cut, with a badge below
+its bottom left: a four-way arrow, its part’s name and its number (<code>Side #2</code>), and a
+mirror mark when it is mirrored. One that is off is dashed. Click an instance (its badge
+or outline) to select it, drag it to move it. Double-click it to open its part in
+<em>Drawing</em>. A selected instance has a round turn handle
 with a curved arrow: drag it to turn the instance about its middle. Under the pointer an
 instance’s outline thickens and the pointer becomes a hand, so you see what a drag
-takes. Turning snaps to quarter turns within 3°; hold
+takes. Hold Shift while moving to keep it to 15° steps from where you grabbed it
+(straight across, up or at 45°). Turning snaps to quarter turns within 3°; hold
 Alt to turn freely. Escape during a drag puts it back; each drag is one undo step.</li>
+<li><strong>Drag the part in:</strong> drag a part’s row from the Browser onto a setup’s tab of the
+canvas: its outline follows the pointer, on the grid’s steps (hold Alt to place it
+freely), and letting go places a new instance there, not turned or mirrored, selected.
+Dropped on another setup’s sheet beside the board, it goes on that setup. From
+<em>Drawing</em>, hold the dragged part over a setup’s tab for half a second: the tab opens.
+Escape during the drag places nothing. A board cut in
+<a href="#pieces-1">pieces</a> that already holds the part refuses it, and the Report
+says why.</li>
+<li><strong>More of them on the canvas:</strong>
+<ul>
+<li><strong>Right-click an instance</strong> (its badge, or its outline): <em>Duplicate</em>, <em>Turn 90° left</em>,
+<em>Turn 90° right</em>, <em>Mirror</em>, <em>Reset to where drawn</em>, <em>Don’t cut</em> (or <em>Cut</em>) and
+<em>Remove</em>. <em>Reset to where drawn</em> puts it back where the part is drawn, not turned; its
+mirror and whether it is cut stay.</li>
+<li><strong>Duplicate</strong> places a new instance, turned and mirrored like this one and on the same
+board, beside everything the part cuts, and selects it. Duplicate again and the next
+goes beside that one.</li>
+<li><strong>Ctrl+drag</strong> (⌘ on a Mac) an instance to drag a copy of it off; the original stays.
+Escape during the drag drops the copy.</li>
+<li><strong>Ctrl+C, then Ctrl+V,</strong> with an instance selected, works as <em>Duplicate</em>, as many times
+as you paste. It copies the placement, not the shapes.</li>
+</ul>
+</li>
 <li><strong>In the Browser</strong>, each instance has a row with its tick under its setup (“Side #2”),
 never under its part: copies and placing are setups’ work, so they are listed under the
-setup that cuts them, even with one board (<em>Setup 1</em>). Right-click it to <em>Mirror</em> it, <em>Turn
-90°</em>, <em>Move to setup ▸</em> or <em>Remove</em> it; Delete removes the selected one.</li>
+setup that cuts them, even with one board (<em>Setup 1</em>). Right-click it for the same menu
+as on the canvas, and <em>Move to setup ▸</em>; Delete removes the selected one.</li>
 <li><strong>Several setups:</strong> drag a part’s row onto a setup to cut it there, every instance of it
 moved (right-click it for <em>Move to setup ▸</em>); hold Ctrl (⌘ on a Mac) as you drop to
 place it there too, a new instance where the part is drawn (<em>Place on setup ▸</em>). Drag an
@@ -3086,8 +3309,10 @@ give <code>--part</code>.</p>
 <pre><code class="language-sh">chipload part instance add part.chipload                  # beside the part, 10 mm from its cut
 chipload part instance add part.chipload --angle 90 --mirror left-right
 chipload part instance add part.chipload --at 300,0       # moved 300 mm right of the part
+chipload part instance add part.chipload --like 3         # turned, mirrored and on the board of instance 3
 chipload part instance list part.chipload                 # their numbers, places and turns
 chipload part instance set part.chipload 3 --angle 45     # turn instance 3 (also --at, --mirror, --off, --on)
+chipload part instance set part.chipload 3 --reset        # back where the part is drawn, not turned
 chipload part instance remove part.chipload 3             # or --all: the part is cut once
 chipload part instance array part.chipload --grid 3x2 --gap 10   # a grid in place of them
 chipload part instance move part.chipload 3 --setup 2     # instance 3 cut from setup 2's board instead
@@ -3150,7 +3375,8 @@ project is run, and the commands warn as soon as you place one there;</li>
 <p><strong>Limits:</strong> up to 100 columns or rows in a grid, and 1 000 instances.</p>
 </li>
 <li>
-<p><strong>Display:</strong> the canvas and the setup sheet draw the instances faded where they are cut.
+<p><strong>Display:</strong> the setup’s tab draws the instances where they are cut, the setup sheet
+faded.
 The setup sheet and the playback say which instance is being cut, and the sheet says
 where a part placed elsewhere than drawn is cut.</p>
 </li>
@@ -3162,14 +3388,14 @@ the first included, is a placement of them. This lets you lay parts out on a she
 moving the drawing, for instance when several parts come from one DXF.</p>
 <p>In the window:</p>
 <ul>
-<li><strong>Right-click the part</strong> in the Browser, <em>Place…</em>: its first instance is selected, a
-ghost <code>#1</code> on its shapes with its round turn handle, and its form opens with its
-rotation and how far it is moved. Drag it by its badge <code>#1</code> (above its shapes, so the
-shapes underneath aren’t in the way), turn it by its handle, or press Q for the Compass.
+<li><strong>Right-click the part</strong> in the Browser, <em>Place…</em>: its first instance is selected in
+its setup’s tab, with its round turn handle, and its form opens with its rotation and
+how far it is moved. Drag it, turn it by its handle, or press Q for the Compass.
 <em>Reset placement</em> puts it back where drawn.</li>
-<li><strong>On the canvas</strong>, once placed, it is a ghost <code>#1</code> where it is cut, picked, dragged and
-turned like any instance. Its shapes, where they are drawn, get a dashed box saying
-“not cut here”; edit them there, and every instance follows.</li>
+<li><strong>On the canvas</strong>, once placed, it is <code>#1</code> in its setup’s tab where it is cut, picked,
+dragged and turned like any instance. Its shapes stay where they are drawn, in
+<em>Drawing</em>; edit them there, and every instance follows. <em>Drawing</em> shows no board behind
+a part that isn’t cut where it is drawn.</li>
 <li><strong>In the Browser</strong>, its instances are under <em>Setup 1</em> (“Side #1”, “Side #2”), the
 setups listed once the part is placed.</li>
 <li><strong>The Compass</strong> (Q) works on a selected instance, the first included: drag an arrow to
@@ -3212,7 +3438,8 @@ planned and checked as any project is before it is kept.</p>
 <p>In the window:</p>
 <ul>
 <li><strong>Right-click the setup</strong> in the Browser and choose <em>Nest…</em>, or <em>Wizards &gt; Nest…</em> for the
-active setup. The window shows the board’s size, the gap and the margin, the goal, and a
+active setup. The canvas shows that setup’s tab, where the preview is drawn. The window
+shows the board’s size, the gap and the margin, the goal, and a
 row per part with how many times it is cut and how it may turn.</li>
 <li><strong>The goal</strong> says what the nest makes as small as it can, once it has placed as much as
 it can:
@@ -3227,10 +3454,12 @@ so a strip down the right is left.</li>
 </li>
 <li><strong>The preview</strong> is worked out as soon as the window opens, and again with <em>Preview</em>
 after a change: the instances show on the board where they would go, outlined in the
-selection colour, the board dashed; what didn’t fit is parked to the right of the board
-in amber and named in the window. Nothing changes until you choose <em>Apply</em>.</li>
-<li><strong>Apply</strong> places them as one undo step (Ctrl+Z puts everything back) and lists what was
-switched off in the Report. <em>Apply</em> before a preview nests and applies in one go.</li>
+selection colour, the board dashed, and the boards taking what doesn’t fit in a row to
+its right. An instance larger than an empty board is parked beside them in amber and
+named in the window. Nothing changes until you choose <em>Apply</em>.</li>
+<li><strong>Apply</strong> places them as one undo step (Ctrl+Z puts everything back) and lists in the
+Report what went onto other boards and what was switched off; click an instance’s line
+to select it. <em>Apply</em> before a preview nests and applies in one go.</li>
 <li><strong>Nest again</strong>, in the setup’s right-click menu once it has been nested, nests it again
 with the same gap and margin and each part’s turns, the instances there are now, without
 the window: after you change a part, or moved instances by hand. It searches on from the
@@ -3240,6 +3469,7 @@ better nest and it searches on from there.</li>
 </ul>
 <p>On the command line:</p>
 <pre><code class="language-sh">chipload nest part.chipload                         # the active setup, on its board
+chipload nest part.chipload --all                   # every setup again, one pool per stock
 chipload nest part.chipload --count 2=4             # part 2 cut four times: instances added first
 chipload nest part.chipload --turns 2=none          # part 2 never turned (wood grain); others quarter turns
 chipload nest part.chipload --gap 5 --margin 15     # more room between parts and at the edge
@@ -3248,6 +3478,14 @@ chipload nest part.chipload --dry-run               # say what would go where, w
 chipload part set part.chipload 2 --turns half      # part 2 turned 180° at most, kept for the next nest
 </code></pre>
 <ul>
+<li><strong>Nest all setups again</strong>, in the project’s menu, the <em>Setups</em> folder’s menu and
+<em>Wizards</em>, with two boards or more that can be nested: every board of one stock is
+nested as one pool, the first filled first, then the next, each with its own gap, margin
+and goal; what fits on none goes onto new boards. Parts you removed or counts you lowered
+free room on the first boards, and instances move back to them. It keeps the new layout
+when it places more, or as many on fewer boards; otherwise each board is nested again on
+its own, as <em>Nest again</em>, never worse. A board left empty is kept (the Report says
+“Setup 3 is empty now”); remove it if you don’t need it. One undo step.</li>
 <li><strong>How it fills:</strong> from the board’s lower-left corner, by the goal: for <em>compact</em> each part
 where the box round everything placed grows least, for the others as low (or as far left)
 as it fits. It tries many orders of the parts and turns of each, for a moment (the window
@@ -3259,15 +3497,17 @@ part (<code>--turns quarter</code>) or one (<code>--turns 2=none</code>). They a
 <li><strong>Counts:</strong> <code>--count ID=N</code> cuts part ID N times: instances are added (not mirrored), or
 the highest-numbered ones that are on removed; at least one stays.</li>
 <li><strong>Mirrored instances</strong> stay mirrored; nesting turns and moves them, never mirrors them.</li>
-<li><strong>What doesn’t fit</strong> is switched off, kept where it was, and named (“Part 2, instance 4
-didn’t fit: switched off”). Make the board larger, allow turns, or let it go onto more
-boards.</li>
-<li><strong>Onto more boards</strong> (<em>What doesn’t fit: Onto more boards</em> in the window, <code>--overflow new-boards</code> on the command line), as a slicer adds plates: what doesn’t fit goes to the
-next <a href="#setups">setup</a> with the same stock and a size of its own, else to a
-new one made like this board (its size, work zero, gap and margin), nested there in
-turn, and so on until everything is placed. The preview shows each board in a row to the
-right; the Report says “2 more on Setup 2, a new board like the first”. Instances keep
-their numbers. A part larger than an empty board is still switched off. A part whose
+<li><strong>What doesn’t fit goes onto more boards,</strong> as a slicer adds plates: to the next
+<a href="#setups">setup</a> with the same stock and a size of its own, else to a new
+one made like this board (its size, work zero, gap and margin), nested there in turn, and
+so on until everything is placed. This is the same in the window, with <em>Nest again</em> and
+on the command line. The preview shows each board in a row to the right; the Report says
+“2 more on Setup 2, a new board like the first”. Instances keep their numbers. Don’t
+want a board it made? Remove that setup.</li>
+<li><strong>Larger than an empty board:</strong> an instance no board can take is switched off, kept
+where it was, and named (“Part 2, instance 4 is larger than an empty board: switched
+off”). Its row in the Browser turns amber with a dot, saying so when you hover it. Make
+the board larger, allow turns, or make the part smaller. A part whose
 <a href="#a-parts-stock">stock</a> isn’t this board’s goes to a board of its
 own stock instead.</li>
 <li><strong>The board</strong> must have a size of its own. A board that follows the drawing (fitted to it
@@ -3312,12 +3552,13 @@ changes.</li>
 <li><strong>Off:</strong> a part that is off is left out with all its operations.</li>
 <li><strong>The active part:</strong> new operations go into it. Adding a part makes the new one active.</li>
 <li><strong>A part or a setup is shown, never both.</strong> Select a part, or one of its operations, in
-the Browser: that part is shown alone, once, where it is drawn, and Generate, the
-automatic update, the simulation and playback are of it, so a change to part 2 doesn’t
-plan part 1 again. The status bar says “part 2 of 2 · cycle …”. Other parts’ shapes are
-ghosts. Select the setup, the project, the Stock or the Work zero (or click a setup’s
-sheet) to see every instance on the board again. Selecting a tool or a shape leaves the
-view as it is.</li>
+the Browser: the canvas shows <em>Drawing</em> (<a href="#the-canvas">the canvas</a>), that
+part alone, once, where it is drawn, and Generate, the automatic update, the simulation
+and playback are of it, so a change to part 2 doesn’t plan part 1 again. The status bar
+says “part 2 of 2 · cycle …”. Other parts’ shapes are dimmed. Select the setup, the
+Stock, the Work zero or an instance (or click a setup’s tab or sheet) to see every
+instance on the board again. Selecting the project or a tool leaves the canvas as it
+is.</li>
 <li><strong>Its board:</strong> a part drawn in place is shown on its own board. A part placed elsewhere,
 or cut only as copies, is shown where it is drawn on a board fitted round it, its own
 thickness when it <a href="#a-parts-stock">asks for one</a>.</li>
@@ -6575,7 +6816,7 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
-<tr><td><code>&lt;KIND&gt;</code></td><td>One of: <code>circle</code>, <code>rectangle</code>, <code>polyline</code>, <code>polygon</code>.</td></tr>
+<tr><td><code>&lt;KIND&gt;</code></td><td>One of: <code>circle</code>, <code>rectangle</code>, <code>polyline</code>, <code>polygon</code>, <code>spline</code> (The smooth curve through –points (docs/specs/splines.md)), <code>arc-slot</code> (A slot bent round –center at –radius from –start-deg to –end-deg, –width wide: a closed polyline of arcs (docs/specs/drawing-improvements.md §3)).</td></tr>
 <tr><td><code>--center &lt;CENTER&gt;</code></td><td>Centre “X,Y” (circle, rectangle, polygon)</td></tr>
 <tr><td><code>--radius &lt;RADIUS&gt;</code></td><td>A circle’s radius; a polygon’s, to its corners.</td></tr>
 <tr><td><code>--sides &lt;SIDES&gt;</code></td><td>A polygon’s number of sides, 3 to 1000.</td></tr>
@@ -6584,10 +6825,13 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--width &lt;WIDTH&gt;</code></td><td>Along the rectangle’s own Y axis.</td></tr>
 <tr><td><code>--angle-deg &lt;ANGLE_DEG&gt;</code></td><td>Rotation about the centre (a polygon: its first corner’s angle from +X), degrees, counter-clockwise.</td></tr>
 <tr><td><code>--corner-radius &lt;CORNER_RADIUS&gt;</code></td><td>The radius of the rectangle’s corners, at most half its shorter side (default 0: sharp)</td></tr>
-<tr><td><code>--points &lt;POINTS&gt;</code></td><td>Polyline points “X,Y X,Y …”.</td></tr>
+<tr><td><code>--points &lt;POINTS&gt;</code></td><td>Polyline points, or the points a spline passes through: “X,Y X,Y …”.</td></tr>
 <tr><td><code>--bulges &lt;BULGES&gt;</code></td><td>Polyline bulges “B B …”, one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight)</td></tr>
-<tr><td><code>--open</code></td><td>The polyline doesn’t return to its first point.</td></tr>
-<tr><td><code>--closed</code></td><td>The polyline returns to its first point (the default for new ones)</td></tr>
+<tr><td><code>--start-deg &lt;START_DEG&gt;</code></td><td>An arc slot’s start, degrees counter-clockwise from +X.</td></tr>
+<tr><td><code>--end-deg &lt;END_DEG&gt;</code></td><td>An arc slot’s end, degrees: past the start goes counter-clockwise, before it clockwise.</td></tr>
+<tr><td><code>--radii &lt;RADII&gt;</code></td><td>Corner radii “R R …”, mm, 0 sharp: a polyline’s one per point (an open one’s ends 0), a rectangle’s four counter-clockwise from its (−length/2, −width/2) corner, a polygon’s one per corner from its first. Each corner is rounded by an arc tangent to both sides, its point staying at the sharp corner (docs/specs/polyline-radii.md)</td></tr>
+<tr><td><code>--open</code></td><td>The polyline or spline doesn’t return to its first point.</td></tr>
+<tr><td><code>--closed</code></td><td>The polyline or spline returns to its first point (the default for a new polyline; a new spline is open without it)</td></tr>
 <tr><td><code>--layer &lt;LAYER&gt;</code></td><td></td></tr>
 <tr><td><code>--name &lt;NAME&gt;</code></td><td>Its name in the Browser; “” takes the name away.</td></tr>
 <tr><td><code>--construction &lt;CONSTRUCTION&gt;</code></td><td>Construction geometry: shown and snapped to, never cut (<code>--construction false</code> makes it an ordinary shape again) One of: <code>true</code>, <code>false</code>.</td></tr>
@@ -6615,10 +6859,13 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--width &lt;WIDTH&gt;</code></td><td>Along the rectangle’s own Y axis.</td></tr>
 <tr><td><code>--angle-deg &lt;ANGLE_DEG&gt;</code></td><td>Rotation about the centre (a polygon: its first corner’s angle from +X), degrees, counter-clockwise.</td></tr>
 <tr><td><code>--corner-radius &lt;CORNER_RADIUS&gt;</code></td><td>The radius of the rectangle’s corners, at most half its shorter side (default 0: sharp)</td></tr>
-<tr><td><code>--points &lt;POINTS&gt;</code></td><td>Polyline points “X,Y X,Y …”.</td></tr>
+<tr><td><code>--points &lt;POINTS&gt;</code></td><td>Polyline points, or the points a spline passes through: “X,Y X,Y …”.</td></tr>
 <tr><td><code>--bulges &lt;BULGES&gt;</code></td><td>Polyline bulges “B B …”, one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight)</td></tr>
-<tr><td><code>--open</code></td><td>The polyline doesn’t return to its first point.</td></tr>
-<tr><td><code>--closed</code></td><td>The polyline returns to its first point (the default for new ones)</td></tr>
+<tr><td><code>--start-deg &lt;START_DEG&gt;</code></td><td>An arc slot’s start, degrees counter-clockwise from +X.</td></tr>
+<tr><td><code>--end-deg &lt;END_DEG&gt;</code></td><td>An arc slot’s end, degrees: past the start goes counter-clockwise, before it clockwise.</td></tr>
+<tr><td><code>--radii &lt;RADII&gt;</code></td><td>Corner radii “R R …”, mm, 0 sharp: a polyline’s one per point (an open one’s ends 0), a rectangle’s four counter-clockwise from its (−length/2, −width/2) corner, a polygon’s one per corner from its first. Each corner is rounded by an arc tangent to both sides, its point staying at the sharp corner (docs/specs/polyline-radii.md)</td></tr>
+<tr><td><code>--open</code></td><td>The polyline or spline doesn’t return to its first point.</td></tr>
+<tr><td><code>--closed</code></td><td>The polyline or spline returns to its first point (the default for a new polyline; a new spline is open without it)</td></tr>
 <tr><td><code>--layer &lt;LAYER&gt;</code></td><td></td></tr>
 <tr><td><code>--name &lt;NAME&gt;</code></td><td>Its name in the Browser; “” takes the name away.</td></tr>
 <tr><td><code>--construction &lt;CONSTRUCTION&gt;</code></td><td>Construction geometry: shown and snapped to, never cut (<code>--construction false</code> makes it an ordinary shape again) One of: <code>true</code>, <code>false</code>.</td></tr>
@@ -6672,7 +6919,10 @@ reaches the assistant only once you save.</li>
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S)</td></tr>
-<tr><td><code>--axis &lt;AXIS&gt;</code></td><td>x: flip the X coordinates (left becomes right); y: flip Y (up becomes down) One of: <code>x</code>, <code>y</code>. Required.</td></tr>
+<tr><td><code>--axis &lt;AXIS&gt;</code></td><td>x: flip the X coordinates (left becomes right); y: flip Y (up becomes down), about the middle of the box round them. One of: <code>x</code>, <code>y</code>.</td></tr>
+<tr><td><code>--line &lt;LINE&gt;</code></td><td>Mirror about the line through two points “X,Y X,Y” (docs/specs/drawing-improvements.md §1)</td></tr>
+<tr><td><code>--about-shape &lt;ABOUT_SHAPE&gt;</code></td><td>Mirror about drawn shape ID, one straight line (a construction centre line)</td></tr>
+<tr><td><code>--copy</code></td><td>Keep the shapes and add their mirror images; an open shape with both ends on the line joins its image into one closed shape.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -8541,6 +8791,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--at &lt;AT&gt;</code></td><td>Its move “DX,DY” from the part as drawn (any length unit; plain numbers are mm); default: beside everything the part cuts, 10 mm away.</td></tr>
 <tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>Turned about the middle of the part’s box, degrees counter-clockwise.</td></tr>
 <tr><td><code>--mirror &lt;MIRROR&gt;</code></td><td>Mirrored about the middle of the part’s box first: left-right, top-bottom or none. Climb stays climb.</td></tr>
+<tr><td><code>--like &lt;LIKE&gt;</code></td><td>Like this instance (its number): on its setup, turned and mirrored as it is; –setup, –angle and –mirror still override each.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -8563,6 +8814,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--mirror &lt;MIRROR&gt;</code></td><td>Mirrored: left-right, top-bottom or none.</td></tr>
 <tr><td><code>--off</code></td><td>Keep it, but don’t cut it.</td></tr>
 <tr><td><code>--on</code></td><td>Cut it again.</td></tr>
+<tr><td><code>--reset</code></td><td>Back where the part is drawn, not turned; its mirror and on or off stay.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -8686,7 +8938,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>--name &lt;NAME&gt;</code></td><td>Its name; default: “Setup N”.</td></tr>
 <tr><td><code>--thickness &lt;THICKNESS&gt;</code></td><td>Its board’s thickness; default: the active setup’s.</td></tr>
-<tr><td><code>--back-of &lt;BACK_OF&gt;</code></td><td>The back of this setup: the same board turned over, its cuts mirrored (docs/specs/two-sided.md). Its name defaults to “<that setup=""> back”.</that></td></tr>
+<tr><td><code>--back-of &lt;BACK_OF&gt;</code></td><td>The back of this setup: the same board turned over, its cuts mirrored (docs/specs/two-sided.md). Its name defaults to that setup’s name and “back” (“Setup 1 back”)</td></tr>
 <tr><td><code>--turn &lt;TURN&gt;</code></td><td>How the board is turned over: left-right (default) or top-bottom.</td></tr>
 <tr><td><code>--register &lt;REGISTER&gt;</code></td><td>How the turned board is put back: pins (default) or corner.</td></tr>
 <tr><td><code>--pins &lt;PINS&gt;</code></td><td>Dowel holes for pins of this diameter too (8 mm without a value), in the same step (docs/specs/two-sided-wizard.md §6)</td></tr>
@@ -8874,8 +9126,9 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--margin &lt;MARGIN&gt;</code></td><td>The room left at the board’s edge (default: as last nested, else 10 mm)</td></tr>
 <tr><td><code>--turns &lt;TURNS&gt;</code></td><td>How parts may be turned: none, half, quarter or every-15, for every part; “ID=TURNS” for one part, such as 2=none (wood grain). Kept in the project. Default: as set, else quarter. Repeatable.</td></tr>
 <tr><td><code>--count &lt;COUNT&gt;</code></td><td>How many times part ID is cut, “ID=N”, such as 2=4: instances added or removed before nesting (never the part itself) Repeatable.</td></tr>
-<tr><td><code>--overflow &lt;OVERFLOW&gt;</code></td><td>What doesn’t fit: switched off (<code>off</code>, the default), or onto more boards (<code>new-boards</code>): the next setup with the same stock, else a new one like this one (docs/specs/parts-and-setups.md §9) One of: <code>off</code> (What doesn’t fit is switched off), <code>new-boards</code> (What doesn’t fit goes onto more boards). Default: <code>off</code>.</td></tr>
+<tr><td><code>--overflow &lt;OVERFLOW&gt;</code></td><td>What doesn’t fit always goes onto more boards: the next setup with the same stock, else a new one like this one (docs/specs/nest-overflow-and-all.md §1). Kept for scripts: <code>new-boards</code> is what happens anyway; <code>off</code> is refused. One of: <code>off</code> (No longer offered: refused with the reason), <code>new-boards</code> (What happens anyway).</td></tr>
 <tr><td><code>--goal &lt;GOAL&gt;</code></td><td>What the nest makes as small as it can: <code>compact</code> (the smallest box round the parts), <code>low</code> (the lowest top edge: a strip across the top left free) or <code>left</code> (the leftmost right edge: a strip down the right left free). Kept in the project. Default: as last nested, else compact (docs/specs/nesting-search.md) One of: <code>compact</code> (The smallest box round the parts), <code>low</code> (The lowest top edge), <code>left</code> (The leftmost right edge).</td></tr>
+<tr><td><code>--all</code></td><td>Nest every setup again as one pool per stock, the first board filled first, each with its kept settings; what fits on none onto new boards (docs/specs/nest-overflow-and-all.md §2)</td></tr>
 <tr><td><code>--dry-run</code></td><td>Report what would be placed without writing the project.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
@@ -8980,7 +9233,7 @@ reaches the assistant only once you save.</li>
 <h1 id="project-file"><a class="header" href="#project-file">Project file</a></h1>
 <!-- Generated by `chipload reference`; do not edit. Regenerate with CHIPLOAD_UPDATE_GOLDEN=1 cargo test -p chipload-cli --test guide. -->
 <p>A project (<code>.chipload</code>) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked <em>no</em> may be left out. Lengths are in mm, angles in radians, feeds in mm/min. <code>chipload schema project</code> prints the JSON Schema this page is made from.</p>
-<p>Schema version 41. Older files load through Chipload’s migrations; this schema describes only the current version.</p>
+<p>Schema version 42. Older files load through Chipload’s migrations; this schema describes only the current version.</p>
 <h2 id="the-file-2"><a class="header" href="#the-file-2">The file</a></h2>
 <div class="table-wrapper">
 <table>
@@ -8994,7 +9247,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>machine</code></td><td><a href="#machine">Machine</a></td><td>yes</td><td>The machine: post-processor, safe height, limits.</td></tr>
 <tr><td><code>operations</code></td><td>list of <a href="#operation">Operation</a></td><td>yes</td><td>The operations, cut in this order: grouped by part, in the parts’ order.</td></tr>
 <tr><td><code>parts</code></td><td>list of <a href="#part">Part</a></td><td>yes</td><td>The parts: groups of operations, each cut with its copies before the next part. At least one.</td></tr>
-<tr><td><code>schema_version</code></td><td><code>41</code></td><td>yes</td><td>The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones.</td></tr>
+<tr><td><code>schema_version</code></td><td><code>42</code></td><td>yes</td><td>The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones.</td></tr>
 <tr><td><code>setups</code></td><td>list of <a href="#setup">Setup</a></td><td>yes</td><td>The setups: each a board clamped on the machine, with its stock, its work zero and the parts cut from it, written as a program of its own. At least one. Since schema 34.</td></tr>
 <tr><td><code>tools</code></td><td>list of <a href="#tool">Tool</a></td><td>yes</td><td>The tools the operations cut with.</td></tr>
 <tr><td><code>written_by</code></td><td>string or null</td><td>no</td><td>The Chipload version that wrote the file, for reference.</td></tr>
@@ -10192,7 +10445,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>angle</code></td><td>number or null</td><td>no</td><td>rectangle: its rotation about the centre; polygon: the angle of its first corner from +X; radians, counter-clockwise.</td></tr>
 <tr><td><code>bulges</code></td><td>list of number or null</td><td>no</td><td>polyline: one per segment, as in DXF: tan(sweep / 4); 0 straight, 1 a counter-clockwise half circle, -1 clockwise.</td></tr>
 <tr><td><code>center</code></td><td>2 × number or null</td><td>no</td><td>circle, rectangle, polygon: the centre, mm.</td></tr>
-<tr><td><code>closed</code></td><td>boolean or null</td><td>no</td><td>path, polyline: whether it ends where it starts.</td></tr>
+<tr><td><code>closed</code></td><td>boolean or null</td><td>no</td><td>path, polyline, spline: whether it ends where it starts.</td></tr>
 <tr><td><code>construction</code></td><td>boolean</td><td>no</td><td>circle, rectangle, polygon, polyline: construction geometry, shown and snapped to but never cut; left out when false.</td></tr>
 <tr><td><code>corner_radius</code></td><td>number or null</td><td>no</td><td>rectangle: the radius of its corners, mm; 0 for sharp ones.</td></tr>
 <tr><td><code>dxf</code></td><td>integer or null</td><td>no</td><td>path: the DXF it was imported from (its id in <code>drawing.dxfs</code>).</td></tr>
@@ -10200,12 +10453,13 @@ reaches the assistant only once you save.</li>
 <tr><td><code>dxf_type</code></td><td>string or null</td><td>no</td><td>path: the DXF entity’s type, e.g. LWPOLYLINE.</td></tr>
 <tr><td><code>id</code></td><td>integer</td><td>yes</td><td>The shape’s id, which operations select it by.</td></tr>
 <tr><td><code>image</code></td><td>integer or null</td><td>no</td><td>path: the image it was traced from; absent for shapes from a DXF.</td></tr>
-<tr><td><code>kind</code></td><td><a href="#shapekind">ShapeKind</a></td><td>yes</td><td><code>path</code> (imported from a DXF), or a shape drawn in Chipload: <code>circle</code>, <code>rectangle</code>, <code>polyline</code>.</td></tr>
+<tr><td><code>kind</code></td><td><a href="#shapekind">ShapeKind</a></td><td>yes</td><td><code>path</code> (imported from a DXF), or a shape drawn in Chipload: <code>circle</code>, <code>rectangle</code>, <code>polyline</code>, <code>polygon</code>, <code>spline</code>.</td></tr>
 <tr><td><code>layer</code></td><td>string</td><td>yes</td><td>Its layer.</td></tr>
 <tr><td><code>length</code></td><td>number or null</td><td>no</td><td>rectangle: its size along its own X axis, mm.</td></tr>
 <tr><td><code>model</code></td><td>integer or null</td><td>no</td><td>path: the 3D model it is the footprint outline of (its id in <code>drawing.models</code>).</td></tr>
 <tr><td><code>name</code></td><td>string or null</td><td>no</td><td>circle, rectangle, polyline: its name in the Browser; left out when it has none.</td></tr>
-<tr><td><code>points</code></td><td>list of 2 × number or null</td><td>no</td><td>polyline: its points, mm.</td></tr>
+<tr><td><code>points</code></td><td>list of 2 × number or null</td><td>no</td><td>polyline: its points; spline: the points the curve passes through; mm.</td></tr>
+<tr><td><code>radii</code></td><td>list of number or null</td><td>no</td><td>polyline: a radius at each point, mm, rounding the corner there with an arc tangent to both sides (0 sharp); left out when every corner is sharp.</td></tr>
 <tr><td><code>radius</code></td><td>number or null</td><td>no</td><td>circle: the radius, mm; polygon: the radius to its corners, mm.</td></tr>
 <tr><td><code>segments</code></td><td>list of <a href="#pathsegment">PathSegment</a> or null</td><td>no</td><td>path: its lines and arcs, mm.</td></tr>
 <tr><td><code>sides</code></td><td>integer or null</td><td>no</td><td>polygon: how many sides (and corners) it has, 3 to 1000.</td></tr>
@@ -10231,7 +10485,7 @@ reaches the assistant only once you save.</li>
 </table>
 </div>
 <h2 id="shapekind"><a class="header" href="#shapekind">ShapeKind</a></h2>
-<p>One of: <code>"path"</code>, <code>"circle"</code>, <code>"rectangle"</code>, <code>"polyline"</code>, <code>"polygon"</code>.</p>
+<p>One of: <code>"path"</code>, <code>"circle"</code>, <code>"rectangle"</code>, <code>"polyline"</code>, <code>"polygon"</code>, <code>"spline"</code>.</p>
 <h2 id="side"><a class="header" href="#side">Side</a></h2>
 <p>One of: <code>"inside"</code>, <code>"outside"</code>, <code>"on"</code>.</p>
 <h2 id="skin"><a class="header" href="#skin">Skin</a></h2>
@@ -10794,7 +11048,8 @@ written, and what other programs say (the file system, a picture that can’t be
 translated. Numbers keep the decimal point in every language, and a field also takes a
 decimal comma (<code>6,5</code>, <code>0,3</code>) in every language. In English only, a comma followed by exactly
 three digits after a whole number (<code>1,000</code>, <code>2,500</code>) isn’t read, since it could mean a
-thousand: type <code>2.5</code> or <code>2,5</code> there.</p>
+thousand: type <code>2.5</code> or <code>2,5</code> there. In a language that writes a decimal comma, every
+comma in a sum is one: <code>12,5+3,5</code>.</p>
 <h2 id="helping-with-a-translation"><a class="header" href="#helping-with-a-translation">Helping with a translation</a></h2>
 <p>German, French, Spanish, Italian and Russian are marked <em>(review wanted)</em> in the list of languages: they
 haven’t yet been read by someone who speaks the language and runs a CNC machine. A wrong

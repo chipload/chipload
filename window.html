@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>The window - Chipload 0.38.0 user guide</title>
+        <title>The window - Chipload 0.39.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-bf4381fb.js";
+            window.path_to_searchindex_js = "searchindex-6e70ea5e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-ccd7e32c.js"></script>
+        <script src="toc-edc691ed.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.38.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.39.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -333,27 +333,64 @@ that part.</li>
 <p>The canvas shows the stock, the drawing and the toolpath on a soft gradient. It follows the
 colour theme: dark, or light grey.</p>
 <ul>
-<li><strong>The grid</strong> lies on the stock top, in top view and in 3D.
+<li>
+<p><strong>Two kinds of space, a tab each,</strong> along the canvas’s top left. <em>Drawing</em> has a pencil
+and the app’s green when shown; a setup’s tab has a board (a back the turn-over mark)
+and its own teal, underlined while another space is shown. When the canvas is too narrow
+for every name, the tabs not shown keep only their icon (hover for the name):</p>
+<ul>
+<li><strong>Drawing:</strong> every part’s shapes where they are drawn, to draw and change. The part
+you work on is in full colour, the others dimmed (still clicked and edited; clicking
+one makes its part the active one). The toolpath is that part’s, where it is drawn.
+When the part is cut where it is drawn, its board shows faintly behind it, to draw
+against; no instances are shown here.</li>
+<li><strong>A tab per setup</strong> (“Setup 1”, a back “Setup 2 (back)”): its board with its name
+above it, and every
+<a href="drawings/instances.html">instance</a> on it drawn where it is cut, with its badge
+(<code>Side #2</code>, and a mirror mark when mirrored) and the setup’s toolpath. No drawn shapes: here you place, turn, copy and
+<a href="drawings/nesting.html">nest</a> the instances. Double-click an instance to open its part
+in <em>Drawing</em>. Drag a part’s row from the Browser onto the board to place it there
+again. Right-click empty canvas for the setup’s own menu, as on its Browser row:
+export it, face or nest its board, a new part or setup, its back side. The other setups lie beside the board as before.</li>
+<li><strong>+</strong> adds a setup.</li>
+<li><strong>What you select picks the tab:</strong> a part, an operation, a shape, a text or a
+picture shows <em>Drawing</em>; a setup, its stock, its work zero or an instance shows that
+setup’s tab. The project and the tools leave the tab as it is. A drawing tool (or its
+key) started from a setup’s tab goes to <em>Drawing</em> first.</li>
+<li><strong>Each space keeps its own view:</strong> zoom into a corner of the drawing, look at the
+boards, and coming back finds the corner as you left it. The setups’ tabs share one
+view: their boards lie in one row that stays put, whichever is active.</li>
+<li><strong>A simple project,</strong> one board with each part on it once where drawn, looks the same
+in both: projects open on <em>Drawing</em>, and you can draw, add operations, generate and
+export without leaving it.</li>
+</ul>
+</li>
+<li>
+<p><strong>The grid</strong> lies on the stock top, in top view and in 3D.</p>
 <ul>
 <li>Its fine lines are where clicks snap while drawing. A stronger line comes every ten.</li>
 <li>It follows the zoom, and the status bar gives its step (“grid 5 mm”).</li>
 <li><strong>G</strong> or <em>View &gt; Show grid</em> hides it, and Chipload remembers that.</li>
 </ul>
 </li>
-<li><strong>Rulers</strong> run along the canvas’s top (X) and left (Y) edges in top view, in drawing
+<li>
+<p><strong>Rulers</strong> run along the canvas’s top (X) and left (Y) edges in top view, in drawing
 coordinates (0 at the drawing origin, as the shapes’ <em>Position</em> fields), in mm or inches
-as the app shows lengths; the unit is in their corner.
+as the app shows lengths; the unit is in their corner.</p>
 <ul>
 <li>Their ticks fall on the grid’s lines, and the stronger lines are numbered.</li>
 <li>The cursor’s place is marked on both.</li>
 <li><em>View &gt; Show rulers</em> hides them, and Chipload remembers that.</li>
 </ul>
 </li>
-<li><strong>The axes:</strong> a red line along X and a green one along Y run through the program’s zero.
+<li>
+<p><strong>The axes:</strong> a red line along X and a green one along Y run through the program’s zero.
 Short thick strokes point the positive way, and in 3D a blue one points up Z. In top view
 a round handle sits at their foot: click it to select the
-<a href="concepts/stock.html#work-zero">work zero</a>, then drag it.</li>
-<li><strong>Edit and Simulate:</strong> the canvas works in one of two modes.
+<a href="concepts/stock.html#work-zero">work zero</a>, then drag it.</p>
+</li>
+<li>
+<p><strong>Edit and Simulate:</strong> the canvas works in one of two modes.</p>
 <ul>
 <li><strong>Edit</strong> (projects open in it) is the drawing board: the drawing and the toolpath’s
 lines; selecting, box selection, drawing, handles, tabs and start points.</li>
@@ -371,40 +408,50 @@ as you left them there. The first time, Simulate starts in 3D with only the
 simulation shown (the toolpath, drawing and pictures hidden).</li>
 </ul>
 </li>
-<li><strong>The navigation bar</strong> floats at the bottom, each button an icon over its name:
+<li>
+<p><strong>The navigation bar</strong> floats at the bottom, each button an icon over its name:</p>
 <ul>
 <li>the mode: <strong>Edit | Simulate</strong> (F6 switches);</li>
 <li>how you look: <strong>Measure</strong> (M), <strong>Fit</strong> (F), <strong>Top</strong> (T) and <strong>3D</strong>. When the canvas changes size (the
 window, or a panel opening or folding), a fitted view is fitted again, and a view you
 zoomed or moved keeps showing the same area;</li>
 <li>what is shown: <strong>Toolpath</strong>, <strong>Drawing</strong> (in Simulate; Edit always shows the drawing),
-<strong>Images</strong> and <strong>Grid</strong> (G). What the toolpath is of follows the Browser: a part
-selected shows <a href="operations/parts.html">that part alone</a>, a setup or the project every
-part on its board.</li>
+<strong>Images</strong> and <strong>Grid</strong> (G). What the toolpath is of follows the tab: <em>Drawing</em>
+shows <a href="operations/parts.html">that part alone</a>, where it is drawn; a setup’s tab every
+instance on its board.</li>
 <li>When the canvas is too narrow for the names, the buttons show only their icons; hover
 over one to see its name.</li>
 </ul>
 </li>
-<li><strong>Drawing off</strong> (in Simulate) hides the drawing’s contours, to see the simulated stock or
-the toolpath alone. Back in Edit the drawing shows again.</li>
-<li><strong>The corner:</strong>
+<li>
+<p><strong>Drawing off</strong> (in Simulate) hides the drawing’s contours, to see the simulated stock or
+the toolpath alone. Back in Edit the drawing shows again.</p>
+</li>
+<li>
+<p><strong>The corner:</strong></p>
 <ul>
 <li>In 3D, the top right corner has a cube that turns with the view. Click a face (TOP,
 FRONT, RIGHT, BACK, LEFT) to look straight at it.</li>
 <li>In top view, the corner has an X–Y sign instead.</li>
 </ul>
 </li>
-<li><strong>The toolpath’s numbers:</strong> each operation’s first plunge has a circle and the
-operation’s number. Click it to open that operation.</li>
-<li><strong>The legend</strong> (bottom left) explains the colours.</li>
-<li><strong>The mouse:</strong> the wheel zooms. In Edit, in top view, a left drag on empty canvas
+<li>
+<p><strong>The toolpath’s numbers:</strong> each operation’s first plunge has a circle and the
+operation’s number. Click it to open that operation.</p>
+</li>
+<li>
+<p><strong>The legend</strong> (bottom left) explains the colours.</p>
+</li>
+<li>
+<p><strong>The mouse:</strong> the wheel zooms. In Edit, in top view, on <em>Drawing</em>, a left drag on empty canvas
 selects with a box: from left to right it takes what lies wholly inside, from right to left also what
 it touches; Shift adds to the selection, Ctrl adds or takes out. A left drag on a drawn
 shape <a href="drawings/shapes.html#editing">moves it</a>. To pan, drag with the right or middle
 button, or hold Space and drag (the way on a touchpad; the status bar’s hint starts with
 it). In 3D, a left drag orbits: the model turns with the mouse. To have a left-right
 drag move the view round the model instead, tick <em>View &gt; Reverse left-right orbit in 3D</em>. In Simulate a left drag pans (in 3D it orbits). On a
-touchpad, a two-finger scroll or a pinch zooms.</li>
+touchpad, a two-finger scroll or a pinch zooms.</p>
+</li>
 </ul>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/simulation-3d.png" alt="The canvas in 3D: the simulated stock on the grid, the cube in the corner and the navigation bar"><span class="img-wrapper"><img src="images/simulation-3d.png" alt="The canvas in 3D: the simulated stock on the grid, the cube in the corner and the navigation bar"></span></label></p>
 <h2 id="properties"><a class="header" href="#properties">Properties</a></h2>

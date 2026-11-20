@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Command line - Chipload 0.38.0 user guide</title>
+        <title>Command line - Chipload 0.39.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bf4381fb.js";
+            window.path_to_searchindex_js = "../searchindex-6e70ea5e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ccd7e32c.js"></script>
+        <script src="../toc-edc691ed.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.38.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.39.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -944,7 +944,7 @@
 </thead>
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
-<tr><td><code>&lt;KIND&gt;</code></td><td>One of: <code>circle</code>, <code>rectangle</code>, <code>polyline</code>, <code>polygon</code>.</td></tr>
+<tr><td><code>&lt;KIND&gt;</code></td><td>One of: <code>circle</code>, <code>rectangle</code>, <code>polyline</code>, <code>polygon</code>, <code>spline</code> (The smooth curve through –points (docs/specs/splines.md)), <code>arc-slot</code> (A slot bent round –center at –radius from –start-deg to –end-deg, –width wide: a closed polyline of arcs (docs/specs/drawing-improvements.md §3)).</td></tr>
 <tr><td><code>--center &lt;CENTER&gt;</code></td><td>Centre “X,Y” (circle, rectangle, polygon)</td></tr>
 <tr><td><code>--radius &lt;RADIUS&gt;</code></td><td>A circle’s radius; a polygon’s, to its corners.</td></tr>
 <tr><td><code>--sides &lt;SIDES&gt;</code></td><td>A polygon’s number of sides, 3 to 1000.</td></tr>
@@ -953,10 +953,13 @@
 <tr><td><code>--width &lt;WIDTH&gt;</code></td><td>Along the rectangle’s own Y axis.</td></tr>
 <tr><td><code>--angle-deg &lt;ANGLE_DEG&gt;</code></td><td>Rotation about the centre (a polygon: its first corner’s angle from +X), degrees, counter-clockwise.</td></tr>
 <tr><td><code>--corner-radius &lt;CORNER_RADIUS&gt;</code></td><td>The radius of the rectangle’s corners, at most half its shorter side (default 0: sharp)</td></tr>
-<tr><td><code>--points &lt;POINTS&gt;</code></td><td>Polyline points “X,Y X,Y …”.</td></tr>
+<tr><td><code>--points &lt;POINTS&gt;</code></td><td>Polyline points, or the points a spline passes through: “X,Y X,Y …”.</td></tr>
 <tr><td><code>--bulges &lt;BULGES&gt;</code></td><td>Polyline bulges “B B …”, one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight)</td></tr>
-<tr><td><code>--open</code></td><td>The polyline doesn’t return to its first point.</td></tr>
-<tr><td><code>--closed</code></td><td>The polyline returns to its first point (the default for new ones)</td></tr>
+<tr><td><code>--start-deg &lt;START_DEG&gt;</code></td><td>An arc slot’s start, degrees counter-clockwise from +X.</td></tr>
+<tr><td><code>--end-deg &lt;END_DEG&gt;</code></td><td>An arc slot’s end, degrees: past the start goes counter-clockwise, before it clockwise.</td></tr>
+<tr><td><code>--radii &lt;RADII&gt;</code></td><td>Corner radii “R R …”, mm, 0 sharp: a polyline’s one per point (an open one’s ends 0), a rectangle’s four counter-clockwise from its (−length/2, −width/2) corner, a polygon’s one per corner from its first. Each corner is rounded by an arc tangent to both sides, its point staying at the sharp corner (docs/specs/polyline-radii.md)</td></tr>
+<tr><td><code>--open</code></td><td>The polyline or spline doesn’t return to its first point.</td></tr>
+<tr><td><code>--closed</code></td><td>The polyline or spline returns to its first point (the default for a new polyline; a new spline is open without it)</td></tr>
 <tr><td><code>--layer &lt;LAYER&gt;</code></td><td></td></tr>
 <tr><td><code>--name &lt;NAME&gt;</code></td><td>Its name in the Browser; “” takes the name away.</td></tr>
 <tr><td><code>--construction &lt;CONSTRUCTION&gt;</code></td><td>Construction geometry: shown and snapped to, never cut (<code>--construction false</code> makes it an ordinary shape again) One of: <code>true</code>, <code>false</code>.</td></tr>
@@ -984,10 +987,13 @@
 <tr><td><code>--width &lt;WIDTH&gt;</code></td><td>Along the rectangle’s own Y axis.</td></tr>
 <tr><td><code>--angle-deg &lt;ANGLE_DEG&gt;</code></td><td>Rotation about the centre (a polygon: its first corner’s angle from +X), degrees, counter-clockwise.</td></tr>
 <tr><td><code>--corner-radius &lt;CORNER_RADIUS&gt;</code></td><td>The radius of the rectangle’s corners, at most half its shorter side (default 0: sharp)</td></tr>
-<tr><td><code>--points &lt;POINTS&gt;</code></td><td>Polyline points “X,Y X,Y …”.</td></tr>
+<tr><td><code>--points &lt;POINTS&gt;</code></td><td>Polyline points, or the points a spline passes through: “X,Y X,Y …”.</td></tr>
 <tr><td><code>--bulges &lt;BULGES&gt;</code></td><td>Polyline bulges “B B …”, one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight)</td></tr>
-<tr><td><code>--open</code></td><td>The polyline doesn’t return to its first point.</td></tr>
-<tr><td><code>--closed</code></td><td>The polyline returns to its first point (the default for new ones)</td></tr>
+<tr><td><code>--start-deg &lt;START_DEG&gt;</code></td><td>An arc slot’s start, degrees counter-clockwise from +X.</td></tr>
+<tr><td><code>--end-deg &lt;END_DEG&gt;</code></td><td>An arc slot’s end, degrees: past the start goes counter-clockwise, before it clockwise.</td></tr>
+<tr><td><code>--radii &lt;RADII&gt;</code></td><td>Corner radii “R R …”, mm, 0 sharp: a polyline’s one per point (an open one’s ends 0), a rectangle’s four counter-clockwise from its (−length/2, −width/2) corner, a polygon’s one per corner from its first. Each corner is rounded by an arc tangent to both sides, its point staying at the sharp corner (docs/specs/polyline-radii.md)</td></tr>
+<tr><td><code>--open</code></td><td>The polyline or spline doesn’t return to its first point.</td></tr>
+<tr><td><code>--closed</code></td><td>The polyline or spline returns to its first point (the default for a new polyline; a new spline is open without it)</td></tr>
 <tr><td><code>--layer &lt;LAYER&gt;</code></td><td></td></tr>
 <tr><td><code>--name &lt;NAME&gt;</code></td><td>Its name in the Browser; “” takes the name away.</td></tr>
 <tr><td><code>--construction &lt;CONSTRUCTION&gt;</code></td><td>Construction geometry: shown and snapped to, never cut (<code>--construction false</code> makes it an ordinary shape again) One of: <code>true</code>, <code>false</code>.</td></tr>
@@ -1041,7 +1047,10 @@
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S)</td></tr>
-<tr><td><code>--axis &lt;AXIS&gt;</code></td><td>x: flip the X coordinates (left becomes right); y: flip Y (up becomes down) One of: <code>x</code>, <code>y</code>. Required.</td></tr>
+<tr><td><code>--axis &lt;AXIS&gt;</code></td><td>x: flip the X coordinates (left becomes right); y: flip Y (up becomes down), about the middle of the box round them. One of: <code>x</code>, <code>y</code>.</td></tr>
+<tr><td><code>--line &lt;LINE&gt;</code></td><td>Mirror about the line through two points “X,Y X,Y” (docs/specs/drawing-improvements.md §1)</td></tr>
+<tr><td><code>--about-shape &lt;ABOUT_SHAPE&gt;</code></td><td>Mirror about drawn shape ID, one straight line (a construction centre line)</td></tr>
+<tr><td><code>--copy</code></td><td>Keep the shapes and add their mirror images; an open shape with both ends on the line joins its image into one closed shape.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -2910,6 +2919,7 @@
 <tr><td><code>--at &lt;AT&gt;</code></td><td>Its move “DX,DY” from the part as drawn (any length unit; plain numbers are mm); default: beside everything the part cuts, 10 mm away.</td></tr>
 <tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>Turned about the middle of the part’s box, degrees counter-clockwise.</td></tr>
 <tr><td><code>--mirror &lt;MIRROR&gt;</code></td><td>Mirrored about the middle of the part’s box first: left-right, top-bottom or none. Climb stays climb.</td></tr>
+<tr><td><code>--like &lt;LIKE&gt;</code></td><td>Like this instance (its number): on its setup, turned and mirrored as it is; –setup, –angle and –mirror still override each.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -2932,6 +2942,7 @@
 <tr><td><code>--mirror &lt;MIRROR&gt;</code></td><td>Mirrored: left-right, top-bottom or none.</td></tr>
 <tr><td><code>--off</code></td><td>Keep it, but don’t cut it.</td></tr>
 <tr><td><code>--on</code></td><td>Cut it again.</td></tr>
+<tr><td><code>--reset</code></td><td>Back where the part is drawn, not turned; its mirror and on or off stay.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -3055,7 +3066,7 @@
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>--name &lt;NAME&gt;</code></td><td>Its name; default: “Setup N”.</td></tr>
 <tr><td><code>--thickness &lt;THICKNESS&gt;</code></td><td>Its board’s thickness; default: the active setup’s.</td></tr>
-<tr><td><code>--back-of &lt;BACK_OF&gt;</code></td><td>The back of this setup: the same board turned over, its cuts mirrored (docs/specs/two-sided.md). Its name defaults to “<that setup=""> back”.</that></td></tr>
+<tr><td><code>--back-of &lt;BACK_OF&gt;</code></td><td>The back of this setup: the same board turned over, its cuts mirrored (docs/specs/two-sided.md). Its name defaults to that setup’s name and “back” (“Setup 1 back”)</td></tr>
 <tr><td><code>--turn &lt;TURN&gt;</code></td><td>How the board is turned over: left-right (default) or top-bottom.</td></tr>
 <tr><td><code>--register &lt;REGISTER&gt;</code></td><td>How the turned board is put back: pins (default) or corner.</td></tr>
 <tr><td><code>--pins &lt;PINS&gt;</code></td><td>Dowel holes for pins of this diameter too (8 mm without a value), in the same step (docs/specs/two-sided-wizard.md §6)</td></tr>
@@ -3243,8 +3254,9 @@
 <tr><td><code>--margin &lt;MARGIN&gt;</code></td><td>The room left at the board’s edge (default: as last nested, else 10 mm)</td></tr>
 <tr><td><code>--turns &lt;TURNS&gt;</code></td><td>How parts may be turned: none, half, quarter or every-15, for every part; “ID=TURNS” for one part, such as 2=none (wood grain). Kept in the project. Default: as set, else quarter. Repeatable.</td></tr>
 <tr><td><code>--count &lt;COUNT&gt;</code></td><td>How many times part ID is cut, “ID=N”, such as 2=4: instances added or removed before nesting (never the part itself) Repeatable.</td></tr>
-<tr><td><code>--overflow &lt;OVERFLOW&gt;</code></td><td>What doesn’t fit: switched off (<code>off</code>, the default), or onto more boards (<code>new-boards</code>): the next setup with the same stock, else a new one like this one (docs/specs/parts-and-setups.md §9) One of: <code>off</code> (What doesn’t fit is switched off), <code>new-boards</code> (What doesn’t fit goes onto more boards). Default: <code>off</code>.</td></tr>
+<tr><td><code>--overflow &lt;OVERFLOW&gt;</code></td><td>What doesn’t fit always goes onto more boards: the next setup with the same stock, else a new one like this one (docs/specs/nest-overflow-and-all.md §1). Kept for scripts: <code>new-boards</code> is what happens anyway; <code>off</code> is refused. One of: <code>off</code> (No longer offered: refused with the reason), <code>new-boards</code> (What happens anyway).</td></tr>
 <tr><td><code>--goal &lt;GOAL&gt;</code></td><td>What the nest makes as small as it can: <code>compact</code> (the smallest box round the parts), <code>low</code> (the lowest top edge: a strip across the top left free) or <code>left</code> (the leftmost right edge: a strip down the right left free). Kept in the project. Default: as last nested, else compact (docs/specs/nesting-search.md) One of: <code>compact</code> (The smallest box round the parts), <code>low</code> (The lowest top edge), <code>left</code> (The leftmost right edge).</td></tr>
+<tr><td><code>--all</code></td><td>Nest every setup again as one pool per stock, the first board filled first, each with its kept settings; what fits on none onto new boards (docs/specs/nest-overflow-and-all.md §2)</td></tr>
 <tr><td><code>--dry-run</code></td><td>Report what would be placed without writing the project.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
