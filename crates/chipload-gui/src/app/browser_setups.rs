@@ -53,6 +53,8 @@ pub(super) enum SetupAction {
     /// Nest its instances on its board (docs/specs/nesting.md §7).
     Nest(u64),
     NestAgain(u64),
+    /// Every setup nested again (docs/specs/nest-overflow-and-all.md §2).
+    NestAll,
     /// A part's row dropped on this setup: every instance of it moved there
     /// (docs/specs/parts-and-setups.md §8).
     MovePart(u64, u64),
@@ -142,6 +144,7 @@ impl ChiploadApp {
             .icon_tinted(Icon::Rectangle, Tint::Board)
             .trailing(setups.len().to_string());
         let (open, folder_row) = folder(ui, row, true);
+        let nest_all = self.can_nest_all();
         folder_row
             .response
             .on_hover_text(t!(ui, "browser-setups-hover"))
@@ -152,6 +155,14 @@ impl ChiploadApp {
                     .clicked()
                 {
                     setup_action = Some(SetupAction::Add);
+                }
+                if nest_all
+                    && ui
+                        .button(t!(ui, "nest-all"))
+                        .on_hover_text(t!(ui, "nest-all-hover"))
+                        .clicked()
+                {
+                    setup_action = Some(SetupAction::NestAll);
                 }
                 if setups.len() > 1
                     && ui
@@ -482,6 +493,14 @@ impl ChiploadApp {
                 action = Some(SetupAction::NestAgain(id));
             }
         }
+        if self.can_nest_all()
+            && ui
+                .button(t!(ui, "nest-all"))
+                .on_hover_text(t!(ui, "nest-all-hover"))
+                .clicked()
+        {
+            action = Some(SetupAction::NestAll);
+        }
         if several
             && ui
                 .button(t!(ui, "menu-export-all"))
@@ -525,6 +544,7 @@ impl ChiploadApp {
             }
             SetupAction::Nest(id) => self.start_nest(Some(id)),
             SetupAction::NestAgain(id) => self.nest_again(id),
+            SetupAction::NestAll => self.start_nest_all(),
             SetupAction::MovePart(part, setup) => self.move_part_to_setup(part, setup),
             SetupAction::PlacePart(part, setup) => self.place_part_on(part, setup),
             SetupAction::MoveInstance(part, id, setup) => self.instance_to_setup(part, id, setup),

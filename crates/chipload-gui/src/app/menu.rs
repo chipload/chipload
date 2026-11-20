@@ -685,6 +685,15 @@ impl ChiploadApp {
             ui.close();
         }
         if ui
+            .add_enabled(self.can_nest_all(), egui::Button::new(t!(ui, "nest-all")))
+            .on_hover_text(t!(ui, "nest-all-hover"))
+            .on_disabled_hover_text(t!(ui, "nest-all-disabled-hover"))
+            .clicked()
+        {
+            self.start_nest_all();
+            ui.close();
+        }
+        if ui
             .add_enabled(self.can_inlay(), egui::Button::new(t!(ui, "inlay-menu")))
             .on_hover_text(t!(ui, "inlay-ribbon-hover"))
             .on_disabled_hover_text(t!(ui, "header-select-shapes-first"))

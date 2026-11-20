@@ -2838,6 +2838,7 @@ chipload nest <PROJECT> [OPTIONS]
 | `--count <COUNT>` | How many times part ID is cut, "ID=N", such as 2=4: instances added or removed before nesting (never the part itself) Repeatable. |
 | `--overflow <OVERFLOW>` | What doesn't fit always goes onto more boards: the next setup with the same stock, else a new one like this one (docs/specs/nest-overflow-and-all.md §1). Kept for scripts: `new-boards` is what happens anyway; `off` is refused. One of: `off` (No longer offered: refused with the reason), `new-boards` (What happens anyway). |
 | `--goal <GOAL>` | What the nest makes as small as it can: `compact` (the smallest box round the parts), `low` (the lowest top edge: a strip across the top left free) or `left` (the leftmost right edge: a strip down the right left free). Kept in the project. Default: as last nested, else compact (docs/specs/nesting-search.md) One of: `compact` (The smallest box round the parts), `low` (The lowest top edge), `left` (The leftmost right edge). |
+| `--all` | Nest every setup again as one pool per stock, the first board filled first, each with its kept settings; what fits on none onto new boards (docs/specs/nest-overflow-and-all.md §2) |
 | `--dry-run` | Report what would be placed without writing the project. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 

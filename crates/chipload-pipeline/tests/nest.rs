@@ -529,3 +529,61 @@ fn a_surface_past_the_travel_is_refused_by_name_not_as_a_nesting_fault() {
     );
     assert!(!text.contains("a fault in nesting"), "{text}");
 }
+
+// -- Nest every setup again (docs/specs/nest-overflow-and-all.md §2)
+
+fn nest_all(job: &Job) -> chipload_pipeline::nest::NestAllResult {
+    chipload_pipeline::nest::nest_all(job, &Cancel::new()).unwrap()
+}
+
+#[test]
+fn nesting_every_setup_again_pools_the_boards_and_keeps_an_emptied_one() {
+    use chipload_pipeline::instances::add_instance;
+    // Two large boards of one stock: the part once on the first, twice on the second.
+    let job = part_on_board(1000.0, 600.0);
+    let (job, two) = chipload_pipeline::setups::add_setup(&job, None, None).unwrap();
+    let (job, _) = add_instance(&job, 1, Some(two), Some([0.0, 0.0]), 0.0, None).unwrap();
+    let (job, _) = add_instance(&job, 1, Some(two), Some([300.0, 0.0]), 0.0, None).unwrap();
+    let had = chipload_pipeline::nest::cut_count(&job);
+    assert_eq!(had, 3);
+    // Pooled: all three fit on the first board; the second is empty, kept, reported.
+    let pooled = nest_all(&job);
+    assert!(!pooled.unchanged);
+    assert!(pooled.unplaced.is_empty(), "{:?}", pooled.unplaced);
+    assert!(pooled.made.is_empty(), "{:?}", pooled.made);
+    let first = job.setups[0].id;
+    assert_eq!(pooled.boards, [(first, 3)]);
+    assert_eq!(pooled.empty, [two]);
+    assert_eq!(pooled.job.setups.len(), 2);
+    let notes: Vec<String> = pooled.notes().iter().map(|m| m.english()).collect();
+    assert!(
+        notes.iter().any(|n| n.contains("is empty now")),
+        "{notes:?}"
+    );
+    assert_eq!(
+        pooled.summary().english(),
+        "Every setup nested again: 3 placed, boards used: 1"
+    );
+    // Numbers kept: the same instances, every one on.
+    let mut numbers: Vec<u32> = pooled
+        .job
+        .instances_of(1)
+        .iter()
+        .map(|(_, i)| i.id)
+        .collect();
+    numbers.sort_unstable();
+    assert_eq!(numbers, [1, 2, 3]);
+    assert_cut_inside(&pooled.job.for_setup(first), 10.0);
+    // Again: no better found.
+    let again = nest_all(&pooled.job);
+    assert_eq!(again.boards, pooled.boards);
+}
+
+#[test]
+fn nesting_every_setup_again_needs_a_board_it_can_nest() {
+    let job = every_direction(None);
+    let err = chipload_pipeline::nest::nest_all(&job, &Cancel::new())
+        .unwrap_err()
+        .to_string();
+    assert!(err.contains("no setup can be nested"), "{err}");
+}

@@ -360,7 +360,7 @@ to a program you trust. It was about four per operation; with the defaults and s
    user, 2026-11-20). Spec approved (docs/specs/nest-overflow-and-all.md). Steps: (1)
    overflow always, the *What doesn't fit* choice gone, `--overflow off` refused, an
    instance no board takes marked amber in the Browser and its Report line selecting it:
-   **done**; (2) *Nest all setups again* and `nest --all`.
+   **done**; (2) *Nest all setups again* and `nest --all`: **done**. The user to try.
 13. **Small follow-ups:**
     - Large files and functions (started 2026-11-16, aim: files under 1,000 lines, one job
       per function): split so far `plan/`, `pocket/`, the job's `operations/` and `library/`,

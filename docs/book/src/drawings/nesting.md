@@ -46,6 +46,7 @@ On the command line:
 
 ```sh
 chipload nest part.chipload                         # the active setup, on its board
+chipload nest part.chipload --all                   # every setup again, one pool per stock
 chipload nest part.chipload --count 2=4             # part 2 cut four times: instances added first
 chipload nest part.chipload --turns 2=none          # part 2 never turned (wood grain); others quarter turns
 chipload nest part.chipload --gap 5 --margin 15     # more room between parts and at the edge
@@ -54,6 +55,14 @@ chipload nest part.chipload --dry-run               # say what would go where, w
 chipload part set part.chipload 2 --turns half      # part 2 turned 180° at most, kept for the next nest
 ```
 
+- **Nest all setups again**, in the project's menu, the *Setups* folder's menu and
+  *Wizards*, with two boards or more that can be nested: every board of one stock is
+  nested as one pool, the first filled first, then the next, each with its own gap, margin
+  and goal; what fits on none goes onto new boards. Parts you removed or counts you lowered
+  free room on the first boards, and instances move back to them. It keeps the new layout
+  when it places more, or as many on fewer boards; otherwise each board is nested again on
+  its own, as *Nest again*, never worse. A board left empty is kept (the Report says
+  "Setup 3 is empty now"); remove it if you don't need it. One undo step.
 - **How it fills:** from the board's lower-left corner, by the goal: for *compact* each part
   where the box round everything placed grows least, for the others as low (or as far left)
   as it fits. It tries many orders of the parts and turns of each, for a moment (the window

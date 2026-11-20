@@ -19,6 +19,8 @@ pub(super) type Boards = (Option<(Point, Point)>, Vec<(Point, Point)>);
 
 /// A nest being computed.
 type NestRun = super::worker::Worker<Result<NestResult, PipelineError>>;
+pub(super) type NestAllRun =
+    super::worker::Worker<Result<chipload_pipeline::nest::NestAllResult, PipelineError>>;
 
 /// One part's row: how many times it is cut and how it may turn.
 #[derive(Debug, Clone, PartialEq)]
@@ -361,7 +363,7 @@ impl ChiploadApp {
 
     /// The window, while open.
     pub(super) fn nest_window(&mut self, ctx: &egui::Context) {
-        if self.poll_nest() {
+        if self.poll_nest() || self.poll_nest_all() {
             ctx.request_repaint_after(generation::POLL);
         }
         let Some(mut dialog) = self.nest.take() else {
@@ -597,4 +599,102 @@ fn instances_on(job: &chipload_job::Job, setup: u64) -> Vec<(u64, u32)> {
     job.setup(setup)
         .map(|s| s.instances.iter().map(|i| (i.part, i.id)).collect())
         .unwrap_or_default()
+}
+
+impl ChiploadApp {
+    /// Whether *Nest all setups again* is offered: two boards or more that can be nested.
+    pub(super) fn can_nest_all(&self) -> bool {
+        self.edit
+            .as_ref()
+            .is_some_and(|e| chipload_pipeline::nest::can_nest_all(&e.job))
+    }
+
+    /// *Nest all setups again* (docs/specs/nest-overflow-and-all.md §2), on a worker thread:
+    /// its result applied as one undo step when it arrives.
+    pub fn start_nest_all(&mut self) {
+        let Some(job) = self.edit.as_ref().map(|e| e.job.clone()) else {
+            return;
+        };
+        self.commit();
+        match NestAllRun::start("nest-all", move |cancel| {
+            chipload_pipeline::nest::nest_all(&job, cancel)
+        }) {
+            Ok(run) => {
+                self.nest_all = Some(run);
+                self.set_status(t!(self, "nest-all-running"), STATUS_SECONDS);
+            }
+            Err(err) => self.error(vec![err.to_string()]),
+        }
+    }
+
+    /// The run's result, if it has arrived. Whether one still runs.
+    pub(super) fn poll_nest_all(&mut self) -> bool {
+        let Some(run) = self.nest_all.as_ref() else {
+            return false;
+        };
+        let Some(outcome) = run.poll() else {
+            return true;
+        };
+        self.nest_all = None;
+        self.finish_nest_all(outcome.map_err(|_| t!(self, "nest-stopped-unexpectedly")));
+        false
+    }
+
+    /// Wait for the run in progress and apply its result (tests).
+    #[cfg(test)]
+    pub fn wait_for_nest_all(&mut self) {
+        let Some(run) = self.nest_all.take() else {
+            return;
+        };
+        let outcome = run
+            .wait()
+            .map_err(|_| t!(self, "nest-stopped-unexpectedly"));
+        self.finish_nest_all(outcome);
+    }
+
+    fn finish_nest_all(
+        &mut self,
+        outcome: Result<Result<chipload_pipeline::nest::NestAllResult, PipelineError>, String>,
+    ) {
+        let units = self.prefs.units.into();
+        let lang = self.prefs.language;
+        let result = match outcome {
+            Ok(Ok(result)) => result,
+            Ok(Err(err)) => {
+                self.error(vec![err.message().render(lang, units)]);
+                return;
+            }
+            Err(text) => {
+                self.error(vec![text]);
+                return;
+            }
+        };
+        let Some(edit) = self.edit.as_mut() else {
+            return;
+        };
+        if edit.job != result.job {
+            edit.job = result.job.clone();
+            self.commit();
+        }
+        self.set_status(result.summary().render(lang, units), STATUS_SECONDS);
+        let notes = result.notes();
+        let first_off = notes.len() - result.unplaced.len().min(notes.len());
+        for (k, note) in notes.iter().enumerate() {
+            let text = note.render(lang, units);
+            match k
+                .checked_sub(first_off)
+                .and_then(|i| result.unplaced.get(i))
+            {
+                Some(&(part, id)) => {
+                    self.report.push_target(
+                        Tone::Warning,
+                        text,
+                        super::report::Target::Instance(part, id),
+                    );
+                }
+                None => self.report.push(Tone::Info, text),
+            }
+        }
+        self.nest_too_large = result.unplaced.iter().copied().collect();
+    }
 }

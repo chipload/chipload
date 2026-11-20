@@ -529,11 +529,13 @@ fn overflow(first: NestResult, cancel: &Cancel) -> Result<NestResult, PipelineEr
         }
         // Cuts through the stock go through the board they are on now.
         job.follow_thickness();
+        // A board of its own keeps its own settings; a new one has the first's.
+        let kept = job.setup(target).and_then(|s| s.nest).or(nest);
         let request = NestRequest {
             setup: Some(target),
-            gap: nest.map(|n| n.gap),
-            margin: nest.map(|n| n.margin),
-            goal: nest.map(|n| n.goal),
+            gap: kept.map(|n| n.gap),
+            margin: kept.map(|n| n.margin),
+            goal: kept.map(|n| n.goal),
             ..NestRequest::default()
         };
         let next = nest_one(&job, &request, true, cancel)?;
@@ -570,6 +572,207 @@ fn overflow(first: NestResult, cancel: &Cancel) -> Result<NestResult, PipelineEr
         unchanged: first.unchanged && boards.is_empty(),
         overflow: boards,
         ..first
+    })
+}
+
+/// What *Nest all setups again* did (docs/specs/nest-overflow-and-all.md §2).
+#[derive(Debug, Clone)]
+pub struct NestAllResult {
+    pub job: Job,
+    /// Each board that holds instances now, in the setups' order, and how many.
+    pub boards: Vec<(u64, usize)>,
+    /// The boards made for what fitted on none.
+    pub made: Vec<u64>,
+    /// The boards that hold none now (kept, never removed).
+    pub empty: Vec<u64>,
+    /// What no empty board takes, switched off.
+    pub unplaced: Vec<(u64, u32)>,
+    /// Nothing better found anywhere: the project is as it was.
+    pub unchanged: bool,
+}
+
+impl NestAllResult {
+    /// The status line.
+    pub fn summary(&self) -> Message {
+        if self.unchanged {
+            return Message::new("pipeline-nest-all-unchanged");
+        }
+        let placed: usize = self.boards.iter().map(|b| b.1).sum();
+        Message::new("pipeline-nest-all-summary")
+            .arg("placed", placed)
+            .arg("boards", self.boards.len())
+    }
+
+    /// The notes beside it: each board's count, the boards made and emptied, what was
+    /// switched off (last, in order).
+    pub fn notes(&self) -> Vec<Message> {
+        let name = |id: u64| {
+            self.job
+                .setup(id)
+                .map_or("", |s| s.name.as_str())
+                .to_string()
+        };
+        let mut notes = Vec::new();
+        for &(id, count) in &self.boards {
+            let message = if self.made.contains(&id) {
+                "pipeline-nest-all-board-made"
+            } else {
+                "pipeline-nest-all-board"
+            };
+            notes.push(
+                Message::new(message)
+                    .arg("board", name(id))
+                    .arg("count", count),
+            );
+        }
+        for &id in &self.empty {
+            notes.push(Message::new("pipeline-nest-all-empty").arg("board", name(id)));
+        }
+        for &(part, instance) in &self.unplaced {
+            let part = self.job.part(part).map_or("", |p| p.name.as_str());
+            notes.push(
+                Message::new("pipeline-nest-unplaced")
+                    .arg("part", part)
+                    .arg("instance", instance),
+            );
+        }
+        notes
+    }
+}
+
+/// Whether setup `s` can be nested: a size of its own, not a back or a front with one, not
+/// cut in pieces, cut.
+fn nestable(job: &Job, s: &chipload_job::Setup) -> bool {
+    s.enabled
+        && s.back_of.is_none()
+        && s.pieces.is_none()
+        && job.back_of(s.id).is_none()
+        && s.stock.fit.is_none()
+        && s.stock.origin != StockOrigin::Drawing
+}
+
+/// Whether *Nest all setups again* has something to do: two boards or more that can be
+/// nested (docs/specs/nest-overflow-and-all.md §2).
+pub fn can_nest_all(job: &Job) -> bool {
+    job.setups.iter().filter(|s| nestable(job, s)).count() >= 2
+}
+
+/// How many instances are cut on every board that can be nested (for tests and reports).
+pub fn cut_count(job: &Job) -> usize {
+    job.setups
+        .iter()
+        .filter(|s| nestable(job, s))
+        .map(|s| cut_on(job, s.id).len())
+        .sum()
+}
+
+/// The instances of parts that are on, themselves on, on setup `id`.
+fn cut_on(job: &Job, id: u64) -> Vec<(u64, u32)> {
+    job.setup(id)
+        .map(|s| {
+            s.instances
+                .iter()
+                .filter(|i| i.enabled && job.part(i.part).is_some_and(|p| p.enabled))
+                .map(|i| (i.part, i.id))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// *Nest all setups again* (docs/specs/nest-overflow-and-all.md §2): the boards that can be
+/// nested, a pool per stock in the setups' order, nested as one: everything on the first,
+/// what doesn't fit onto the next and on, then new boards ([`overflow`]). The pool's layout
+/// is kept when it places more, or as many on fewer boards; else each board is nested again
+/// on its own, as *Nest again* (never worse). A board emptied is kept and reported.
+pub fn nest_all(job: &Job, cancel: &Cancel) -> Result<NestAllResult, PipelineError> {
+    let mut groups: Vec<Vec<u64>> = Vec::new();
+    for s in job.setups.iter().filter(|s| nestable(job, s)) {
+        match groups.iter_mut().find(|g| {
+            job.setup(g[0])
+                .is_some_and(|first| same_stock(&first.stock, &s.stock))
+        }) {
+            Some(group) => group.push(s.id),
+            None => groups.push(vec![s.id]),
+        }
+    }
+    if groups.is_empty() {
+        return Err(refused("pipeline-nest-all-none"));
+    }
+    let mut out = job.clone();
+    let mut unplaced = Vec::new();
+    for group in &groups {
+        cancel.check()?;
+        let before: Vec<usize> = group.iter().map(|&id| cut_on(&out, id).len()).collect();
+        let had: usize = before.iter().sum();
+        if had == 0 {
+            continue;
+        }
+        let used_before = before.iter().filter(|&&n| n > 0).count();
+        // Everything onto the first board, nested from there.
+        let first = group[0];
+        let mut pooled = out.clone();
+        for &id in &group[1..] {
+            for (part, number) in cut_on(&out, id) {
+                move_instance_to(&mut pooled, part, number, first);
+            }
+        }
+        pooled.follow_thickness();
+        let request = NestRequest {
+            setup: Some(first),
+            ..NestRequest::default()
+        };
+        let together = nest_setup(&pooled, &request, cancel)?;
+        let used_after = usize::from(!together.placed.is_empty())
+            + together
+                .overflow
+                .iter()
+                .filter(|b| !b.placed.is_empty())
+                .count();
+        // More placed, or as many on fewer boards.
+        let placed = together.placed_count();
+        if placed > had || (placed == had && used_after < used_before) {
+            unplaced.extend(together.unplaced.iter().copied());
+            out = together.job;
+            continue;
+        }
+        // Each board on its own, never worse.
+        for &id in group {
+            if cut_on(&out, id).is_empty() {
+                continue;
+            }
+            let request = NestRequest {
+                setup: Some(id),
+                ..NestRequest::default()
+            };
+            let again = nest_setup(&out, &request, cancel)?;
+            unplaced.extend(again.unplaced.iter().copied());
+            out = again.job;
+        }
+    }
+    let out = checked(out)?;
+    let made: Vec<u64> = out
+        .setups
+        .iter()
+        .map(|s| s.id)
+        .filter(|id| job.setup(*id).is_none())
+        .collect();
+    let mut boards = Vec::new();
+    let mut empty = Vec::new();
+    for s in out.setups.iter().filter(|s| nestable(&out, s)) {
+        match cut_on(&out, s.id).len() {
+            0 => empty.push(s.id),
+            n => boards.push((s.id, n)),
+        }
+    }
+    unplaced.sort_unstable();
+    unplaced.dedup();
+    Ok(NestAllResult {
+        unchanged: out == *job,
+        job: out,
+        boards,
+        made,
+        empty,
+        unplaced,
     })
 }
 

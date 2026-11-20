@@ -291,3 +291,42 @@ fn what_no_board_takes_is_marked_and_its_report_line_opens_it() {
     // The Browser draws it marked.
     draw_sidebar(&mut app);
 }
+
+/// docs/specs/nest-overflow-and-all.md §2: *Nest all setups again* pools the boards, as one
+/// undo step; offered with two boards that can be nested.
+#[test]
+fn every_setup_is_nested_again_as_one_undo_step() {
+    let mut app = badge();
+    assert!(!app.can_nest_all(), "one board");
+    let two = app.add_setup().unwrap();
+    app.activate_setup(1);
+    for x in [0.0, 300.0] {
+        let job = app.edit.as_ref().unwrap().to_job().unwrap();
+        let (made, _) = chipload_pipeline::instances::add_instance(
+            &job,
+            1,
+            Some(two),
+            Some([x, 0.0]),
+            0.0,
+            None,
+        )
+        .unwrap();
+        app.edit.as_mut().unwrap().job = made;
+        app.commit();
+    }
+    assert!(app.can_nest_all());
+    let before = app.edit.as_ref().unwrap().job.clone();
+    app.start_nest_all();
+    app.wait_for_nest_all();
+    let job = &app.edit.as_ref().unwrap().job;
+    // Everything on the first board now; the second kept, empty.
+    assert!(
+        job.setup(two).unwrap().instances.is_empty(),
+        "{:?}",
+        job.setup(two)
+    );
+    assert_eq!(job.setups.len(), before.setups.len());
+    assert!(app.report.iter().any(|l| l.contains("is empty now")));
+    app.undo();
+    assert_eq!(app.edit.as_ref().unwrap().job.setups, before.setups);
+}

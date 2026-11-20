@@ -55,6 +55,11 @@ pub struct NestArgs {
     /// Default: as last nested, else compact (docs/specs/nesting-search.md).
     #[arg(long, value_enum)]
     goal: Option<GoalArg>,
+    /// Nest every setup again as one pool per stock, the first board filled first, each
+    /// with its kept settings; what fits on none onto new boards
+    /// (docs/specs/nest-overflow-and-all.md §2).
+    #[arg(long, conflicts_with_all = ["setup", "board", "gap", "margin", "turns", "count", "goal"])]
+    all: bool,
     /// Report what would be placed without writing the project.
     #[arg(long)]
     dry_run: bool,
@@ -155,6 +160,9 @@ pub(crate) fn nest(out: &mut Out, args: NestArgs) -> ExitCode {
         Ok(job) => job,
         Err(code) => return code,
     };
+    if args.all {
+        return nest_all_setups(out, &args, &job);
+    }
     let request = NestRequest {
         setup: args.setup,
         board: args.board,
@@ -280,6 +288,51 @@ pub(crate) fn nest(out: &mut Out, args: NestArgs) -> ExitCode {
                 .collect::<Vec<_>>()
         ),
     );
+    if args.dry_run {
+        out.line("Not written (--dry-run)");
+        return ExitCode::SUCCESS;
+    }
+    let target = args.output.as_deref().unwrap_or(&args.project);
+    if let Err(err) = save_project(out, &nested.job, target) {
+        return out.fail(err);
+    }
+    out.wrote(target, "");
+    ExitCode::SUCCESS
+}
+
+/// `nest --all`: every setup nested again (docs/specs/nest-overflow-and-all.md §2).
+fn nest_all_setups(out: &mut Out, args: &NestArgs, job: &chipload_job::Job) -> ExitCode {
+    let nested = match chipload_pipeline::nest::nest_all(job, &Cancel::new()) {
+        Ok(nested) => nested,
+        Err(err) => return out.fail(err),
+    };
+    out.line(nested.summary().english());
+    for note in nested.notes() {
+        out.line(format!("  {}", note.english()));
+    }
+    out.set(
+        "boards",
+        json!(
+            nested
+                .boards
+                .iter()
+                .map(|&(setup, count)| json!({"setup": setup, "instances": count}))
+                .collect::<Vec<_>>()
+        ),
+    );
+    out.set("made", json!(nested.made));
+    out.set("empty", json!(nested.empty));
+    out.set(
+        "unplaced",
+        json!(
+            nested
+                .unplaced
+                .iter()
+                .map(|&(part, instance)| json!({"part": part, "instance": instance}))
+                .collect::<Vec<_>>()
+        ),
+    );
+    out.set("unchanged", json!(nested.unchanged));
     if args.dry_run {
         out.line("Not written (--dry-run)");
         return ExitCode::SUCCESS;

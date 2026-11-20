@@ -1,6 +1,6 @@
 # Spec: what doesn't fit goes onto more boards; nest every setup again
 
-Status: **approved 2026-11-20** (decisions in §4, all as recommended). From the user's
+Status: **approved and built 2026-11-20** (decisions in §4, all as recommended; §6). From the user's
 testing of nesting: "parts that don't fit when nesting need to move to a new setup, right
 now they are switched off and hard to find or easy to forget", and "we should be able to
 re-nest all setups or just one".
@@ -63,3 +63,20 @@ boards). No file format or G-code changes.
 
 1. Overflow always, the amber row and the Report line (§1).
 2. *Nest all setups again* and `nest --all` (§2).
+
+## 6. As built
+
+- **Step 1:** the overflow is always on (`NestRequest` lost its `overflow`); a part
+  asking for another stock always goes to a board of its own. The switched-off message
+  now reads "… is larger than an empty board: switched off". The amber mark is kept for
+  the session, from the last nest, while the instance is off (the file doesn't say why an
+  instance is off).
+- **Step 2:** a board of its own taking what overflows keeps its own gap, margin and goal
+  (it took the first board's before), as §2 asks. `chipload_pipeline::nest::nest_all`: every board of one stock moved onto the
+  first and nested from there, overflowing as §1 into the next of that stock in the
+  setups' order, then new boards; kept when it places more, or as many on fewer boards;
+  else each board nested again on its own. *Nest all setups again* in the project's menu,
+  the *Setups* folder's menu and *Wizards* (greyed with one board), on a worker thread,
+  one undo step, the Report listing each board's count, boards made and emptied, and what
+  no board takes (its line selecting it). `chipload nest --all` (with `--dry-run`,
+  `--json`, `-o`; refused with one setup's options).

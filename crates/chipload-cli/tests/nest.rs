@@ -251,3 +251,45 @@ fn the_goal_is_chosen_and_kept() {
     let (low, left) = (extent("low"), extent("left"));
     assert!(low.1 < left.1 && low.0 > left.0, "{low:?} {left:?}");
 }
+
+/// docs/specs/nest-overflow-and-all.md §2: `nest --all` pools every board of one stock:
+/// what went to a second board comes back to the first when there is room.
+#[test]
+fn nest_all_pools_the_boards() {
+    let dir = badge("all");
+    // A second board of the same stock, holding two of the badges.
+    let add = chipload(&dir, &["setup", "add", "b.chipload"]);
+    assert_eq!(add.code, Some(0), "{}", add.stderr);
+    for _ in 0..2 {
+        let run = chipload(
+            &dir,
+            &[
+                "part",
+                "instance",
+                "add",
+                "b.chipload",
+                "--setup",
+                "2",
+                "--at",
+                "0,0",
+            ],
+        );
+        assert_eq!(run.code, Some(0), "{}", run.stderr);
+    }
+    let run = chipload(&dir, &["nest", "b.chipload", "--all"]);
+    assert_eq!(run.code, Some(0), "{}", run.stderr);
+    assert!(
+        run.stdout.contains("Every setup nested again"),
+        "{}",
+        run.stdout
+    );
+    assert!(run.stdout.contains("is empty now"), "{}", run.stdout);
+    let value = json(&chipload(
+        &dir,
+        &["nest", "b.chipload", "--all", "--dry-run", "--json"],
+    ));
+    assert_eq!(value["boards"].as_array().unwrap().len(), 1, "{value}");
+    // --all nests every setup: it takes none of one setup's options.
+    let both = chipload(&dir, &["nest", "b.chipload", "--all", "--setup", "1"]);
+    assert_eq!(both.code, Some(2));
+}
