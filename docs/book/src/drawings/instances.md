@@ -14,7 +14,8 @@ In the window:
   dragged too, where no shape lies under it). A selected instance has a round turn handle
   with a curved arrow: drag it to turn the instance about its middle. Under the pointer an
   instance's outline thickens and the pointer becomes a hand, so you see what a drag
-  takes. Turning snaps to quarter turns within 3°; hold
+  takes. Hold Shift while moving to keep it to 15° steps from where you grabbed it
+  (straight across, up or at 45°). Turning snaps to quarter turns within 3°; hold
   Alt to turn freely. Escape during a drag puts it back; each drag is one undo step.
 - **In the Browser**, each instance has a row with its tick under its setup ("Side #2"),
   never under its part: copies and placing are setups' work, so they are listed under the

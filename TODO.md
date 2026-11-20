@@ -340,6 +340,13 @@ to a program you trust. It was about four per operation; with the defaults and s
    v42_rounded; rectangles and polygons: per-corner `radii` beside the rectangle's
    `corner_radius`, the form's Each corner, golden v42_rounded_shapes). The user to try the
    feel. Left: the dashed line from a rounded corner's handle to its arc (spec §4).
+12h. **Canvas handling from the user's testing** (2026-11-20: lock straight while
+   dragging, Ctrl-select points and drag them together, more instances from the canvas).
+   Spec approved (docs/specs/canvas-handling.md), three steps: (1) Shift keeps a point's,
+   a centre's, a corner's and an instance's drag to 15° steps, a turn handle to 15° turns:
+   **done**; (2) Ctrl+click points of one polyline or spline and drag them together;
+   (3) instances from the canvas: right-click menu (duplicate, turn ±90°, mirror, on/off,
+   remove), Ctrl+drag a copy, Ctrl+C/Ctrl+V, `part instance add --like`.
 13. **Small follow-ups:**
     - Large files and functions (started 2026-11-16, aim: files under 1,000 lines, one job
       per function): split so far `plan/`, `pocket/`, the job's `operations/` and `library/`,

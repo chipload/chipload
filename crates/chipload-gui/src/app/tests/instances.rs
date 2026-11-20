@@ -470,3 +470,23 @@ fn instance_handles_pictures() {
     let image = h.render().unwrap();
     image.save(dir.join("instance-handles.png")).unwrap();
 }
+
+#[test]
+fn shift_keeps_an_instance_move_to_15_degree_steps() {
+    let mut app = drawn_part();
+    app.add_instance(1, false);
+    draw_canvas(&mut app);
+    let start = instance(&app);
+    let grab = app.scene.instances[0].centre;
+    assert!(app.start_instance_drag((1, 2), super::super::instances::InstanceGrip::Move, grab));
+    // Nearly straight up: held to straight up.
+    app.drag_instance_to((grab.0 + 2.0, grab.1 + 40.0), false, true);
+    let moved = instance(&app);
+    assert_eq!(moved.at[0], start.at[0]);
+    assert!(
+        (moved.at[1] - start.at[1] - 40.0).abs() < 0.1,
+        "{:?}",
+        moved.at
+    );
+    app.end_instance_drag();
+}

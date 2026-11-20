@@ -135,7 +135,8 @@ menu-status-work = (arbete X { $x }  Y { $y })
 menu-snapped-to = — fäst mot { $target }
 menu-generating = Beräknar…
 # $snapped: empty, or "— snapped to …" with a space before it.
-menu-dragging = Drar till ({ $x }, { $y }){ $snapped } (Alt: ingen fästning; på ett segment infogar Ctrl en punkt, Shift böjer det)
+menu-dragging = Drar till ({ $x }, { $y }){ $snapped } (Alt: ingen fästning; Shift: 15°-steg; på ett segment infogar Ctrl en punkt, Shift böjer det)
+menu-dragging-instance = Flyttar instansen (Shift: 15°-steg; Esc lägger tillbaka den)
 menu-status-hint = [Mellanslag+dra] flyttar vyn · [klick] markerar en ritning, bild, text eller grupp hel · [dubbelklick] en kontur · [Ctrl+klick] lägger till eller lämnar ute · [Esc] rensar
 menu-status-simulate-hint = Simulera: [dra] för att panorera (3D: rotera) · klicka på en operations nummer för att öppna den · [F6] tillbaka till Redigera
 menu-join-ends = Foga ihop ändar…

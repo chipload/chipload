@@ -465,7 +465,7 @@ impl ChiploadApp {
                 && let Some(pos) = response.interact_pointer_pos()
             {
                 let at = self.view.to_world(pos);
-                zero_label = self.drag_instance_to(at, alt).map(|text| (at, text));
+                zero_label = self.drag_instance_to(at, alt, shift).map(|text| (at, text));
             }
         } else if let Some(marker) = self.drag.start {
             if response.dragged()
@@ -483,7 +483,7 @@ impl ChiploadApp {
             if response.dragged()
                 && let Some(pos) = response.interact_pointer_pos()
             {
-                let to = self.snap_world(self.view.to_world(pos), alt, true);
+                let to = self.handle_point(self.view.to_world(pos), alt, shift);
                 // Ctrl: a new point; Shift: bend; plain: move the segment.
                 let segment = if ctrl {
                     SegmentDrag::Insert

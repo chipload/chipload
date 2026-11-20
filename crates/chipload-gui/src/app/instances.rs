@@ -416,13 +416,25 @@ impl ChiploadApp {
 
     /// The dragged instance with the pointer at `at`: moved by as much as the pointer, or
     /// turned about its centre as the pointer goes round it, a quarter turn within 3°
-    /// snapping to it (`free`, Alt: as it is). Returns the label for the cursor.
-    pub(super) fn drag_instance_to(&mut self, at: Point, free: bool) -> Option<String> {
+    /// snapping to it (`free`, Alt: as it is). With `shift` a move keeps to 15° steps from
+    /// where it was grabbed (docs/specs/canvas-handling.md §1). Returns the label for the
+    /// cursor.
+    pub(super) fn drag_instance_to(
+        &mut self,
+        at: Point,
+        free: bool,
+        shift: bool,
+    ) -> Option<String> {
         let drag = self.drag.instance?;
         let units = self.prefs.units;
         let mut instance = self.instance_value(drag.part, drag.id)?;
         let label = match drag.grip {
             InstanceGrip::Move => {
+                let at = if shift {
+                    crate::draw::angle_step(drag.grab, at, None, units)
+                } else {
+                    at
+                };
                 let (dx, dy) = (at.0 - drag.grab.0, at.1 - drag.grab.1);
                 instance.at = [drag.start.at[0] + dx, drag.start.at[1] + dy];
                 format!(

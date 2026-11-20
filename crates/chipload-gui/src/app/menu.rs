@@ -1021,6 +1021,8 @@ impl ChiploadApp {
                 y = crate::draw::fixed(at.1, self.prefs.units),
                 snapped = name.as_str()
             ));
+        } else if self.dragging_instance() {
+            ui.label(t!(ui, "menu-dragging-instance"));
         } else if let Some((text, until)) = &self.status {
             if Instant::now() < *until {
                 ui.label(text);

@@ -135,7 +135,8 @@ menu-status-work = (coord. pièce X { $x }  Y { $y })
 menu-snapped-to = — accroché à { $target }
 menu-generating = Calcul…
 # $snapped: empty, or "— snapped to …" with a space before it.
-menu-dragging = Glissement vers ({ $x }, { $y }){ $snapped } (Alt : sans accrochage ; sur un segment, Ctrl insère un point, Shift le courbe)
+menu-dragging = Glissement vers ({ $x }, { $y }){ $snapped } (Alt : sans accrochage ; Shift : pas de 15° ; sur un segment, Ctrl insère un point, Shift le courbe)
+menu-dragging-instance = Déplacement de l'instance (Shift : pas de 15° ; Échap la remet en place)
 menu-status-hint = [Espace+glisser] déplace la vue · un [clic] sélectionne un dessin, une image, un texte ou un groupe entier · [double-clic] un contour · [Ctrl+clic] ajoute ou laisse de côté · [Esc] désélectionne
 menu-status-simulate-hint = Simuler : [glisser] pour déplacer (3D : pivoter) · cliquer le numéro d'une opération l'ouvre · [F6] revient à Modifier
 menu-join-ends = Joindre les extrémités…

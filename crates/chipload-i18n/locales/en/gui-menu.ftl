@@ -135,7 +135,8 @@ menu-status-work = (work X { $x }  Y { $y })
 menu-snapped-to = — snapped to { $target }
 menu-generating = Generating…
 # $snapped: empty, or "— snapped to …" with a space before it.
-menu-dragging = Dragging to ({ $x }, { $y }){ $snapped } (Alt: no snapping; on a segment Ctrl inserts a point, Shift bends it)
+menu-dragging = Dragging to ({ $x }, { $y }){ $snapped } (Alt: no snapping; Shift: 15° steps; on a segment Ctrl inserts a point, Shift bends it)
+menu-dragging-instance = Moving the instance (Shift: 15° steps; Esc puts it back)
 # The status bar's hint: items parted by " · "; what is in [brackets] is shown as a
 # key cap (keys or a mouse action), so keep the brackets round the keys.
 menu-status-hint = [Space+drag] moves the view · [click] selects a drawing, picture, text or group whole · [double-click] one contour · [Ctrl+click] adds or leaves out · [Esc] clears

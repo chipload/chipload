@@ -241,7 +241,9 @@ holes on, a guide at 45°) and are **never cut**.
   [the canvas](../window.md#the-canvas)). Shapes from a DXF, a picture or a text move as a
   whole with their own handles.
 - **Handles:** drag a selected shape's handles to change it. A drag snaps as drawing does;
-  hold Alt to turn snapping off.
+  hold Alt to turn snapping off. Hold Shift to keep a point (or a centre, or a corner) to
+  15° steps from where it was, so straight across, up or at 45°; on a turn handle or a
+  polygon's corner, Shift turns the shape in 15° steps.
 - **Polyline segments:** on a selected polyline, drag one of its lines (anywhere, or its
   round middle handle) to move that segment; the segments either side stretch to stay
   joined. **Ctrl+drag** inserts a new point there instead, and **Shift+drag** bends the

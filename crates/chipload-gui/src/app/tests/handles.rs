@@ -117,3 +117,21 @@ fn dragging_a_polyline_line_moves_that_segment() {
     };
     assert_eq!(points.len(), 4);
 }
+
+#[test]
+fn shift_keeps_a_dragged_point_to_15_degree_steps() {
+    let mut app = drawn_part();
+    // S3 is the triangle (110, 65) (140, 65) (125, 95): its top point dragged nearly
+    // straight right with Shift stays level, at grid steps (Alt off: free distance).
+    app.click(Some(contour_of(&app, 3)), false);
+    app.start_handle_drag(Handle::Point(2));
+    let to = app.handle_point((160.3, 97.0), true, true);
+    assert_eq!(to, (160.3, 95.0));
+    // Without Shift it goes where the pointer is (Alt: no snapping).
+    assert_eq!(app.handle_point((160.3, 97.0), true, false), (160.3, 97.0));
+    // A segment's middle: Shift bends, so the point isn't held.
+    app.end_handle_drag();
+    app.start_handle_drag(Handle::Middle(0));
+    assert_eq!(app.handle_point((130.0, 60.0), true, true), (130.0, 60.0));
+    app.end_handle_drag();
+}

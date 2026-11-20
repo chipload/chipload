@@ -135,7 +135,8 @@ menu-status-work = (pezzo X { $x }  Y { $y })
 menu-snapped-to = — agganciato a { $target }
 menu-generating = Calcolo…
 # $snapped: empty, or "— snapped to …" with a space before it.
-menu-dragging = Trascinamento a ({ $x }, { $y }){ $snapped } (Alt: niente aggancio; su un segmento Ctrl inserisce un punto, Shift lo curva)
+menu-dragging = Trascinamento a ({ $x }, { $y }){ $snapped } (Alt: niente aggancio; Shift: passi di 15°; su un segmento Ctrl inserisce un punto, Shift lo curva)
+menu-dragging-instance = Spostamento dell'istanza (Shift: passi di 15°; Esc la rimette a posto)
 menu-status-hint = [Spazio+trascina] sposta la vista · un [clic] seleziona un disegno, immagine, testo o gruppo intero · [doppio clic] un contorno · [Ctrl+clic] aggiunge o lascia fuori · [Esc] annulla la selezione
 menu-status-simulate-hint = Simula: [trascina] per spostare (3D: ruotare) · clic sul numero di un'operazione la apre · [F6] torna a Modifica
 menu-join-ends = Unisci estremi…

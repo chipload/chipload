@@ -112,6 +112,29 @@ impl ChiploadApp {
         }
     }
 
+    /// Where a dragged handle goes with the pointer at `raw`: snapped (else the grid), or
+    /// with Shift held to 15° steps from where the handle was, a turn handle from the
+    /// shape's centre (docs/specs/canvas-handling.md §1). A segment's middle keeps Shift
+    /// for bending, so it snaps as usual.
+    pub(super) fn handle_point(&mut self, raw: Point, alt: bool, shift: bool) -> Point {
+        let anchor = self
+            .drag
+            .handle
+            .as_ref()
+            .filter(|_| shift)
+            .and_then(|drag| handle_anchor(&drag.start, drag.handle));
+        match anchor {
+            Some(anchor) => {
+                let step = (!alt).then(|| grid_step(self.view.scale, self.prefs.units));
+                let p = crate::draw::angle_step(anchor, raw, step, self.prefs.units);
+                self.drag.snapped = Some((p, None));
+                self.scene.snap_mark = None;
+                p
+            }
+            None => self.snap_world(raw, alt, true),
+        }
+    }
+
     /// The last point of the tool being used, for perpendicular and tangent snaps: a
     /// polyline's last click, or a measurement's first point.
     pub(super) fn last_point(&self) -> Option<Point> {
@@ -306,5 +329,23 @@ impl ChiploadApp {
         }
         self.commit();
         self.generate();
+    }
+}
+
+/// Where a Shift drag of `handle` on `start` keeps its 15° steps from: the handle's own
+/// place, or the centre for a handle that turns or sizes the shape about it. None for a
+/// segment's middle, where Shift bends.
+fn handle_anchor(start: &chipload_job::Geometry, handle: Handle) -> Option<Point> {
+    let centre = handles(start, 0.0)
+        .into_iter()
+        .find(|(h, _)| *h == Handle::Center)
+        .map(|(_, p)| (p[0], p[1]));
+    match handle {
+        Handle::Middle(_) => None,
+        Handle::Rotate | Handle::Radius => centre,
+        _ => handles(start, 0.0)
+            .into_iter()
+            .find(|(h, _)| *h == handle)
+            .map(|(_, p)| (p[0], p[1])),
     }
 }
