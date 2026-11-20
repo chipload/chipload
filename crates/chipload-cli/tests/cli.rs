@@ -26,6 +26,9 @@ fn text(bytes: &[u8]) -> String {
 
 fn temp_dir(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("chipload-cli-{name}-{}", std::process::id()));
+    // Emptied first: process numbers repeat (a sandbox starts each run's from 1), and a
+    // test must not find what an earlier run left, such as a library tool.
+    let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     dir
 }
@@ -2432,15 +2435,28 @@ fn styles_are_saved_used_and_make_the_golden_project() {
     let json = |file: &Path| -> serde_json::Value {
         serde_json::from_str(&std::fs::read_to_string(file).unwrap()).unwrap()
     };
-    let golden = json(&corpus("jobs/v35/style_use.chipload"));
+    let mut golden = json(&corpus("jobs/v35/style_use.chipload"));
     let made = json(Path::new(b));
+    // Since 2026-11-20 a new pocket helixes whatever the tool (docs/specs/styles.md §2.4):
+    // the frozen project, made before, plunges with its centre-cutting tool. The rest is
+    // the same.
+    assert_eq!(made["operations"][0]["entry"]["type"], "helix");
+    golden["operations"][0]["entry"] = made["operations"][0]["entry"].clone();
     assert_eq!(made["operations"], golden["operations"]);
+    // And a new project's own tool is marked centre-cutting since then.
+    assert_eq!(made["tools"][0]["center_cutting"], true);
+    golden["tools"][0]["center_cutting"] = serde_json::json!(true);
     assert_eq!(made["tools"], golden["tools"]);
     let styles = json(&settings.join("styles.json"));
-    assert_eq!(
-        styles["styles"],
-        json(&corpus("styles/v1/styles.json"))["styles"]
-    );
+    // The frozen styles were saved from a pocket that plunged (before 2026-11-20).
+    let mut frozen = json(&corpus("styles/v1/styles.json"));
+    for (k, style) in styles["styles"].as_array().unwrap().iter().enumerate() {
+        if style["name"] == "Pocket 3 mm" {
+            assert_eq!(style["operation"]["entry"]["type"], "helix");
+            frozen["styles"][k]["operation"]["entry"] = style["operation"]["entry"].clone();
+        }
+    }
+    assert_eq!(styles["styles"], frozen["styles"]);
     // List, rename, export, remove, import back.
     assert!(ok(&["style", "list"]).contains("Cut out: profile, side by the selection"));
     ok(&["style", "rename", "Cut out", "Through"]);

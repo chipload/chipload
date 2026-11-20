@@ -809,7 +809,7 @@ mod tests {
     }
 
     #[test]
-    fn new_profiles_spiral_and_pockets_plunge_when_the_tool_can() {
+    fn new_profiles_spiral_and_pockets_helix_whatever_the_tool() {
         let contours = messy_2();
         let mut job = new_job();
         // Not known to be centre-cutting: round a helix (docs/specs/styles.md §2.4).
@@ -819,9 +819,13 @@ mod tests {
             job.job.operations[i].entry(),
             Entry::default_helix(diameter)
         );
+        // Marked centre-cutting: a helix too (styles.md §2.4, changed 2026-11-20).
         job.job.tools[0].center_cutting = Some(true);
         let i = job.add(OpKind::Pocket, &ids(&[4]), &contours);
-        assert_eq!(job.job.operations[i].entry(), Entry::Plunge {});
+        assert_eq!(
+            job.job.operations[i].entry(),
+            Entry::default_helix(diameter)
+        );
         let j = job.add(OpKind::Profile, &ids(&[2]), &contours);
         let Operation::Profile(p) = &job.job.operations[j] else {
             panic!()

@@ -28,6 +28,8 @@ pub const DEFAULT_MAX_OVERCUT: f64 = 0.5;
 pub const DEFAULT_SAFE_Z: f64 = 5.0;
 pub const DEFAULT_TOOL_DIAMETER: f64 = 6.0;
 pub const DEFAULT_RPM: f64 = 18000.0;
+/// A new project's machine travel, X × Y × Z mm, when no machine profile is chosen.
+pub const DEFAULT_TRAVEL: (f64, f64, f64) = (800.0, 800.0, 100.0);
 
 /// Step down of a new operation with nothing to copy from, mm.
 pub const DEFAULT_STEP_DOWN: f64 = 1.0;
@@ -88,7 +90,13 @@ pub fn empty_project() -> Job {
             safe_z: DEFAULT_SAFE_Z,
             spindle: Spindle::Cw,
             max_feed: None,
-            travel: None,
+            // A typical hobby router's, so the checker keeps the program inside a machine
+            // from the start; set your own under Machine (the user, 2026-11-20).
+            travel: Some(chipload_job::Travel {
+                x: DEFAULT_TRAVEL.0,
+                y: DEFAULT_TRAVEL.1,
+                z: DEFAULT_TRAVEL.2,
+            }),
             tool_change: ToolChange::Files,
             custom_post: None,
         },
@@ -99,7 +107,8 @@ pub fn empty_project() -> Job {
             kind: ToolType::Endmill,
             diameter: DEFAULT_TOOL_DIAMETER,
             flutes: None,
-            center_cutting: None,
+            // Most flat endmills are; it lets a profile ramp and its tabs slope.
+            center_cutting: Some(true),
             rpm: Some(DEFAULT_RPM),
             angle: None,
             tip_diameter: None,

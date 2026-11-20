@@ -83,6 +83,11 @@ A new pocket helixes down and a new follow path ramps when the tool is *not* cen
 centre-cutting still plunges. Profiles spiral anyway; holes and V-carves go down their own
 way.
 
+**Changed 2026-11-20** (the user, with the new project's tool now marked centre-cutting so
+the first part shows no warning): a new pocket helixes and a new follow path or chamfer
+ramps **whatever the tool**, gentler on it and one rule for everyone; only a pointed V-bit
+plunges, by its shape. A plunge is chosen in the operation's form.
+
 ### 2.5 What isn't changed
 
 - The tool chosen (`tool_for`: the last operation's tool that suits the kind; a drill that

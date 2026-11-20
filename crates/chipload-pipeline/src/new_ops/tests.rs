@@ -187,16 +187,19 @@ fn depths_come_from_the_last_of_the_kind_and_holes_go_through() {
 }
 
 #[test]
-fn a_tool_not_known_to_be_centre_cutting_helixes_or_ramps() {
+fn a_new_pocket_helixes_and_a_path_ramps_whatever_the_tool() {
     let (mut job, contours) = part();
     let pocket = add(&job, &contours, OpKind::Pocket, layer("HOLES"));
     let diameter = job.tools[0].diameter;
     assert_eq!(pocket.ops[0].op.entry(), Entry::default_helix(diameter));
     let path = add(&job, &contours, OpKind::Path, layer("HOLES"));
     assert!(matches!(path.ops[0].op.entry(), Entry::Ramp { .. }));
+    // Marked centre-cutting: the same, gentler on the tool (styles.md §2.4, 2026-11-20).
     job.tools[0].center_cutting = Some(true);
     let pocket = add(&job, &contours, OpKind::Pocket, layer("HOLES"));
-    assert_eq!(pocket.ops[0].op.entry(), Entry::Plunge {});
+    assert_eq!(pocket.ops[0].op.entry(), Entry::default_helix(diameter));
+    let path = add(&job, &contours, OpKind::Path, layer("HOLES"));
+    assert!(matches!(path.ops[0].op.entry(), Entry::Ramp { .. }));
 }
 
 #[test]

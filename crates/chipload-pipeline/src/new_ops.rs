@@ -781,12 +781,6 @@ impl Start {
             .map_or((DEFAULT_DEPTH, None), |(_, end, through)| (*end, *through))
     }
 
-    /// Whether the tool goes straight down: only one marked centre-cutting
-    /// (docs/specs/styles.md §2.4).
-    fn plunges(&self) -> bool {
-        self.center_cutting == Some(true)
-    }
-
     /// A profile on `side`; `told` when the selection told the side (outlines or holes):
     /// it then cuts through, and an outline keeps its part with tabs.
     fn profile(&self, name: String, select: &Selector, side: Side, told: bool) -> Operation {
@@ -858,7 +852,9 @@ impl Start {
             direction: Direction::Climb,
             feed: self.feed,
             plunge_feed: self.plunge_feed,
-            entry: if self.plunges() || self.tool_kind == Some(ToolType::Vbit) {
+            // A pointed V-bit goes straight down by its shape; any other tool ramps in,
+            // centre-cutting or not (docs/specs/styles.md §2.4, changed 2026-11-20).
+            entry: if self.tool_kind == Some(ToolType::Vbit) {
                 Entry::Plunge {}
             } else {
                 Entry::Ramp {
@@ -942,13 +938,10 @@ impl Start {
                 direction: Direction::Climb,
                 feed: self.feed,
                 plunge_feed: self.plunge_feed,
-                // A tool not known to be centre-cutting goes down round a helix
-                // (docs/specs/helix-and-leads.md decision 6, styles.md §2.4).
-                entry: if self.plunges() {
-                    Entry::Plunge {}
-                } else {
-                    Entry::default_helix(self.diameter)
-                },
+                // Down round a helix, centre-cutting or not: gentler on the tool
+                // (docs/specs/helix-and-leads.md decision 6, styles.md §2.4, changed
+                // 2026-11-20). A plunge is chosen in the pocket's form.
+                entry: Entry::default_helix(self.diameter),
                 starts: Vec::new(),
                 lead: None,
                 corners: None,
@@ -988,8 +981,8 @@ impl Start {
                 feed: self.feed,
                 plunge_feed: self.plunge_feed,
                 // A pointed V-bit is centre-cutting by its shape (docs/specs/follow-path.md
-                // §5); another tool not known to be ramps in (ramp-entry.md decision 6).
-                entry: if self.plunges() || self.tool_kind == Some(ToolType::Vbit) {
+                // §5); any other tool ramps in (ramp-entry.md decision 6, styles.md §2.4).
+                entry: if self.tool_kind == Some(ToolType::Vbit) {
                     Entry::Plunge {}
                 } else {
                     Entry::Ramp {

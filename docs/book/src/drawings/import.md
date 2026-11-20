@@ -83,8 +83,12 @@ project, which is often the same, so New project, Enter is enough.
 
 The first time, your library's defaults are offered: the default machine, material and tool,
 the material's thickness (else the default thickness, else 10 mm), the board fitted with a
-10 mm margin, and Z zero on top. Without a library you get GRBL, a safe Z of 5 mm, and a
-6 mm endmill at 18 000 rpm.
+10 mm margin, and Z zero on top. Without a library you get GRBL, a safe Z of 5 mm, a
+travel of 800 × 800 × 100 mm (set your machine's own under **Machine**, so the checker
+keeps every program inside it), and a centre-cutting 6 mm endmill at 18 000 rpm. New
+pockets go down round a helix, and new follow paths and chamfers ramp in, whatever the
+tool; only a V-bit plunges. Choose *Plunge* in an operation's form for a straight
+plunge.
 
 On the command line, `chipload new` and `chipload import` take the same choices and
 otherwise use your library's defaults:

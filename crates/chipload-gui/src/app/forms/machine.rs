@@ -487,17 +487,17 @@ pub(in crate::app) fn machine_rows(
         }
     });
     ui.end_row();
-    // The three fields on a row of their own: beside the box they run past a narrow
-    // panel's edge.
+    // A row for each axis: side by side, three lengths run past a narrow panel's edge.
     if let Some(t) = &mut machine.travel {
-        ui.label("");
-        ui.horizontal(|ui| {
-            share_row(ui, 3, 0.0);
-            flag(ui.add(mm(&mut t.x)), ui, "machine.travel.x");
-            flag(ui.add(mm(&mut t.y)), ui, "machine.travel.y");
-            flag(ui.add(mm(&mut t.z)), ui, "machine.travel.z");
-        });
-        ui.end_row();
+        for (axis, value, path) in [
+            ("X", &mut t.x, "machine.travel.x"),
+            ("Y", &mut t.y, "machine.travel.y"),
+            ("Z", &mut t.z, "machine.travel.z"),
+        ] {
+            ui.label(format!("    {axis}"));
+            flag(ui.add(mm(value)), ui, path);
+            ui.end_row();
+        }
     }
     picked
 }
@@ -526,7 +526,8 @@ pub(super) fn machine_text_rows(ui: &mut egui::Ui, machine: &Machine) {
         ),
     ] {
         ui.label(label);
-        ui.weak(value);
+        // Wrapped: a travel's three lengths run past a narrow panel's edge.
+        ui.add(egui::Label::new(egui::RichText::new(value).weak()).wrap());
         ui.end_row();
     }
 }
