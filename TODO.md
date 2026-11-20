@@ -4,60 +4,6 @@ What's planned. Each item gets a spec in `docs/specs/` that is reviewed before i
 (see `CLAUDE.md`). Pruned 2026-11-20 before 0.39.0 (the user: "prune the todo"): what was
 done is in git and in the releases' notes on GitHub, no longer listed here.
 
-## Release 0.39.0 "Drawing" (prepared 2026-11-20)
-
-- **State:** tried by the user ("good enough for release", 2026-11-20). Version 0.39.0, the
-  third-party notices regenerated, the guide's screenshots renewed, the checks run (tests,
-  clippy, fmt, `cargo deny`, the libraries for wasm32). Main pushed; **the tag is the
-  user's** (`git tag -a v0.39.0 -m "Chipload 0.39.0"`, docs/releasing.md); the workflow
-  makes a draft release; then the guide (`packaging/docs/publish-book.sh v0.39.0`).
-- **Its notes** (draft, to paste into the GitHub release and edit):
-
-  > **Chipload 0.39.0: drawing**
-  >
-  > Drawing in Chipload is now as complete a way in as a DXF. *Your first part* in the
-  > guide starts by drawing a plate.
-  >
-  > **Drawing**
-  > - More ways to draw each shape, on a split button (the key cycles them): rectangles by
-  >   their centre or aligned to two points, circles by two points or through three, arcs
-  >   by their centre, polygons by a side or on an edge.
-  > - **Splines:** smooth curves through the points you click (key B), cut as lines and
-  >   arcs within 0.01 mm, exported to DXF the same way.
-  > - **A radius at each corner:** a polyline's point list has a *Radius* column; a
-  >   rectangle's or polygon's corners can each have their own (*Each corner*). Fillet sets
-  >   them, and they stay editable.
-  > - **Mirror about any line**, as a copy that joins halves or in place; **arc slots**
-  >   bent round a centre; **arithmetic** in every length and number field (`100/3`,
-  >   `2*25 + 5`, `1 1/2in`).
-  > - Shift keeps a dragged point to 15° steps; Ctrl+click points to drag several together.
-  >
-  > **Drawing and setups, apart**
-  > - Tabs over the canvas: *Drawing* shows every part's shapes to draw and edit; each
-  >   setup's tab shows its board and the instances on it, where they are cut. What you
-  >   select picks the tab; each keeps its view; the boards stay in one row.
-  > - Drag a part from the Browser onto a board to place it there. Right-click an
-  >   instance to duplicate it, turn it a quarter either way, mirror it or reset it to
-  >   where it is drawn; Ctrl+drag copies it, Ctrl+C / Ctrl+V too. Right-click the board
-  >   for the setup's menu.
-  >
-  > **Nesting**
-  > - What doesn't fit always goes onto more boards; only a part larger than an empty
-  >   board is switched off, and it is marked in the Browser.
-  > - *Nest all setups again* (`chipload nest --all`) nests every board of a stock as one
-  >   pool, so instances move back when there is room.
-  >
-  > **Also**
-  > - A new project's tool is marked centre-cutting and its machine has a travel
-  >   (800 × 800 × 100 mm until you set yours), so a first project plans without warnings.
-  >   New pockets helix and new paths ramp in, whatever the tool.
-  > - Moulding: the tool no longer dips up to 0.01 mm into the board just past a profile's
-  >   end.
-  >
-  > **Compatibility:** projects with splines or corner radii (schema 42) can't be opened by
-  > 0.38 or older. The G-code of every older project is the same, but for moulding's fix
-  > (six plunges in the moulding sample, 2 to 13 µm shallower).
-
 ## In progress
 
 - **Translations** (docs/specs/translations.md, ADR 0022): the app, its messages and the
@@ -74,7 +20,10 @@ done is in git and in the releases' notes on GitHub, no longer listed here.
 
 ## State to remember
 
-- **Releases:** the latest published is 0.38.0 (2026-11-18, guide `guide-0.38.0-1`).
+- **Releases:** the latest published is 0.39.0 "Drawing" (2026-11-20, its guide online),
+  then 0.38.0 (2026-11-18). 0.39.0's tag was moved three times before it built: Windows-only
+  test failures, fixed in the tests (a temporary folder made again too soon; clicks at
+  pixel positions that Windows' fonts move).
   Built by Actions from a `vX.Y.Z` tag: Linux and Windows x86_64 and ARM64, macOS
   universal, the guide zip, `SHA256SUMS.txt` (docs/releasing.md). Write the third-party
   notices to a temporary file first and copy it over (a stopped `cargo about >` once left
