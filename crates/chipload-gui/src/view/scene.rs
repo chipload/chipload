@@ -237,6 +237,9 @@ impl Scene {
 pub struct Scene {
     pub contours: Vec<ContourShape>,
     pub stock: Option<(Point, Point)>,
+    /// The active board's name, written above its top left in a setup's space, as each
+    /// sheet's is (the user, 2026-11-20).
+    pub board_name: Option<String>,
     /// The board drawn faintly: behind the drawing space's shapes, to draw against
     /// (docs/specs/drawing-and-setup-spaces.md §3).
     pub stock_faint: bool,
@@ -673,6 +676,15 @@ impl Scene {
                 pal.stock
             };
             dashed(screen(&corners), Stroke::new(1.0, board));
+            if let Some(name) = self.board_name.as_ref().filter(|_| flat) {
+                painter.text(
+                    view.to_screen((x0, y1)) + Vec2::new(0.0, -4.0),
+                    Align2::LEFT_BOTTOM,
+                    name,
+                    FontId::proportional(13.0),
+                    pal.outer,
+                );
+            }
             // In 3D the stock is a box: its bottom outline and the vertical edges.
             if !flat && let Some((top, bottom)) = self.stock_z {
                 let at = |p: Point, z: f64| view.to_screen3((p.0, p.1, z));

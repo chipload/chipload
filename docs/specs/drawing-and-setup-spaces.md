@@ -229,3 +229,10 @@ already places an instance anywhere, and `--like` like another.
   the setups' order (`row_offsets`), the active one where it is cut; making another active
   moves the view by as much as its board moved, so nothing moves on screen. This replaces
   each setup's own view (§2): the setups' tabs share one, the drawing has its own.
+- **After the user's testing (2026-11-20):** the tabs look different by kind (*Drawing* a
+  pencil and the app's green; a setup a board, or the turn-over mark for a back, and a teal
+  of its own, underlined while not shown), stop clear of the corner sign or cube, and in a
+  canvas too narrow for every name the tabs not shown keep only their icon. The active
+  board's name is written above it as the sheets' are. Making another setup active clears
+  the old one's toolpath at once, rather than leaving it on the new board until the new
+  plan arrives.

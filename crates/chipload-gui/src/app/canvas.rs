@@ -249,6 +249,17 @@ impl ChiploadApp {
         // §3, §4).
         let drawing = self.space() == super::display::Space::Drawing;
         self.scene.shapes_hidden = !drawing;
+        self.scene.board_name = (!drawing)
+            .then(|| {
+                let job = &self.edit.as_ref()?.job;
+                let setup = job.setup(job.active_setup_id()?)?;
+                Some(if setup.back_of.is_some() {
+                    t!(self, "canvas-tab-back", name = setup.name.as_str())
+                } else {
+                    setup.name.clone()
+                })
+            })
+            .flatten();
         self.scene.instances = if drawing {
             Vec::new()
         } else {

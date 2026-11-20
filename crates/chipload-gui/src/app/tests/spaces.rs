@@ -372,10 +372,19 @@ fn the_boards_stay_where_they_are_when_another_setup_is_chosen() {
     };
     let one = on_screen(&app, app.scene.stock.unwrap());
     let two = on_screen(&app, app.scene.sheets[0].board);
+    // The active board's name above it, as the sheets have theirs.
+    assert_eq!(app.scene.board_name.as_deref(), Some("12 mm sides"));
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    assert!(app.scene.toolpath.is_some());
     // Setup 2 chosen from its tab: it is the active board now, setup 1 a sheet, and both
-    // lie where they lay on screen.
+    // lie where they lay on screen. Setup 1's toolpath goes with it at once.
     app.click_space_tab(Some(2));
+    assert!(
+        app.scene.toolpath.is_none(),
+        "no toolpath of the board left behind"
+    );
     draw_canvas(&mut app);
+    assert_eq!(app.scene.board_name.as_deref(), Some("6 mm bottom"));
     assert_eq!(app.edit.as_ref().unwrap().job.active_setup_id(), Some(2));
     let close = |a: (egui::Pos2, egui::Pos2), b: (egui::Pos2, egui::Pos2)| {
         a.0.distance(b.0) < 0.01 && a.1.distance(b.1) < 0.01

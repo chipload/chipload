@@ -227,9 +227,15 @@ impl ChiploadApp {
             .as_ref()
             .and_then(|e| super::row_offsets(&e.job).into_iter().find(|r| r.0 == id))
             .map(|r| r.1);
+        let before = self.edit.as_ref().and_then(|e| e.job.active_setup_id());
         if self.change_setups(|job| chipload_pipeline::setups::activate_setup(job, id)) {
             if let Some(by) = moved {
                 self.shift_setups_view(by);
+            }
+            // The board left behind takes its toolpath with it: not drawn on the new one
+            // while that is planned (the user, 2026-11-20).
+            if before != Some(id) {
+                self.clear_toolpath();
             }
             self.display.turned = self
                 .edit

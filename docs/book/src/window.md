@@ -148,13 +148,17 @@ it, whatever is open. Its name is also in the status bar.
 The canvas shows the stock, the drawing and the toolpath on a soft gradient. It follows the
 colour theme: dark, or light grey.
 
-- **Two kinds of space, a tab each,** along the canvas's top left:
+- **Two kinds of space, a tab each,** along the canvas's top left. *Drawing* has a pencil
+  and the app's green when shown; a setup's tab has a board (a back the turn-over mark)
+  and its own teal, underlined while another space is shown. When the canvas is too narrow
+  for every name, the tabs not shown keep only their icon (hover for the name):
   - **Drawing:** every part's shapes where they are drawn, to draw and change. The part
     you work on is in full colour, the others dimmed (still clicked and edited; clicking
     one makes its part the active one). The toolpath is that part's, where it is drawn.
     When the part is cut where it is drawn, its board shows faintly behind it, to draw
     against; no instances are shown here.
-  - **A tab per setup** ("Setup 1", a back "Setup 2 (back)"): its board, and every
+  - **A tab per setup** ("Setup 1", a back "Setup 2 (back)"): its board with its name
+    above it, and every
     [instance](drawings/instances.md) on it drawn where it is cut, with its badge
     (`Side #2`, and a mirror mark when mirrored) and the setup's toolpath. No drawn shapes: here you place, turn, copy and
     [nest](drawings/nesting.md) the instances. Double-click an instance to open its part

@@ -4,6 +4,11 @@
 
 use super::display::Space;
 use super::*;
+use crate::icons::Icon;
+
+/// A selected setup's tab: a teal of its own, so a board's space never looks like the
+/// drawing's (green, the app's selection; the user, 2026-11-20).
+const SETUP_TAB: egui::Color32 = egui::Color32::from_rgb(0x4c, 0x9c, 0x96);
 
 /// How long a part dragged from the Browser is held over a setup's tab before it opens,
 /// seconds.
@@ -16,7 +21,7 @@ impl ChiploadApp {
         let Some(edit) = &self.edit else {
             return;
         };
-        let setups: Vec<(u64, String)> = edit
+        let setups: Vec<(u64, String, bool)> = edit
             .job
             .setups
             .iter()
@@ -26,7 +31,7 @@ impl ChiploadApp {
                 } else {
                     s.name.clone()
                 };
-                (s.id, name)
+                (s.id, name, s.back_of.is_some())
             })
             .collect();
         let active = edit.job.active_setup_id();
@@ -43,13 +48,28 @@ impl ChiploadApp {
         };
         let strip = egui::Rect::from_min_max(
             canvas.min + egui::vec2(ruler + 6.0, ruler + 6.0),
-            egui::pos2(canvas.right() - 6.0, canvas.top() + ruler + 34.0),
+            // Clear of the X–Y sign (or the 3D cube) in the top right corner.
+            egui::pos2(canvas.right() - 104.0, canvas.top() + ruler + 34.0),
         );
         let mut ui = ui.new_child(
             egui::UiBuilder::new()
                 .max_rect(strip)
                 .layout(egui::Layout::left_to_right(egui::Align::Center)),
         );
+        // Too many to fit with their names: the ones not shown give theirs on hover only, so
+        // the one shown and + stay in view.
+        let font = egui::TextStyle::Button.resolve(ui.style());
+        let width = |name: &str| {
+            ui.painter()
+                .layout_no_wrap(name.to_string(), font.clone(), egui::Color32::WHITE)
+                .size()
+                .x
+                + TAB_CHROME
+        };
+        let drawing_name = t!(ui, "canvas-tab-drawing");
+        let all: f32 =
+            width(&drawing_name) + setups.iter().map(|(_, n, _)| width(n)).sum::<f32>() + 60.0;
+        let compact = all > strip.width();
         let fill = ui.visuals().panel_fill.gamma_multiply(0.92);
         egui::Frame::new()
             .fill(fill)
@@ -61,21 +81,30 @@ impl ChiploadApp {
                     .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
                     .show(ui, |ui| {
                         ui.horizontal(|ui| {
-                            if ui
-                                .selectable_label(
-                                    space == Space::Drawing,
-                                    t!(ui, "canvas-tab-drawing"),
-                                )
+                            let on = space == Space::Drawing;
+                            if space_tab(ui, Icon::Edit, &drawing_name, on, None, compact && !on)
                                 .on_hover_text(t!(ui, "canvas-tab-drawing-hover"))
                                 .clicked()
                             {
                                 clicked = Some(None);
                             }
-                            for (id, name) in &setups {
+                            // The drawing apart from the boards.
+                            ui.separator();
+                            for (id, name, back) in &setups {
                                 let on = space == Space::Setup && active == Some(*id);
-                                let tab = ui
-                                    .selectable_label(on, name)
-                                    .on_hover_text(t!(ui, "canvas-tab-setup-hover"));
+                                let icon = if *back {
+                                    Icon::TurnOver
+                                } else {
+                                    Icon::Rectangle
+                                };
+                                let hover = if compact && !on {
+                                    format!("{name}\n{}", t!(ui, "canvas-tab-setup-hover"))
+                                } else {
+                                    t!(ui, "canvas-tab-setup-hover")
+                                };
+                                let tab =
+                                    space_tab(ui, icon, name, on, Some(SETUP_TAB), compact && !on)
+                                        .on_hover_text(hover);
                                 if tab.clicked() {
                                     clicked = Some(Some(*id));
                                 }
@@ -180,4 +209,76 @@ impl ChiploadApp {
         };
         self.drop_instance(part, setup, [dx - offset.0, dy - offset.1]);
     }
+}
+
+/// A tab's width besides its name: padding and the icon.
+const TAB_CHROME: f32 = 3.0 * 6.0 + 14.0;
+
+/// A tab: its icon and name (only its icon when `icon_only`, its name then on hover), filled
+/// when it is the space shown, with `fill` (None: the app's selection colour).
+fn space_tab(
+    ui: &mut egui::Ui,
+    icon: Icon,
+    name: &str,
+    on: bool,
+    fill: Option<egui::Color32>,
+    icon_only: bool,
+) -> egui::Response {
+    let font = egui::TextStyle::Button.resolve(ui.style());
+    let visuals = ui.visuals().clone();
+    let text_color = if on {
+        visuals.selection.stroke.color
+    } else {
+        visuals.widgets.inactive.text_color()
+    };
+    let shown = if icon_only { "" } else { name };
+    let galley = ui
+        .painter()
+        .layout_no_wrap(shown.to_string(), font, text_color);
+    let icon_size = 14.0;
+    let pad = egui::vec2(6.0, 3.0);
+    let text_width = if icon_only { -pad.x } else { galley.size().x };
+    let size = egui::vec2(
+        pad.x * 3.0 + icon_size + text_width,
+        (galley.size().y.max(icon_size) + pad.y * 2.0).max(22.0),
+    );
+    let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
+    response.widget_info(|| {
+        egui::WidgetInfo::selected(egui::WidgetType::SelectableLabel, true, on, name)
+    });
+    if ui.is_rect_visible(rect) {
+        let painter = ui.painter();
+        let back = match (on, response.hovered()) {
+            (true, _) => Some(fill.unwrap_or(visuals.selection.bg_fill)),
+            (false, true) => Some(visuals.widgets.hovered.weak_bg_fill),
+            (false, false) => None,
+        };
+        if let Some(back) = back {
+            painter.rect_filled(rect, 4.0, back);
+        }
+        // A setup's tab not shown still carries its colour, underlined.
+        if let (false, Some(fill)) = (on, fill) {
+            painter.line_segment(
+                [
+                    egui::pos2(rect.left() + 4.0, rect.bottom() - 1.5),
+                    egui::pos2(rect.right() - 4.0, rect.bottom() - 1.5),
+                ],
+                egui::Stroke::new(1.5, fill.gamma_multiply(0.7)),
+            );
+        }
+        let icon_rect = egui::Rect::from_min_size(
+            egui::pos2(rect.left() + pad.x, rect.center().y - icon_size / 2.0),
+            egui::vec2(icon_size, icon_size),
+        );
+        crate::icons::paint(painter, icon_rect, icon, text_color);
+        painter.galley(
+            egui::pos2(
+                icon_rect.right() + pad.x,
+                rect.center().y - galley.size().y / 2.0,
+            ),
+            galley,
+            text_color,
+        );
+    }
+    response
 }
