@@ -349,6 +349,11 @@ to a program you trust. It was about four per operation; with the defaults and s
    (3) instances from the canvas: right-click menu (duplicate, turn ±90°, mirror, on/off,
    remove), Ctrl+drag a copy, Ctrl+C/Ctrl+V, `part instance add --like`: **done**. The
    user to try all three.
+12i. **A drawing space and a space per setup** (the user, 2026-11-20: the setup view is
+   messy with drawn shapes and ghosts together; separate the spaces; drag parts from the
+   Browser onto a setup to make instances). Spec drafted for review
+   (docs/specs/drawing-and-setup-spaces.md, eight decisions); replaces parts-and-setups.md
+   §7 and §8a in the window. Includes *Reset to where drawn* for an instance.
 13. **Small follow-ups:**
     - Large files and functions (started 2026-11-16, aim: files under 1,000 lines, one job
       per function): split so far `plan/`, `pocket/`, the job's `operations/` and `library/`,
