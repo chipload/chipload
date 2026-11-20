@@ -156,7 +156,7 @@ colour theme: dark, or light grey.
     against; no instances are shown here.
   - **A tab per setup** ("Setup 1", a back "Setup 2 (back)"): its board, and every
     [instance](drawings/instances.md) on it drawn where it is cut, with its badge
-    (`#2`) and the setup's toolpath. No drawn shapes: here you place, turn, copy and
+    (`Side #2`, and a mirror mark when mirrored) and the setup's toolpath. No drawn shapes: here you place, turn, copy and
     [nest](drawings/nesting.md) the instances. Double-click an instance to open its part
     in *Drawing*. Drag a part's row from the Browser onto the board to place it there
     again. The other setups lie beside the board as before.

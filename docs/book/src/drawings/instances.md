@@ -9,10 +9,10 @@ In the window:
 - **Right-click the part** in the Browser: *Add instance* places it again beside what it
   cuts, 10 mm away; *Add mirrored instance* does the same, mirrored left to right.
 - **On the canvas**, instances are placed in their setup's tab
-  ([the canvas](../window.md#the-canvas)): each drawn where it is cut, with a badge above
-  its top left: its number (`#2`) and a four-way arrow. One that is off is dashed. A part
-  cut once, where it is drawn, has no badge: it is just the part. Click an instance (its
-  badge or outline) to select it, drag it to move it. Double-click it to open its part in
+  ([the canvas](../window.md#the-canvas)): each drawn where it is cut, with a badge below
+  its bottom left: a four-way arrow, its part's name and its number (`Side #2`), and a
+  mirror mark when it is mirrored. One that is off is dashed. Click an instance (its badge
+  or outline) to select it, drag it to move it. Double-click it to open its part in
   *Drawing*. A selected instance has a round turn handle
   with a curved arrow: drag it to turn the instance about its middle. Under the pointer an
   instance's outline thickens and the pointer becomes a hand, so you see what a drag

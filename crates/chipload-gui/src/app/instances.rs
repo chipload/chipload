@@ -339,11 +339,9 @@ impl ChiploadApp {
             })
             .collect();
         let here = |part: u64, id: u32| shown.contains(&(part, id));
-        // A part cut once, where drawn, is just the part: no badge (parts-and-setups.md §2a).
-        let alone = |part: u64| {
-            let all = edit.job.instances_of(part);
-            all.len() == 1 && all.iter().all(|(_, i)| i.is_drawn())
-        };
+        // Each with its badge, a part cut once where drawn too: in its setup's space the
+        // badge is how it is picked and dragged (the user, 2026-11-20).
+        let name = |part: u64| edit.job.part(part).map_or("", |p| p.name.as_str());
         let scale = self.view.scale.max(f64::MIN_POSITIVE);
         // What a press at the pointer would take, lit up (decision 13 of the handles).
         let hot = self
@@ -352,7 +350,8 @@ impl ChiploadApp {
             .and_then(|c| self.instance_grip_at(self.view.to_screen(c)));
         chipload_pipeline::parts::instance_outlines_showing(&edit.job, &self.contours, &shown)
             .into_iter()
-            .filter(|i| here(i.part, i.id))
+            // A part with nothing to cut yet (no operation) has nothing to show or place.
+            .filter(|i| here(i.part, i.id) && !i.outlines.is_empty())
             .map(|i| {
                 let selected = self.focus == Focus::Instance(i.part, i.id);
                 let angle = self.instance_value(i.part, i.id).map_or(0.0, |k| k.angle);
@@ -365,14 +364,14 @@ impl ChiploadApp {
                 let r = reach + TURN_HANDLE_GAP_PX / scale;
                 let (s, c) = math::sin_cos(angle + std::f64::consts::FRAC_PI_2);
                 let handle = (i.centre.0 + r * c, i.centre.1 + r * s);
-                // Its badge above the top left of its box, outside the shapes: a turned
-                // ghost's top point may be a far corner, next to a neighbour.
+                // Its badge below the bottom left of its box, outside the shapes and clear of
+                // the turn handle above (the user, 2026-11-20).
                 let label_at = i
                     .outlines
                     .iter()
                     .flat_map(|(points, _)| points)
-                    .fold(None, |top: Option<Point>, &p| match top {
-                        Some(t) => Some((t.0.min(p.0), t.1.max(p.1))),
+                    .fold(None, |low: Option<Point>, &p| match low {
+                        Some(t) => Some((t.0.min(p.0), t.1.min(p.1))),
                         None => Some(p),
                     })
                     .unwrap_or(i.centre);
@@ -390,11 +389,8 @@ impl ChiploadApp {
                             points
                         })
                         .collect(),
-                    label: if alone(i.part) {
-                        String::new()
-                    } else {
-                        format!("#{}", i.id)
-                    },
+                    label: format!("{} #{}", name(i.part), i.id),
+                    mirror: self.instance_value(i.part, i.id).and_then(|k| k.mirror),
                     label_at,
                     selected,
                     enabled: i.enabled,

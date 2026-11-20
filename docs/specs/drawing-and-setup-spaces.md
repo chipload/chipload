@@ -213,3 +213,11 @@ already places an instance anywhere, and `--like` like another.
   when it is already there; `part instance set --reset` (refused with `--at` or
   `--angle` by the argument parser). *Reset placement* of the part is the same for its
   first instance.
+- **The badge, after the user's testing (2026-11-20):** every instance has one, a part
+  cut once where drawn too (it was left out, as parts-and-setups.md §2a had it, and the
+  instance then had no visible handle until moved); it reads the part's name and the
+  number ("Side #2"), with a mirror mark (two triangles across a dashed line, upright for
+  left to right, across for top to bottom) when the instance is mirrored; and it sits
+  below the instance's bottom left, clear of the turn handle above.
+- **A part with nothing to cut** (no operation yet) has no instance drawn in a setup's
+  space: there is nothing to show or place; it is listed in the Browser as before.

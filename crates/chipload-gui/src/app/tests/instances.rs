@@ -87,7 +87,9 @@ fn an_instance_is_added_beside_the_part_drawn_numbered_and_undone() {
     assert_eq!(app.focus, Focus::Instance(1, 2));
     draw_canvas(&mut app);
     let ghost = app.scene.instances.iter().find(|g| g.id == 2).unwrap();
-    assert_eq!(ghost.label, "#2");
+    // The part's name and the number; not mirrored, no mark.
+    assert_eq!(ghost.label, "Part 1 #2");
+    assert_eq!(ghost.mirror, None);
     assert!(ghost.selected && ghost.handle.is_some());
     // Beside the part: right of everything it draws.
     let right = app
@@ -103,18 +105,27 @@ fn an_instance_is_added_beside_the_part_drawn_numbered_and_undone() {
         .map(|p| p.0)
         .fold(f64::MAX, f64::min);
     assert!(left > right, "{left} vs {right}");
-    // A mirrored one goes beside both.
+    // A mirrored one goes beside both, a mirror mark on its badge.
     app.add_instance(1, true);
     let job = &app.edit.as_ref().unwrap().job;
     assert_eq!(others(job, 1)[1].mirror, Some(Mirror::LeftRight));
+    draw_canvas(&mut app);
+    let three = app.scene.instances.iter().find(|g| g.id == 3).unwrap();
+    assert_eq!(three.mirror, Some(Mirror::LeftRight));
     assert_eq!(app.focus, Focus::Instance(1, 3));
     // Each is one undo step.
     app.undo();
     app.undo();
     assert!(others(&app.edit.as_ref().unwrap().job, 1).is_empty());
-    // Back to the part cut once, where drawn: just the part, no badge.
+    // Back to the part cut once, where drawn: its badge still, to pick and drag it.
     draw_canvas(&mut app);
-    assert!(app.scene.instances.iter().all(|g| g.label.is_empty()));
+    let labels: Vec<&str> = app
+        .scene
+        .instances
+        .iter()
+        .map(|g| g.label.as_str())
+        .collect();
+    assert_eq!(labels, ["Part 1 #1"]);
 }
 
 #[test]
@@ -248,7 +259,7 @@ fn the_part_itself_is_placed_shown_where_it_is_cut_and_reset() {
     draw_canvas(&mut app);
     assert!(app.scene.shapes_hidden);
     let ghost = app.scene.instances.iter().find(|g| g.id == 1).unwrap();
-    assert!(ghost.label == "#1" && ghost.selected);
+    assert!(ghost.label == "Part 1 #1" && ghost.selected);
     let ((x0, _), _) = app.edit.as_ref().unwrap().job.part_box(1).unwrap();
     assert!(ghost.outlines.iter().flatten().all(|p| p.0 > x0 + 250.0));
     // In the drawing space: the shapes, no instance, and no board (not cut here).
@@ -263,9 +274,10 @@ fn the_part_itself_is_placed_shown_where_it_is_cut_and_reset() {
     app.reset_part_placement(1);
     assert_eq!(own(&app), ([0.0, 0.0], 0.0));
     draw_canvas(&mut app);
-    // In its setup's space, cut where drawn and once: the part itself, no badge.
+    // In its setup's space, cut where drawn and once: its badge still (the user,
+    // 2026-11-20: the handle must show when it is selected).
     let ghost = app.scene.instances.iter().find(|g| g.id == 1).unwrap();
-    assert!(ghost.label.is_empty());
+    assert_eq!(ghost.label, "Part 1 #1");
     // In the drawing space: the board faintly behind the shapes, cut where drawn.
     app.focus = Focus::Part(1);
     draw_canvas(&mut app);

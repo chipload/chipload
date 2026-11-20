@@ -33,27 +33,34 @@ pub const COMPASS_CENTRE_PX: f32 = 6.0;
 pub const BADGE_HEIGHT_PX: f32 = 18.0;
 const BADGE_PAD_PX: f32 = 5.0;
 const BADGE_MARK_PX: f32 = 10.0;
-const BADGE_CHAR_PX: f32 = 7.5;
+const BADGE_CHAR_PX: f32 = 6.4;
 /// The selected instance's turn handle's radius, px.
 pub const TURN_HANDLE_PX: f32 = 7.0;
 
 /// Where instance `ghost`'s badge is on the screen: its bottom left just above the
 /// ghost's top point. Drawn in the view, picked in the app.
 pub fn badge_rect(view: &View, ghost: &InstanceGhost) -> Rect {
-    let corner = view.to_screen(ghost.label_at) + Vec2::new(0.0, -4.0);
+    // Below its bottom left: the turn handle sits above it, clear of the badge.
+    let corner = view.to_screen(ghost.label_at) + Vec2::new(0.0, 4.0 + BADGE_HEIGHT_PX);
     let chars = ghost.label.chars().count() as f32;
-    let width = 3.0 * BADGE_PAD_PX + BADGE_MARK_PX + chars * BADGE_CHAR_PX;
+    let mirror = if ghost.mirror.is_some() {
+        BADGE_PAD_PX + BADGE_MARK_PX
+    } else {
+        0.0
+    };
+    let width = 3.0 * BADGE_PAD_PX + BADGE_MARK_PX + chars * BADGE_CHAR_PX + mirror;
     Rect::from_min_max(
         corner - Vec2::new(0.0, BADGE_HEIGHT_PX),
         corner + Vec2::new(width, 0.0),
     )
 }
 
-/// The badge: a rounded box with a four-way arrow and the instance's number.
+/// The badge: a rounded box with a four-way arrow, the part's name and the instance's
+/// number, and a mirror mark when it is mirrored.
 fn paint_badge(
     painter: &Painter,
     rect: Rect,
-    label: &str,
+    (label, mirror): (&str, Option<chipload_job::Mirror>),
     color: Color32,
     fill: Color32,
     width: f32,
@@ -80,6 +87,55 @@ fn paint_badge(
         FontId::proportional(12.0),
         color,
     );
+    if let Some(mirror) = mirror {
+        let c = Pos2::new(
+            rect.right() - BADGE_PAD_PX - BADGE_MARK_PX / 2.0,
+            rect.center().y,
+        );
+        paint_mirror_mark(painter, c, BADGE_MARK_PX / 2.0, mirror, color);
+    }
+}
+
+/// Two small triangles facing each other across a dashed line, of half-size `r` about `c`:
+/// mirrored left to right (the line upright), or top to bottom (the line across).
+fn paint_mirror_mark(
+    painter: &Painter,
+    c: Pos2,
+    r: f32,
+    mirror: chipload_job::Mirror,
+    color: Color32,
+) {
+    // Drawn for left to right; top to bottom is the same turned a quarter.
+    let turn = |v: Vec2| match mirror {
+        chipload_job::Mirror::LeftRight => v,
+        chipload_job::Mirror::TopBottom => Vec2::new(v.y, -v.x),
+    };
+    let stroke = Stroke::new(1.0, color);
+    for k in [-1.0_f32, -0.35, 0.3] {
+        painter.line_segment(
+            [
+                c + turn(Vec2::new(0.0, k * r)),
+                c + turn(Vec2::new(0.0, (k + 0.45) * r)),
+            ],
+            stroke,
+        );
+    }
+    for side in [-1.0_f32, 1.0] {
+        let points = vec![
+            c + turn(Vec2::new(side * 0.25 * r, 0.0)),
+            c + turn(Vec2::new(side * r, -0.7 * r)),
+            c + turn(Vec2::new(side * r, 0.7 * r)),
+        ];
+        if side < 0.0 {
+            painter.add(eframe::egui::Shape::convex_polygon(
+                points,
+                color,
+                Stroke::NONE,
+            ));
+        } else {
+            painter.add(eframe::egui::Shape::closed_line(points, stroke));
+        }
+    }
 }
 
 /// A four-way arrow of arm `r` about `c`: moves it.
@@ -133,8 +189,11 @@ pub struct InstanceGhost {
     pub id: u32,
     /// The part's cut contours, placed as the instance lies.
     pub outlines: Vec<Vec<Point>>,
-    /// Its number, "#2", written above its top left.
+    /// Its part's name and number, "Side #2", written above its top left.
     pub label: String,
+    /// It is mirrored: a mark after its label, across the line it is mirrored about
+    /// (docs/specs/drawing-and-setup-spaces.md §4).
+    pub mirror: Option<chipload_job::Mirror>,
     pub label_at: Point,
     pub selected: bool,
     pub enabled: bool,
@@ -743,13 +802,10 @@ impl Scene {
             } else {
                 1.0
             };
-            if ghost.label.is_empty() {
-                continue;
-            }
             paint_badge(
                 painter,
                 badge_rect(view, ghost),
-                &ghost.label,
+                (&ghost.label, ghost.mirror),
                 badge,
                 pal.handle_fill,
                 stroke,
