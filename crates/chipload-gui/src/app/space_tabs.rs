@@ -5,6 +5,10 @@
 use super::display::Space;
 use super::*;
 
+/// How long a part dragged from the Browser is held over a setup's tab before it opens,
+/// seconds.
+const TAB_OPENS_S: f64 = 0.5;
+
 impl ChiploadApp {
     /// *Drawing*, a tab per setup (a back "Setup 2 (back)"), and *+* to add a setup; the one
     /// shown drawn as selected. In a narrow window they scroll sideways.
@@ -29,6 +33,8 @@ impl ChiploadApp {
         let space = self.space();
         let mut clicked = None;
         let mut add = false;
+        // A part held over a setup's tab (docs/specs/drawing-and-setup-spaces.md §5).
+        let mut held = None;
         // Below the top ruler, right of the left one.
         let ruler = if self.prefs.show_rulers && self.view.is_top() {
             super::rulers::RULER
@@ -67,12 +73,17 @@ impl ChiploadApp {
                             }
                             for (id, name) in &setups {
                                 let on = space == Space::Setup && active == Some(*id);
-                                if ui
+                                let tab = ui
                                     .selectable_label(on, name)
-                                    .on_hover_text(t!(ui, "canvas-tab-setup-hover"))
-                                    .clicked()
-                                {
+                                    .on_hover_text(t!(ui, "canvas-tab-setup-hover"));
+                                if tab.clicked() {
                                     clicked = Some(Some(*id));
+                                }
+                                if tab
+                                    .dnd_hover_payload::<super::browser_ops::DraggedPart>()
+                                    .is_some()
+                                {
+                                    held = Some(*id);
                                 }
                             }
                             if ui
@@ -85,11 +96,88 @@ impl ChiploadApp {
                         });
                     });
             });
+        // Held there half a second, the tab opens, so the part can be dropped on its board.
+        let now = ui.input(|i| i.time);
+        match (held, self.display.tab_held) {
+            (Some(id), Some((was, since))) if id == was => {
+                if now - since >= TAB_OPENS_S && !(space == Space::Setup && active == Some(id)) {
+                    clicked = Some(Some(id));
+                }
+                ui.ctx().request_repaint();
+            }
+            (Some(id), _) => {
+                self.display.tab_held = Some((id, now));
+                ui.ctx().request_repaint();
+            }
+            (None, _) => self.display.tab_held = None,
+        }
         if let Some(tab) = clicked {
             self.click_space_tab(tab);
         }
         if add && let Some(id) = self.add_setup() {
             self.click_space_tab(Some(id));
         }
+    }
+}
+
+impl ChiploadApp {
+    /// A part's row dragged from the Browser over a setup's space: its outline under the
+    /// pointer (the grid's step; Alt: free); let go, a new instance of it there, not turned
+    /// or mirrored, selected, one undo step. Over a sheet beside the board, on that sheet's
+    /// setup, which becomes the active one (docs/specs/drawing-and-setup-spaces.md §5).
+    pub(super) fn drop_part(&mut self, ui: &egui::Ui, response: &egui::Response, editing: bool) {
+        if !editing || !self.view.is_top() || self.space() != Space::Setup {
+            return;
+        }
+        let Some(dragged) = egui::DragAndDrop::payload::<super::browser_ops::DraggedPart>(ui.ctx())
+        else {
+            return;
+        };
+        let Some(pos) = ui
+            .input(|i| i.pointer.hover_pos())
+            .filter(|p| response.rect.contains(*p))
+        else {
+            return;
+        };
+        let part = dragged.0;
+        let Some(job) = self.edit.as_ref().map(|e| &e.job) else {
+            return;
+        };
+        let Some(centre) = job.part_centre(part) else {
+            return;
+        };
+        let raw = self.view.to_world(pos);
+        let at = if ui.input(|i| i.modifiers.alt) {
+            raw
+        } else {
+            let step = grid_step(self.view.scale, self.prefs.units);
+            crate::draw::snap(raw, step, self.prefs.units)
+        };
+        let sheet = self.scene.sheet_at(at).map(|s| (s.setup, s.offset));
+        let (dx, dy) = (at.0 - centre.0, at.1 - centre.1);
+        let outlines = chipload_pipeline::parts::part_outlines(job, &self.contours, part);
+        self.scene
+            .preview
+            .extend(outlines.into_iter().map(|(points, closed)| {
+                let mut moved: Vec<Point> = points.iter().map(|p| (p.0 + dx, p.1 + dy)).collect();
+                if let (true, Some(&first)) = (closed, moved.first()) {
+                    moved.push(first);
+                }
+                moved
+            }));
+        if response
+            .dnd_release_payload::<super::browser_ops::DraggedPart>()
+            .is_none()
+        {
+            return;
+        }
+        let (setup, offset) = match sheet {
+            Some((id, offset)) => {
+                self.activate_sheet(id, pos);
+                (Some(id), offset)
+            }
+            None => (None, (0.0, 0.0)),
+        };
+        self.drop_instance(part, setup, [dx - offset.0, dy - offset.1]);
     }
 }

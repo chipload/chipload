@@ -23,6 +23,9 @@ pub struct Display {
     /// Each space's view, scale and offset, kept while another is shown: the drawing's
     /// under None, a setup's under its id.
     pub views: std::collections::BTreeMap<Option<u64>, (f64, (f64, f64))>,
+    /// The setup's tab a part dragged from the Browser is held over, and since when
+    /// (seconds, egui's clock): held long enough, it opens.
+    pub tab_held: Option<(u64, f64)>,
     /// View > Show images: the pictures, faintly over the stock and under the drawing.
     pub images: bool,
     /// View → Show toolpath (docs/specs/drawing-sources.md §5).
@@ -62,6 +65,7 @@ impl Default for Display {
             followed: None,
             space: Space::Drawing,
             views: std::collections::BTreeMap::new(),
+            tab_held: None,
             legend_open: true,
             other: None,
         }

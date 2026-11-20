@@ -158,7 +158,8 @@ colour theme: dark, or light grey.
     [instance](drawings/instances.md) on it drawn where it is cut, with its badge
     (`#2`) and the setup's toolpath. No drawn shapes: here you place, turn, copy and
     [nest](drawings/nesting.md) the instances. Double-click an instance to open its part
-    in *Drawing*. The other setups lie beside the board as before.
+    in *Drawing*. Drag a part's row from the Browser onto the board to place it there
+    again. The other setups lie beside the board as before.
   - **+** adds a setup.
   - **What you select picks the tab:** a part, an operation, a shape, a text or a
     picture shows *Drawing*; a setup, its stock, its work zero or an instance shows that

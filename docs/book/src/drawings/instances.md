@@ -19,6 +19,14 @@ In the window:
   takes. Hold Shift while moving to keep it to 15° steps from where you grabbed it
   (straight across, up or at 45°). Turning snaps to quarter turns within 3°; hold
   Alt to turn freely. Escape during a drag puts it back; each drag is one undo step.
+- **Drag the part in:** drag a part's row from the Browser onto a setup's tab of the
+  canvas: its outline follows the pointer, on the grid's steps (hold Alt to place it
+  freely), and letting go places a new instance there, not turned or mirrored, selected.
+  Dropped on another setup's sheet beside the board, it goes on that setup. From
+  *Drawing*, hold the dragged part over a setup's tab for half a second: the tab opens.
+  Escape during the drag places nothing. A board cut in
+  [pieces](../concepts/pieces.md) that already holds the part refuses it, and the Report
+  says why.
 - **More of them on the canvas:**
   - **Right-click an instance** (its badge, or its outline): *Duplicate*, *Turn 90° left*,
     *Turn 90° right*, *Mirror*, *Don't cut* (or *Cut*) and *Remove*.

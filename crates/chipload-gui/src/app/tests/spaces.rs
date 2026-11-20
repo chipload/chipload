@@ -158,3 +158,128 @@ fn the_tabs_switch_spaces_and_a_double_click_opens_an_instances_part() {
     click(&mut h, drawing, false);
     assert_eq!(h.state().space(), Space::Drawing);
 }
+
+/// Press on `from`, move to `to` in steps (holding `hold` steps at `pause` on the way), and
+/// let go there unless Escape is pressed first.
+fn drag_row(
+    h: &mut Harness<'_, ChiploadApp>,
+    from: egui::Pos2,
+    pause: Option<(egui::Pos2, usize)>,
+    to: egui::Pos2,
+    escape: bool,
+) {
+    h.hover_at(from);
+    h.run_steps(2);
+    h.drag_at(from);
+    h.run_steps(2);
+    let mut path = vec![];
+    if let Some((at, hold)) = pause {
+        for k in 1..=4 {
+            path.push(from + (at - from) * (k as f32 / 4.0));
+        }
+        for _ in 0..hold {
+            path.push(at);
+        }
+    }
+    let start = path.last().copied().unwrap_or(from);
+    for k in 1..=5 {
+        path.push(start + (to - start) * (k as f32 / 5.0));
+    }
+    for p in path {
+        h.hover_at(p);
+        h.run_steps(1);
+    }
+    if escape {
+        h.key_press(egui::Key::Escape);
+        h.run_steps(2);
+    }
+    h.drop_at(to);
+    h.run_steps(4);
+}
+
+/// The Browser's row of the part (left of anything else of that name).
+fn part_row(h: &Harness<'_, ChiploadApp>) -> egui::Pos2 {
+    h.get_all_by_label("Part 1")
+        .map(|n| n.rect().center())
+        .min_by(|a, b| a.x.total_cmp(&b.x))
+        .unwrap()
+}
+
+fn setup_window() -> Harness<'static, ChiploadApp> {
+    let mut h = Harness::builder()
+        .with_size(egui::vec2(1200.0, 800.0))
+        .with_step_dt(0.05)
+        .build_eframe(|_| {
+            let mut app = drawn_part();
+            app.focus = Focus::Setup(1);
+            app.fit_pending = true;
+            app
+        });
+    h.run_steps(8);
+    h
+}
+
+#[test]
+fn a_part_dragged_onto_the_board_becomes_an_instance_there() {
+    let mut h = setup_window();
+    let target = (240.0, 170.0);
+    let to = h.state().view.to_screen(target);
+    let from = part_row(&h);
+    drag_row(&mut h, from, None, to, false);
+    let job = &h.state().edit.as_ref().unwrap().job;
+    let made = others(job, 1);
+    assert_eq!(made.len(), 1, "a new instance");
+    let new = made[0];
+    assert_eq!((new.angle, new.mirror), (0.0, None));
+    // The part's middle under the pointer, on the grid's step.
+    let centre = job.part_centre(1).unwrap();
+    let (x, y) = (centre.0 + new.at[0], centre.1 + new.at[1]);
+    assert!(
+        (x - target.0).abs() <= 5.0 && (y - target.1).abs() <= 5.0,
+        "{x}, {y}"
+    );
+    assert_eq!(h.state().focus, Focus::Instance(1, new.id));
+    // One undo step.
+    h.state_mut().undo();
+    assert!(others(&h.state().edit.as_ref().unwrap().job, 1).is_empty());
+    // Escape during the drag drops nothing.
+    h.run_steps(4);
+    let from = part_row(&h);
+    drag_row(&mut h, from, None, to, true);
+    assert!(others(&h.state().edit.as_ref().unwrap().job, 1).is_empty());
+}
+
+#[test]
+fn a_part_held_over_a_setups_tab_opens_it_to_be_dropped() {
+    let mut h = setup_window();
+    h.state_mut().focus = Focus::Part(1);
+    h.run_steps(8);
+    assert_eq!(h.state().space(), Space::Drawing);
+    let tab = h
+        .get_all_by_label("Setup 1")
+        .map(|n| n.rect().center())
+        .max_by(|a, b| a.x.total_cmp(&b.x))
+        .unwrap();
+    let from = part_row(&h);
+    let to = h.state().view.to_screen((240.0, 170.0));
+    // Held over the tab for 0.75 s: it opens, and the drop lands on its board.
+    drag_row(&mut h, from, Some((tab, 15)), to, false);
+    assert_eq!(h.state().space(), Space::Setup);
+    assert_eq!(others(&h.state().edit.as_ref().unwrap().job, 1).len(), 1);
+}
+
+#[test]
+fn a_setup_in_pieces_refuses_a_second_instance_of_a_part() {
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v37/pieces.chipload")));
+    let job = &app.edit.as_ref().unwrap().job;
+    let part = job.parts[0].id;
+    let before = job.instances_of(part).len();
+    assert!(!app.drop_instance(part, None, [500.0, 0.0]));
+    assert_eq!(
+        app.edit.as_ref().unwrap().job.instances_of(part).len(),
+        before
+    );
+    let why: Vec<&String> = app.report.iter().collect();
+    assert!(why.iter().any(|l| l.contains("piece")), "{why:?}");
+}

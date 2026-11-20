@@ -213,34 +213,7 @@ pub fn instance_outlines_showing(
     };
     for part in job.parts.iter().filter(|p| !listed(p).is_empty()) {
         let centre = job.part_centre(part.id).unwrap_or((0.0, 0.0));
-        let mut line = None;
-        let mut ids: Vec<usize> = Vec::new();
-        for op in job
-            .operations
-            .iter()
-            .filter(|op| op.part() == part.id && op.selects_shapes())
-        {
-            line = line.or(job.mirror_of(op));
-            let select = op.select().resolved(&job.drawing);
-            let label = op.label_message(0);
-            let picked = match op {
-                Operation::Path(_) | Operation::Holes(_) => select_paths(contours, &select, &label),
-                _ => select_contours(contours, &select, &label),
-            };
-            if let Ok(selection) = picked {
-                ids.extend(selection.contours.iter().map(|c| c.id));
-            }
-        }
-        let flip = |p: Point| match line {
-            Some((Mirror::LeftRight, at)) => (2.0 * at - p.0, p.1),
-            Some((Mirror::TopBottom, at)) => (p.0, 2.0 * at - p.1),
-            None => p,
-        };
-        let drawn: Vec<(Vec<Point>, bool)> = contours
-            .iter()
-            .filter(|c| ids.contains(&c.id))
-            .map(|c| (c.points().into_iter().map(flip).collect(), c.closed))
-            .collect();
+        let drawn = part_outlines(job, contours, part.id);
         for (id, enabled, spot) in listed(part) {
             let enabled = enabled && part.enabled;
             let place = chipload_toolpath::place::Placement::new(&spot, centre);
@@ -265,6 +238,40 @@ pub fn instance_outlines_showing(
         }
     }
     out
+}
+
+/// The contours part `part`'s operations cut, where it is drawn (mirrored with the part if it
+/// is), each with whether it is closed: an instance's outline before it is placed, and the
+/// part dragged onto a board (docs/specs/drawing-and-setup-spaces.md §5).
+pub fn part_outlines(job: &Job, contours: &[Contour], part: u64) -> Vec<(Vec<Point>, bool)> {
+    let mut line = None;
+    let mut ids: Vec<usize> = Vec::new();
+    for op in job
+        .operations
+        .iter()
+        .filter(|op| op.part() == part && op.selects_shapes())
+    {
+        line = line.or(job.mirror_of(op));
+        let select = op.select().resolved(&job.drawing);
+        let label = op.label_message(0);
+        let picked = match op {
+            Operation::Path(_) | Operation::Holes(_) => select_paths(contours, &select, &label),
+            _ => select_contours(contours, &select, &label),
+        };
+        if let Ok(selection) = picked {
+            ids.extend(selection.contours.iter().map(|c| c.id));
+        }
+    }
+    let flip = |p: Point| match line {
+        Some((Mirror::LeftRight, at)) => (2.0 * at - p.0, p.1),
+        Some((Mirror::TopBottom, at)) => (p.0, 2.0 * at - p.1),
+        None => p,
+    };
+    contours
+        .iter()
+        .filter(|c| ids.contains(&c.id))
+        .map(|c| (c.points().into_iter().map(flip).collect(), c.closed))
+        .collect()
 }
 
 /// The outlines of every instance on setup `setup` that is on, where it is cut, with

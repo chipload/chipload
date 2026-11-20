@@ -223,6 +223,7 @@ impl ChiploadApp {
         self.compass_menu(ui.ctx());
         self.compass_pick_menu(ui.ctx());
         self.drop_library_entry(ui, &response, editing);
+        self.drop_part(ui, &response, editing);
         if editing {
             self.canvas_context_menu(&response);
         }

@@ -209,6 +209,33 @@ impl ChiploadApp {
         }
     }
 
+    /// Part `part` dropped on a board: a new instance moved by `at` from where the part is
+    /// drawn, not turned or mirrored, on `setup` (None: the one the part is cut from), selected,
+    /// one undo step (docs/specs/drawing-and-setup-spaces.md §5). Refused with the reason
+    /// shown, as a setup in pieces already holding the part.
+    pub(super) fn drop_instance(&mut self, part: u64, setup: Option<u64>, at: [f64; 2]) -> bool {
+        self.commit();
+        let setup = setup.or_else(|| self.edit.as_ref().and_then(|e| e.job.active_setup_id()));
+        let job = match self.edit.as_ref().map(|e| e.to_job()) {
+            Some(Ok(job)) => job,
+            Some(Err(problems)) => {
+                self.error_report(Report::of_problems(
+                    &t!(self, "app-project-incomplete"),
+                    &problems,
+                ));
+                return false;
+            }
+            None => return false,
+        };
+        let made =
+            chipload_pipeline::instances::add_instance(&job, part, setup, Some(at), 0.0, None);
+        let done = self.adopt_instance(part, made).is_some();
+        if done {
+            self.commit();
+        }
+        done
+    }
+
     /// A Ctrl+drag of instance `id` of part `part` begins at `at`: a copy is made where it
     /// is, and that copy is dragged; the original stays (docs/specs/canvas-handling.md §3).
     pub(super) fn start_instance_copy(&mut self, (part, id): (u64, u32), at: Point) -> bool {

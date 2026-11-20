@@ -1,6 +1,6 @@
 # Spec: a drawing space and a space per setup
 
-Status: **approved 2026-11-20** (all decisions as recommended); step 1 built (§14). From the user's testing of
+Status: **approved 2026-11-20** (all decisions as recommended); steps 1 and 2 built (§14). From the user's testing of
 nesting and instances: "when we select the setup we should not see the parts, only the
 instances, it gets quite messy on the screen", then "could we separate drawing space and
 setup space?", and "we should be able to drag in parts from the browser to the setup to
@@ -201,3 +201,11 @@ already places an instance anywhere, and `--like` like another.
   - **Opening Nest** shows its setup's tab, where its preview is drawn.
   - **A setup's legend** lists instances, selected and stock only.
   - **The other parts' shapes in Drawing** are dimmed as the part view's ghosts were.
+- **Step 2** (parts dragged in):
+  - **The drop snaps to the grid** (Alt: free), the part's middle under the pointer.
+    Snapping an instance to the board's corners and to other instances (§4, §5) is not
+    built: instances don't snap while moved either. Later, if wanted.
+  - **A refusal goes to the Report** with its reason (as *Add instance*'s), not the status
+    bar.
+  - **The part's outline** dragged is the contours its operations cut
+    (`chipload_pipeline::parts::part_outlines`, shared with the instances' outlines).
