@@ -69,14 +69,16 @@ fn a_nest_is_previewed_as_ghosts_and_applied_as_one_undo_step() {
     assert!(app.edit.as_ref().unwrap().job.setups[0].nest.is_none());
 }
 
+/// What no board can take (larger than an empty one) is parked beside the board; what
+/// merely doesn't fit goes onto more boards (docs/specs/nest-overflow-and-all.md §1).
 #[test]
-fn what_doesnt_fit_is_parked_beside_the_board_in_the_preview() {
+fn what_no_board_takes_is_parked_beside_the_board_in_the_preview() {
     let mut app = badge();
     app.start_nest(None);
     {
         let dialog = app.nest.as_mut().unwrap();
-        dialog.board = (200.0, 150.0);
-        dialog.rows[0].count = 3;
+        dialog.board = (40.0, 30.0);
+        dialog.rows[0].count = 2;
     }
     app.start_nest_run();
     app.wait_for_nest();
@@ -174,7 +176,7 @@ fn the_window_draws_its_rows_and_buttons() {
 }
 
 /// The window and its preview as drawn, for a look by eye: five badges nested, then a
-/// board too small for them all, the rest parked.
+/// board too small for them all, the rest onto more boards.
 /// `CHIPLOAD_PICTURES=dir cargo test -p chipload-gui pictures -- --ignored`.
 #[test]
 #[ignore = "writes pictures; needs CHIPLOAD_PICTURES"]
@@ -184,10 +186,9 @@ fn nest_pictures() {
     };
     let dir = std::path::PathBuf::from(dir);
     std::fs::create_dir_all(&dir).unwrap();
-    for (name, board, count, overflow) in [
-        ("nest", (400.0, 300.0), 5, false),
-        ("nest-parked", (260.0, 180.0), 5, false),
-        ("nest-overflow", (200.0, 150.0), 6, true),
+    for (name, board, count) in [
+        ("nest", (400.0, 300.0), 5),
+        ("nest-overflow", (200.0, 150.0), 6),
     ] {
         let mut h = Harness::builder()
             .with_size(egui::vec2(1280.0, 800.0))
@@ -203,7 +204,6 @@ fn nest_pictures() {
                     let dialog = app.nest.as_mut().unwrap();
                     dialog.board = board;
                     dialog.rows[0].count = count;
-                    dialog.overflow = overflow;
                 }
                 app.start_nest_run();
                 app.wait_for_nest();
@@ -226,7 +226,6 @@ fn what_doesnt_fit_goes_onto_more_boards_previewed_beside_the_first() {
         let dialog = app.nest.as_mut().unwrap();
         dialog.board = (200.0, 150.0);
         dialog.rows[0].count = 6;
-        dialog.overflow = true;
     }
     app.start_nest_run();
     app.wait_for_nest();
@@ -252,4 +251,43 @@ fn what_doesnt_fit_goes_onto_more_boards_previewed_beside_the_first() {
     );
     app.undo();
     assert_eq!(app.edit.as_ref().unwrap().job.setups.len(), before);
+}
+
+/// docs/specs/nest-overflow-and-all.md §1: what no board takes is switched off, marked in
+/// the Browser, and its Report line opens it.
+#[test]
+fn what_no_board_takes_is_marked_and_its_report_line_opens_it() {
+    let mut app = badge();
+    app.start_nest(None);
+    {
+        let dialog = app.nest.as_mut().unwrap();
+        dialog.board = (40.0, 30.0);
+        dialog.rows[0].count = 2;
+    }
+    app.start_nest_run();
+    app.wait_for_nest();
+    let result = match app.nest.as_ref().unwrap().preview.as_ref().unwrap() {
+        Ok(p) => p.result.clone(),
+        Err(e) => panic!("{e}"),
+    };
+    assert!(!result.unplaced.is_empty());
+    app.apply_nest(result.clone());
+    for &(part, id) in &result.unplaced {
+        assert!(app.nest_too_large.contains(&(part, id)));
+        assert!(!app.instance_value(part, id).unwrap().enabled);
+    }
+    let (part, id) = result.unplaced[0];
+    let line = app
+        .report
+        .lines
+        .iter()
+        .find(|l| l.target == Some(crate::app::report::Target::Instance(part, id)))
+        .expect("a line for it");
+    assert!(
+        line.text.contains("larger than an empty board"),
+        "{}",
+        line.text
+    );
+    // The Browser draws it marked.
+    draw_sidebar(&mut app);
 }

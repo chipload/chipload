@@ -23,3 +23,4 @@ report-place-dowels = Riposiziona i fori per spina
 report-place-dowels-hover = Sposta i due cerchi dove vanno ora, lontano dai tagli delle due facce, come un passo di annullamento. Non una volta lavorato il fronte: i suoi fori sono fatti
 report-part = Pezzo { $number } · { $name }
 report-file = File { $number }
+report-select-instance-hover = Seleziona l’istanza #{ $number }

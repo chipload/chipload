@@ -356,7 +356,6 @@ fn nest_showcase() {
                 _ => row.count,
             };
         }
-        dialog.overflow = true;
         app.start_nest_run();
         app.wait_for_nest();
     }

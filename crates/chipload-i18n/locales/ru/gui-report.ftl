@@ -18,3 +18,4 @@ report-place-dowels = Разместить отверстия под штифт�
 report-place-dowels-hover = Переместить две окружности туда, где им место сейчас, в стороне от резов обеих сторон, одним шагом отмены. Не после обработки лицевой стороны: её отверстия уже просверлены
 report-part = Деталь { $number } · { $name }
 report-file = Файл { $number }
+report-select-instance-hover = Выбрать экземпляр #{ $number }

@@ -26,3 +26,4 @@ report-place-dowels-hover = Move the two dowel circles to where they go now, cle
 # and a file's when the job is written one file per tool.
 report-part = Part { $number } · { $name }
 report-file = File { $number }
+report-select-instance-hover = Select instance #{ $number }

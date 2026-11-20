@@ -186,3 +186,4 @@ browser-prism = Prisme
 browser-prism-hover = Les formes fermées sélectionnées restent debout en toit, une arête vive au milieu, taillées avec une fraise en V
 browser-moulding = Moulure
 browser-moulding-hover = Un profil (gorge, doucine, baguette…) balayé le long des tracés sélectionnés
+browser-instance-too-large-hover = Plus grande qu’un panneau vide : aucun panneau ne la prend, donc la dernière imbrication l’a désactivée. Agrandissez le panneau, autorisez la rotation ou réduisez-la.

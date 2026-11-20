@@ -183,3 +183,4 @@ browser-prism = Prisma
 browser-prism-hover = Le forme chiuse selezionate restano in piedi come tetti, con uno spigolo vivo al centro, tagliate con una fresa a V
 browser-moulding = Modanatura
 browser-moulding-hover = Un profilo (guscio, gola, tondino…) fatto scorrere lungo i percorsi selezionati
+browser-instance-too-large-hover = Più grande di un pannello vuoto: nessun pannello la accoglie, quindi l’ultimo annidamento l’ha disattivata. Ingrandisci il pannello, consenti la rotazione o rimpiccioliscila.

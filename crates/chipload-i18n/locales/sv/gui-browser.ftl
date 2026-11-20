@@ -183,3 +183,4 @@ browser-prism = Prisma
 browser-prism-hover = De valda slutna formerna blir stående som tak med en skarp ås i mitten, skurna med en V-fräs
 browser-moulding = Profilering
 browser-moulding-hover = En profil (hålkäl, karnis, rundstav…) som följer de valda banorna
+browser-instance-too-large-hover = Större än en tom skiva: ingen skiva tar den, så den senaste nestningen stängde av den. Gör skivan större, tillåt vridning eller gör den mindre.

@@ -23,3 +23,4 @@ report-place-dowels = Replacer les trous de goupille
 report-place-dowels-hover = Déplacer les deux cercles là où ils vont maintenant, à l'écart des usinages des deux faces, en une seule annulation. Pas une fois le recto usiné : ses trous sont percés
 report-part = Pièce { $number } · { $name }
 report-file = Fichier { $number }
+report-select-instance-hover = Sélectionner l’instance #{ $number }

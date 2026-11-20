@@ -102,8 +102,15 @@ fn json_says_what_went_where_and_a_dry_run_writes_nothing() {
     assert_eq!(value["setup"], 1);
     let placed = value["placed"].as_array().unwrap();
     let unplaced = value["unplaced"].as_array().unwrap();
-    assert_eq!(placed.len() + unplaced.len(), 4);
-    assert!(!unplaced.is_empty(), "{value}");
+    // What doesn't fit on this board goes onto more (nest-overflow-and-all.md §1).
+    let more: usize = value["overflow"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|b| b["placed"].as_array().unwrap().len())
+        .sum();
+    assert!(unplaced.is_empty() && more > 0, "{value}");
+    assert_eq!(placed.len() + more, 4);
     assert!(placed[0]["at"].is_array() && placed[0]["angle"].is_number());
     // The usable board (200 × 150 less the 10 mm margin) and the box round what is placed.
     assert_eq!(value["usable"], serde_json::json!([180.0, 130.0]));
@@ -113,7 +120,7 @@ fn json_says_what_went_where_and_a_dry_run_writes_nothing() {
     assert_eq!(value["board_fixed"], false);
     assert!(value["written"].as_array().unwrap().is_empty());
     let notes = value["notes"].to_string();
-    assert!(notes.contains("didn't fit: switched off"), "{notes}");
+    assert!(notes.contains("a new board like the first"), "{notes}");
     assert_eq!(
         std::fs::read_to_string(dir.join("b.chipload")).unwrap(),
         before
@@ -164,11 +171,25 @@ fn bad_turns_and_counts_are_refused_before_anything_is_read() {
     assert_eq!(turns.stdout.trim(), "\"half\"");
 }
 
-/// docs/specs/parts-and-setups.md §9: `--overflow new-boards` puts what doesn't fit onto
-/// more boards; every board's program runs.
+/// docs/specs/nest-overflow-and-all.md §1: what doesn't fit goes onto more boards, with or
+/// without `--overflow new-boards` (kept for scripts); `--overflow off` is refused; every
+/// board's program runs.
 #[test]
 fn overflow_puts_what_doesnt_fit_onto_new_boards() {
     let dir = badge("overflow");
+    let off = chipload(
+        &dir,
+        &[
+            "nest",
+            "b.chipload",
+            "--board",
+            "200x150",
+            "--overflow",
+            "off",
+        ],
+    );
+    assert_eq!(off.code, Some(1));
+    assert!(off.stderr.contains("onto more boards"), "{}", off.stderr);
     let run = chipload(
         &dir,
         &[

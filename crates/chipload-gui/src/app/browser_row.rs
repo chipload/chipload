@@ -49,6 +49,8 @@ pub(super) struct Row {
     selected: bool,
     dim: bool,
     alert: bool,
+    /// Drawn in the warning colour, with a dot: needs a look, not an error.
+    warn: bool,
     drag: bool,
     strong: bool,
 }
@@ -80,6 +82,7 @@ impl Row {
             selected: false,
             dim: false,
             alert: false,
+            warn: false,
             drag: false,
             strong: false,
         }
@@ -149,6 +152,13 @@ impl Row {
         self
     }
 
+    /// Drawn in the warning colour with a dot (an instance no board takes,
+    /// docs/specs/nest-overflow-and-all.md §1).
+    pub(super) fn warn(mut self, warn: bool) -> Self {
+        self.warn = warn;
+        self
+    }
+
     /// The row can be dragged (operations, to reorder them).
     pub(super) fn draggable(mut self) -> Self {
         self.drag = true;
@@ -201,6 +211,8 @@ impl Row {
             visuals.selection.stroke.color
         } else if self.alert {
             visuals.error_fg_color
+        } else if self.warn {
+            visuals.warn_fg_color
         } else if self.dim {
             visuals.weak_text_color()
         } else {
@@ -290,9 +302,14 @@ impl Row {
         }
         // The scroll area's bar may cover the row's right end: stop short of it.
         let mut right = rect.right().min(ui.clip_rect().right()) - PAD;
-        if self.alert {
+        if self.alert || self.warn {
             let dot = egui::pos2(right - 4.0, rect.center().y);
-            painter.circle_filled(dot, 3.5, visuals.error_fg_color);
+            let color = if self.alert {
+                visuals.error_fg_color
+            } else {
+                visuals.warn_fg_color
+            };
+            painter.circle_filled(dot, 3.5, color);
             right -= 8.0 + GAP;
         }
         if !self.trailing.is_empty() {

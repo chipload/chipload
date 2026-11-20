@@ -183,3 +183,4 @@ browser-prism = Prisma
 browser-prism-hover = Die gewählten geschlossenen Formen bleiben als Dächer stehen, mit einem scharfen Grat in der Mitte, geschnitten mit einer V-Fräse
 browser-moulding = Profilfräsung
 browser-moulding-hover = Ein Profil (Hohlkehle, Karnies, Rundstab…) entlang der gewählten Pfade
+browser-instance-too-large-hover = Größer als eine leere Platte: keine Platte nimmt sie auf, darum hat die letzte Verschachtelung sie ausgeschaltet. Die Platte vergrößern, Drehen erlauben oder sie verkleinern.

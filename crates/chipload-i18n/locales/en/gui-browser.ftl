@@ -183,3 +183,4 @@ browser-prism = Prism
 browser-prism-hover = The selected closed shapes left standing as roofs, a sharp ridge along their centre, cut with a V-bit
 browser-moulding = Moulding
 browser-moulding-hover = A profile (cove, ogee, bead…) swept along the selected paths
+browser-instance-too-large-hover = Larger than an empty board: no board takes it, so the last nest switched it off. Make the board larger, allow it to turn, or make it smaller.

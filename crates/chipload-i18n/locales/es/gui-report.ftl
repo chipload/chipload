@@ -23,3 +23,4 @@ report-place-dowels = Recolocar los agujeros de pasador
 report-place-dowels-hover = Mover los dos círculos a donde van ahora, lejos de los cortes de ambas caras, como un paso de deshacer. No una vez mecanizado el anverso: sus agujeros ya están hechos
 report-part = Pieza { $number } · { $name }
 report-file = Archivo { $number }
+report-select-instance-hover = Seleccionar la instancia #{ $number }

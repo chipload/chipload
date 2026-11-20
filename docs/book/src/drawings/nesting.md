@@ -29,10 +29,12 @@ In the window:
     so a strip down the right is left.
 - **The preview** is worked out as soon as the window opens, and again with *Preview*
   after a change: the instances show on the board where they would go, outlined in the
-  selection colour, the board dashed; what didn't fit is parked to the right of the board
-  in amber and named in the window. Nothing changes until you choose *Apply*.
-- **Apply** places them as one undo step (Ctrl+Z puts everything back) and lists what was
-  switched off in the Report. *Apply* before a preview nests and applies in one go.
+  selection colour, the board dashed, and the boards taking what doesn't fit in a row to
+  its right. An instance larger than an empty board is parked beside them in amber and
+  named in the window. Nothing changes until you choose *Apply*.
+- **Apply** places them as one undo step (Ctrl+Z puts everything back) and lists in the
+  Report what went onto other boards and what was switched off; click an instance's line
+  to select it. *Apply* before a preview nests and applies in one go.
 - **Nest again**, in the setup's right-click menu once it has been nested, nests it again
   with the same gap and margin and each part's turns, the instances there are now, without
   the window: after you change a part, or moved instances by hand. It searches on from the
@@ -63,16 +65,17 @@ chipload part set part.chipload 2 --turns half      # part 2 turned 180° at mos
 - **Counts:** `--count ID=N` cuts part ID N times: instances are added (not mirrored), or
   the highest-numbered ones that are on removed; at least one stays.
 - **Mirrored instances** stay mirrored; nesting turns and moves them, never mirrors them.
-- **What doesn't fit** is switched off, kept where it was, and named ("Part 2, instance 4
-  didn't fit: switched off"). Make the board larger, allow turns, or let it go onto more
-  boards.
-- **Onto more boards** (*What doesn't fit: Onto more boards* in the window, `--overflow
-  new-boards` on the command line), as a slicer adds plates: what doesn't fit goes to the
-  next [setup](../concepts/setups.md) with the same stock and a size of its own, else to a
-  new one made like this board (its size, work zero, gap and margin), nested there in
-  turn, and so on until everything is placed. The preview shows each board in a row to the
-  right; the Report says "2 more on Setup 2, a new board like the first". Instances keep
-  their numbers. A part larger than an empty board is still switched off. A part whose
+- **What doesn't fit goes onto more boards,** as a slicer adds plates: to the next
+  [setup](../concepts/setups.md) with the same stock and a size of its own, else to a new
+  one made like this board (its size, work zero, gap and margin), nested there in turn, and
+  so on until everything is placed. This is the same in the window, with *Nest again* and
+  on the command line. The preview shows each board in a row to the right; the Report says
+  "2 more on Setup 2, a new board like the first". Instances keep their numbers. Don't
+  want a board it made? Remove that setup.
+- **Larger than an empty board:** an instance no board can take is switched off, kept
+  where it was, and named ("Part 2, instance 4 is larger than an empty board: switched
+  off"). Its row in the Browser turns amber with a dot, saying so when you hover it. Make
+  the board larger, allow turns, or make the part smaller. A part whose
   [stock](../operations/parts.md#a-parts-stock) isn't this board's goes to a board of its
   own stock instead.
 - **The board** must have a size of its own. A board that follows the drawing (fitted to it

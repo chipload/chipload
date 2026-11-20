@@ -66,6 +66,8 @@ pub enum Target {
     UpdateTools,
     /// Place back setup `id`'s dowel holes again (docs/specs/two-sided-wizard.md §5).
     PlaceDowels(u64),
+    /// Part `0`'s instance `1`: a click selects it (docs/specs/nest-overflow-and-all.md §1).
+    Instance(u64, u32),
 }
 
 impl ReportLine {
@@ -468,6 +470,7 @@ impl ChiploadApp {
             Target::Tool(id) => t!(ui, "report-select-tool-hover", tool = id),
             Target::UpdateTools => t!(ui, "report-update-tools-hover"),
             Target::PlaceDowels(_) => t!(ui, "report-place-dowels-hover"),
+            Target::Instance(_, id) => t!(ui, "report-select-instance-hover", number = id),
         };
         let response = response.on_hover_text(hover);
         if response.hovered() {
@@ -481,6 +484,7 @@ impl ChiploadApp {
                     self.update_tools_from_library(None);
                 }
                 Target::PlaceDowels(back) => self.place_dowels_again(back),
+                Target::Instance(part, id) => self.focus = Focus::Instance(part, id),
             }
         }
     }

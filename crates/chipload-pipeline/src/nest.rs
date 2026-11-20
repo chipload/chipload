@@ -39,9 +39,6 @@ pub struct NestRequest {
     pub part_turns: Vec<(u64, Turns)>,
     /// How many times a part is cut (§6): instances added or removed first.
     pub counts: Vec<(u64, u32)>,
-    /// What doesn't fit goes onto more boards instead of being switched off
-    /// (docs/specs/parts-and-setups.md §9).
-    pub overflow: bool,
     /// What the nest makes as small as it can (docs/specs/nesting-search.md §2), kept in
     /// the file.
     pub goal: Option<NestGoal>,
@@ -231,15 +228,16 @@ fn refused(id: &'static str) -> PipelineError {
 /// Nest setup `request.setup` (docs/specs/nesting.md §4): its enabled parts' instances
 /// placed on its board, what doesn't fit switched off, the result planned and checked in
 /// full before it is returned. Refused for a setup in pieces or with a back, one with no
-/// part on, or a board that follows the drawing without a size given. With `overflow`,
-/// what doesn't fit goes onto more boards ([`overflow`]).
+/// part on, or a board that follows the drawing without a size given. What doesn't fit goes
+/// onto more boards ([`overflow`]; docs/specs/nest-overflow-and-all.md §1): only what no
+/// empty board can take is switched off.
 pub fn nest_setup(
     job: &Job,
     request: &NestRequest,
     cancel: &Cancel,
 ) -> Result<NestResult, PipelineError> {
     let first = nest_one(job, request, false, cancel)?;
-    if !request.overflow || first.unplaced.is_empty() {
+    if first.unplaced.is_empty() {
         return Ok(first);
     }
     overflow(first, cancel)
@@ -300,12 +298,8 @@ fn nest_one(
     if all.is_empty() {
         return Err(refused("pipeline-nest-no-parts"));
     }
-    // With overflow, a part that asks for another stock goes to a board of it (§9).
-    let mismatched = if request.overflow {
-        job.stock_mismatches(id)
-    } else {
-        Vec::new()
-    };
+    // A part that asks for another stock goes to a board of it (§9).
+    let mismatched = job.stock_mismatches(id);
     let parts: Vec<u64> = all
         .iter()
         .copied()
@@ -540,7 +534,6 @@ fn overflow(first: NestResult, cancel: &Cancel) -> Result<NestResult, PipelineEr
             gap: nest.map(|n| n.gap),
             margin: nest.map(|n| n.margin),
             goal: nest.map(|n| n.goal),
-            overflow: true,
             ..NestRequest::default()
         };
         let next = nest_one(&job, &request, true, cancel)?;

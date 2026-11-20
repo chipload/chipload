@@ -177,39 +177,6 @@ fn counts_add_and_remove_instances_never_the_part_itself() {
 }
 
 #[test]
-fn what_doesnt_fit_is_switched_off_and_the_part_stays_on() {
-    // About two fit on a 300 × 200 board.
-    let job = part_on_board(300.0, 200.0);
-    let nested = nest(
-        &job,
-        NestRequest {
-            counts: vec![(1, 6)],
-            ..Default::default()
-        },
-    );
-    assert!(!nested.unplaced.is_empty());
-    assert_eq!(nested.placed.len() + nested.unplaced.len(), 6);
-    let part = &nested.job.parts[0];
-    // The part itself is among those placed: it stays on.
-    assert!(part.enabled);
-    assert!(
-        nested.unplaced.iter().all(|&(_, n)| n != 1),
-        "{:?}",
-        nested.unplaced
-    );
-    for &(_, n) in &nested.unplaced {
-        assert!(!nested.job.instance(part.id, n).unwrap().enabled);
-    }
-    assert_eq!(nested.job.count(part.id) as usize, nested.placed.len());
-    assert_cut_inside(&nested.job, 10.0);
-    let notes: Vec<String> = nested.notes().iter().map(|m| m.english()).collect();
-    assert!(
-        notes.iter().any(|n| n.contains("didn't fit: switched off")),
-        "{notes:?}"
-    );
-}
-
-#[test]
 fn a_board_that_follows_the_drawing_needs_a_size_and_gets_it() {
     let mut job = every_direction(None);
     job.setups[0].stock.fit = Some(5.0);
@@ -331,14 +298,14 @@ fn the_setup_sheet_says_it_was_nested_and_how_much_board_is_used() {
     );
 }
 
-// -- Nesting onto more boards (docs/specs/parts-and-setups.md §9)
+// -- Nesting onto more boards, always (docs/specs/parts-and-setups.md §9,
+// nest-overflow-and-all.md §1)
 
 fn overflowing(job: &Job, count: u32) -> NestResult {
     nest(
         job,
         NestRequest {
             counts: vec![(1, count)],
-            overflow: true,
             ..Default::default()
         },
     )
@@ -396,20 +363,6 @@ fn what_doesnt_fit_goes_onto_new_boards_like_the_first() {
 }
 
 #[test]
-fn without_overflow_nothing_is_added() {
-    let job = part_on_board(300.0, 200.0);
-    let nested = nest(
-        &job,
-        NestRequest {
-            counts: vec![(1, 6)],
-            ..Default::default()
-        },
-    );
-    assert!(nested.overflow.is_empty() && !nested.unplaced.is_empty());
-    assert_eq!(nested.job.setups.len(), 1);
-}
-
-#[test]
 fn a_part_larger_than_any_board_is_switched_off_and_no_board_is_left() {
     // The part doesn't fit a 60 × 60 board at all.
     let job = part_on_board(60.0, 60.0);
@@ -423,6 +376,14 @@ fn a_part_larger_than_any_board_is_switched_off_and_no_board_is_left() {
             .instances_of(1)
             .iter()
             .all(|(s, i)| *s == nested.setup && !i.enabled)
+    );
+    // Named, not lost.
+    let notes: Vec<String> = nested.notes().iter().map(|m| m.english()).collect();
+    assert!(
+        notes
+            .iter()
+            .any(|n| n.contains("larger than an empty board: switched off")),
+        "{notes:?}"
     );
 }
 

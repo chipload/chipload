@@ -493,6 +493,8 @@ impl ChiploadApp {
             trailing.push(t!(ui, "browser-part-mirrored"));
         }
         let flagged = !self.form_problem_map(Focus::Instance(p, id)).is_empty();
+        // Switched off by the last nest: no board takes it (nest-overflow-and-all.md §1).
+        let too_large = !instance.enabled && self.nest_too_large.contains(&(p, id));
         let label = if named {
             t!(
                 ui,
@@ -509,7 +511,8 @@ impl ChiploadApp {
             .trailing(trailing.join(" · "))
             .selected(self.focus == Focus::Instance(p, id))
             .dim(!instance.enabled || !part.enabled || !in_active_setup)
-            .alert(flagged);
+            .alert(flagged)
+            .warn(too_large);
         let several = setups.len() > 1;
         let out = if several { row.draggable() } else { row }.show(ui);
         if several {
@@ -521,7 +524,15 @@ impl ChiploadApp {
         } else if out.response.clicked() {
             action = Some(OpAction::InstanceFocus(p, id));
         }
-        let hover = t!(ui, "browser-instance-hover");
+        let hover = if too_large {
+            format!(
+                "⚠ {}\n\n{}",
+                t!(ui, "browser-instance-too-large-hover"),
+                t!(ui, "browser-instance-hover")
+            )
+        } else {
+            t!(ui, "browser-instance-hover")
+        };
         out.response.on_hover_text(hover).context_menu(|ui| {
             if let Some(chosen) = self.instance_menu_items(ui, p, id) {
                 action = Some(chosen);

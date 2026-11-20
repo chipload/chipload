@@ -470,6 +470,9 @@ pub struct ChiploadApp {
     pub image_dialog: Option<images::ImageDialog>,
     /// The Nest window, or a Nest again running (docs/specs/nesting.md §7).
     nest: Option<Box<nesting::NestDialog>>,
+    /// The instances the last nests switched off because no board takes them, marked in the
+    /// Browser while off (docs/specs/nest-overflow-and-all.md §1); this session only.
+    nest_too_large: BTreeSet<(u64, u32)>,
     /// *Export all setups…* running (docs/specs/parts-and-setups.md §8).
     export_all: Option<export_all::ExportAllRun>,
     /// Dropped files still to bring in, one at a time (docs/specs/drawing-sources.md §3).
@@ -543,6 +546,7 @@ impl Default for ChiploadApp {
             user: user_library::UserFiles::default(),
             image_dialog: None,
             nest: None,
+            nest_too_large: BTreeSet::new(),
             export_all: None,
             drops: std::collections::VecDeque::new(),
             hidden_contours: BTreeSet::new(),

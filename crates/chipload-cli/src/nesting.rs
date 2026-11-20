@@ -44,11 +44,11 @@ pub struct NestArgs {
     /// before nesting (never the part itself).
     #[arg(long, value_parser = count_arg)]
     count: Vec<(u64, u32)>,
-    /// What doesn't fit: switched off (`off`, the default), or onto more boards
-    /// (`new-boards`): the next setup with the same stock, else a new one like this one
-    /// (docs/specs/parts-and-setups.md §9).
-    #[arg(long, value_enum, default_value_t = Overflow::Off)]
-    overflow: Overflow,
+    /// What doesn't fit always goes onto more boards: the next setup with the same stock,
+    /// else a new one like this one (docs/specs/nest-overflow-and-all.md §1). Kept for
+    /// scripts: `new-boards` is what happens anyway; `off` is refused.
+    #[arg(long, value_enum)]
+    overflow: Option<Overflow>,
     /// What the nest makes as small as it can: `compact` (the smallest box round the
     /// parts), `low` (the lowest top edge: a strip across the top left free) or `left` (the
     /// leftmost right edge: a strip down the right left free). Kept in the project.
@@ -84,12 +84,13 @@ impl From<GoalArg> for NestGoal {
     }
 }
 
-/// `--overflow`.
+/// `--overflow`, kept for scripts written before what doesn't fit always went onto more
+/// boards.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
 pub enum Overflow {
-    /// What doesn't fit is switched off.
+    /// No longer offered: refused with the reason.
     Off,
-    /// What doesn't fit goes onto more boards.
+    /// What happens anyway.
     NewBoards,
 }
 
@@ -144,6 +145,12 @@ fn part_id(text: &str) -> Result<u64, String> {
 }
 
 pub(crate) fn nest(out: &mut Out, args: NestArgs) -> ExitCode {
+    if args.overflow == Some(Overflow::Off) {
+        return out.fail(
+            "--overflow off: what doesn't fit goes onto more boards; remove a setup you \
+             don't want",
+        );
+    }
     let job = match load(out, &args.project) {
         Ok(job) => job,
         Err(code) => return code,
@@ -165,7 +172,6 @@ pub(crate) fn nest(out: &mut Out, args: NestArgs) -> ExitCode {
             .filter_map(|t| t.part.map(|p| (p, t.turns)))
             .collect(),
         counts: args.count.clone(),
-        overflow: args.overflow == Overflow::NewBoards,
         goal: args.goal.map(NestGoal::from),
     };
     let nested = match nest_setup(&job, &request, &Cancel::new()) {

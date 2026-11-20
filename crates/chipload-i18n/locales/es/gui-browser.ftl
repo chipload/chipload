@@ -183,3 +183,4 @@ browser-prism = Prisma
 browser-prism-hover = Las formas cerradas seleccionadas quedan en pie como tejados, con una arista viva en el centro, cortadas con una fresa en V
 browser-moulding = Moldura
 browser-moulding-hover = Un perfil (mediacaña, gola, junquillo…) barrido a lo largo de las trayectorias seleccionadas
+browser-instance-too-large-hover = Mayor que un tablero vacío: ningún tablero la admite, así que el último anidado la desactivó. Agrande el tablero, permita girarla o hágala más pequeña.

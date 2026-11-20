@@ -49,8 +49,6 @@ pub(super) struct NestDialog {
     pub(super) gap: f64,
     pub(super) margin: f64,
     pub(super) rows: Vec<NestRow>,
-    /// What doesn't fit goes onto more boards (docs/specs/parts-and-setups.md §9).
-    pub(super) overflow: bool,
     /// What the nest makes as small as it can (docs/specs/nesting-search.md §2).
     pub(super) goal: NestGoal,
     run: Option<NestRun>,
@@ -72,7 +70,6 @@ impl NestDialog {
             turns: None,
             part_turns: self.rows.iter().map(|r| (r.part, r.turns)).collect(),
             counts: self.rows.iter().map(|r| (r.part, r.count)).collect(),
-            overflow: self.overflow,
             goal: Some(self.goal),
         }
     }
@@ -139,7 +136,6 @@ impl ChiploadApp {
             gap: s.nest.map_or(NEST_GAP_MM, |n| n.gap),
             margin: s.nest.map_or(NEST_MARGIN_MM, |n| n.margin),
             rows,
-            overflow: false,
             goal: s.nest.map(|n| n.goal).unwrap_or_default(),
             run: None,
             preview: None,
@@ -165,7 +161,6 @@ impl ChiploadApp {
             gap: s.nest.map_or(NEST_GAP_MM, |n| n.gap),
             margin: s.nest.map_or(NEST_MARGIN_MM, |n| n.margin),
             rows: Vec::new(),
-            overflow: false,
             goal: s.nest.map(|n| n.goal).unwrap_or_default(),
             run: None,
             preview: None,
@@ -333,9 +328,26 @@ impl ChiploadApp {
             self.commit();
         }
         self.set_status(result.summary().render(lang, units), STATUS_SECONDS);
-        for note in result.notes() {
-            self.report.push(Tone::Warning, note.render(lang, units));
+        // The last notes are the instances switched off, in order: each opens its instance.
+        let notes = result.notes();
+        let first_off = notes.len() - result.unplaced.len().min(notes.len());
+        for (k, note) in notes.iter().enumerate() {
+            let target = k
+                .checked_sub(first_off)
+                .and_then(|i| result.unplaced.get(i))
+                .map(|&(part, id)| super::report::Target::Instance(part, id));
+            match target {
+                Some(target) => {
+                    self.report
+                        .push_target(Tone::Warning, note.render(lang, units), target);
+                }
+                None => self.report.push(Tone::Warning, note.render(lang, units)),
+            }
         }
+        // This setup's instances are marked afresh.
+        let here = instances_on(&result.job, result.setup);
+        self.nest_too_large.retain(|i| !here.contains(i));
+        self.nest_too_large.extend(result.unplaced.iter().copied());
         self.nest = None;
     }
 
@@ -485,26 +497,6 @@ fn nest_form(
                         changed |= ui
                             .selectable_value(&mut dialog.goal, goal, name)
                             .on_hover_text(hover)
-                            .changed();
-                    }
-                });
-            ui.end_row();
-            // What doesn't fit (docs/specs/parts-and-setups.md §9).
-            ui.label(t!(ui, "nest-overflow"))
-                .on_hover_text(t!(ui, "nest-overflow-hover"));
-            let text = |ui: &egui::Ui, on: bool| {
-                if on {
-                    t!(ui, "nest-overflow-boards")
-                } else {
-                    t!(ui, "nest-overflow-off")
-                }
-            };
-            egui::ComboBox::from_id_salt("nest-overflow")
-                .selected_text(text(ui, dialog.overflow))
-                .show_ui(ui, |ui| {
-                    for on in [false, true] {
-                        changed |= ui
-                            .selectable_value(&mut dialog.overflow, on, text(ui, on))
                             .changed();
                     }
                 });

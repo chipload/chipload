@@ -356,6 +356,11 @@ to a program you trust. It was about four per operation; with the defaults and s
    window. Steps: (1) the tabs, each space's content, views kept: **done**; (2) parts
    dragged from the Browser onto a board: **done** (snapping to instances not built); (3) *Reset to where drawn* and `--reset`: **done**. The user to try.
    Guide screenshots to renew once all three are in.
+12j. **Nesting: what doesn't fit onto more boards, always; nest every setup again** (the
+   user, 2026-11-20). Spec approved (docs/specs/nest-overflow-and-all.md). Steps: (1)
+   overflow always, the *What doesn't fit* choice gone, `--overflow off` refused, an
+   instance no board takes marked amber in the Browser and its Report line selecting it:
+   **done**; (2) *Nest all setups again* and `nest --all`.
 13. **Small follow-ups:**
     - Large files and functions (started 2026-11-16, aim: files under 1,000 lines, one job
       per function): split so far `plan/`, `pocket/`, the job's `operations/` and `library/`,
