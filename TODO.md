@@ -163,6 +163,11 @@ done is in git and in the releases' notes on GitHub, no longer listed here.
    - Image fuzzing is slow (38 inputs a second with arcs and centre lines): find which
      pictures are slow and whether a user could hit it.
    - A JSON Schema for `styles.json`, as the other library files have.
+   - The window test `the_tabs_switch_spaces_and_a_double_click_opens_an_instances_part`
+     is skipped on Windows: its clicks at pixel positions missed there in the release
+     build (Windows' fonts lay the headless window out otherwise; 2026-11-20). Make it
+     independent of the layout (click the tabs through their accessibility nodes, find a
+     clear point on the instance from the window's own rects), then run it there again.
 10. **Later, the user's ideas**, each with its own spec:
     - **STEP import** (2026-10-30): a STEP file seen from a chosen side, its edges as lines
       and arcs, faces square to the view as outlines at their depth. Needs an ADR for the

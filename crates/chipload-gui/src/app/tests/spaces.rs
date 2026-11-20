@@ -114,7 +114,15 @@ fn click(h: &mut Harness<'_, ChiploadApp>, at: egui::Pos2, double: bool) {
     h.run_steps(2);
 }
 
+/// Clicks at pixel positions on the canvas's tabs and an instance: Windows' fonts lay the
+/// headless window out otherwise, and its release build missed a click there three times
+/// (2026-11-20; TODO, item 9). What the clicks do is covered without a layout by
+/// `what_is_selected_picks_the_space` and `each_space_keeps_its_view_…`.
 #[test]
+#[cfg_attr(
+    target_os = "windows",
+    ignore = "clicks at pixel positions; Windows' fonts give another layout"
+)]
 fn the_tabs_switch_spaces_and_a_double_click_opens_an_instances_part() {
     let mut h = window();
     assert_eq!(h.state().space(), Space::Drawing);
