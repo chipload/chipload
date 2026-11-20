@@ -8,10 +8,12 @@ instance follows.
 In the window:
 - **Right-click the part** in the Browser: *Add instance* places it again beside what it
   cuts, 10 mm away; *Add mirrored instance* does the same, mirrored left to right.
-- **On the canvas**, each instance is drawn faded where it is cut, with a badge above its
-  top left: its number (`#2`) and a four-way arrow. One that is off is dashed. The badge is
-  the handle: click it to select the instance, drag it to move it (the outline can be
-  dragged too, where no shape lies under it). A selected instance has a round turn handle
+- **On the canvas**, instances are placed in their setup's tab
+  ([the canvas](../window.md#the-canvas)): each drawn where it is cut, with a badge above
+  its top left: its number (`#2`) and a four-way arrow. One that is off is dashed. A part
+  cut once, where it is drawn, has no badge: it is just the part. Click an instance (its
+  badge or outline) to select it, drag it to move it. Double-click it to open its part in
+  *Drawing*. A selected instance has a round turn handle
   with a curved arrow: drag it to turn the instance about its middle. Under the pointer an
   instance's outline thickens and the pointer becomes a hand, so you see what a drag
   takes. Hold Shift while moving to keep it to 15° steps from where you grabbed it
@@ -92,7 +94,8 @@ chipload part set part.chipload 1 --order by-instance     # every operation on o
     project is run, and the commands warn as soon as you place one there;
   - instances have to fit the stock and the machine like anything else.
 - **Limits:** up to 100 columns or rows in a grid, and 1 000 instances.
-- **Display:** the canvas and the setup sheet draw the instances faded where they are cut.
+- **Display:** the setup's tab draws the instances where they are cut, the setup sheet
+  faded.
   The setup sheet and the playback say which instance is being cut, and the sheet says
   where a part placed elsewhere than drawn is cut.
 
@@ -104,14 +107,14 @@ the first included, is a placement of them. This lets you lay parts out on a she
 moving the drawing, for instance when several parts come from one DXF.
 
 In the window:
-- **Right-click the part** in the Browser, *Place…*: its first instance is selected, a
-  ghost `#1` on its shapes with its round turn handle, and its form opens with its
-  rotation and how far it is moved. Drag it by its badge `#1` (above its shapes, so the
-  shapes underneath aren't in the way), turn it by its handle, or press Q for the Compass.
+- **Right-click the part** in the Browser, *Place…*: its first instance is selected in
+  its setup's tab, with its round turn handle, and its form opens with its rotation and
+  how far it is moved. Drag it, turn it by its handle, or press Q for the Compass.
   *Reset placement* puts it back where drawn.
-- **On the canvas**, once placed, it is a ghost `#1` where it is cut, picked, dragged and
-  turned like any instance. Its shapes, where they are drawn, get a dashed box saying
-  "not cut here"; edit them there, and every instance follows.
+- **On the canvas**, once placed, it is `#1` in its setup's tab where it is cut, picked,
+  dragged and turned like any instance. Its shapes stay where they are drawn, in
+  *Drawing*; edit them there, and every instance follows. *Drawing* shows no board behind
+  a part that isn't cut where it is drawn.
 - **In the Browser**, its instances are under *Setup 1* ("Side #1", "Side #2"), the
   setups listed once the part is placed.
 - **The Compass** (Q) works on a selected instance, the first included: drag an arrow to

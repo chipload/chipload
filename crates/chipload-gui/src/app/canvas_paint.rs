@@ -198,6 +198,7 @@ impl ChiploadApp {
         painter: &egui::Painter,
     ) -> Vec<DimensionLabel> {
         if self.display.three_d
+            || self.space() == super::display::Space::Setup
             || self.sketch().is_some()
             || self.measure().is_some()
             || !self.show_drawing()

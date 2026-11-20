@@ -10,7 +10,11 @@ const ROTATE_HANDLE_PX: f64 = 24.0;
 impl ChiploadApp {
     /// Handles of the selected shape: one drawn shape, in top view, not while drawing.
     pub(super) fn shape_handles(&self) -> Vec<(Handle, Point)> {
-        if self.display.three_d || self.sketch().is_some() || !self.can_draw() {
+        if self.display.three_d
+            || self.sketch().is_some()
+            || !self.can_draw()
+            || self.space() == super::display::Space::Setup
+        {
             return Vec::new();
         }
         let Some(shape) = self.selected_shape().and_then(|id| self.shape(id)) else {

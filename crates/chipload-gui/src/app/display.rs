@@ -17,6 +17,12 @@ pub struct Display {
     pub part: Option<u64>,
     /// The focus `part` last followed (`ChiploadApp::follow_focus`).
     pub followed: Option<super::Focus>,
+    /// The space shown (docs/specs/drawing-and-setup-spaces.md §2), as last picked; what is
+    /// selected picks it again (`ChiploadApp::space`).
+    pub space: Space,
+    /// Each space's view, scale and offset, kept while another is shown: the drawing's
+    /// under None, a setup's under its id.
+    pub views: std::collections::BTreeMap<Option<u64>, (f64, (f64, f64))>,
     /// View > Show images: the pictures, faintly over the stock and under the drawing.
     pub images: bool,
     /// View → Show toolpath (docs/specs/drawing-sources.md §5).
@@ -54,8 +60,20 @@ impl Default for Display {
             turn_axis: true,
             part: None,
             followed: None,
+            space: Space::Drawing,
+            views: std::collections::BTreeMap::new(),
             legend_open: true,
             other: None,
         }
     }
+}
+
+/// The two kinds of space the canvas shows (docs/specs/drawing-and-setup-spaces.md §2).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Space {
+    /// Every part's shapes where drawn, to draw and edit; no instances.
+    #[default]
+    Drawing,
+    /// The active setup's board and its instances; no drawn shapes.
+    Setup,
 }

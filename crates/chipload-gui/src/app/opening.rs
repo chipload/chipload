@@ -40,6 +40,9 @@ impl ChiploadApp {
         self.history.undo.clear();
         self.history.redo.clear();
         self.focus = Focus::Job;
+        // A project opens on its drawing (docs/specs/drawing-and-setup-spaces.md §6).
+        self.display.space = super::display::Space::Drawing;
+        self.display.views.clear();
         self.error_ops.clear();
         self.selection = CanvasSelection::Nothing;
         self.invalidate();
@@ -93,6 +96,34 @@ impl ChiploadApp {
     /// (docs/specs/setups.md §5), from the edited project with its operations: a board
     /// that fits fits its own setup's parts.
     pub(super) fn update_ghosts(&mut self) {
+        // The drawing space (docs/specs/drawing-and-setup-spaces.md §3): every part's
+        // shapes, the other parts' dimmed, no other setup; the board faintly, only when the
+        // part is cut where it is drawn.
+        if self.space() == super::display::Space::Drawing {
+            let part = self.drawing_part();
+            let job = self.edited_job();
+            self.scene.sheets.clear();
+            self.scene.pieces.clear();
+            self.scene.stock_faint = true;
+            self.scene.ghost_contours = job
+                .as_ref()
+                .map(|job| ghost_contours(job, &self.contours, |p| Some(p) == part))
+                .unwrap_or_default();
+            let drawn_here = job
+                .as_ref()
+                .zip(part)
+                .is_some_and(|(job, id)| job.instances_of(id).iter().any(|(_, i)| i.is_drawn()));
+            let board = match (self.part_shown(), &job) {
+                (Some(id), Some(job)) => {
+                    chipload_pipeline::part_view::part_view(job, id).map(|view| view.stock_bounds())
+                }
+                (None, Some(job)) => Some(job.stock_bounds()),
+                _ => None,
+            };
+            self.scene.stock = board.filter(|_| drawn_here);
+            return;
+        }
+        self.scene.stock_faint = false;
         // A part shown alone (docs/specs/parts-and-setups.md §8a): its board, no other
         // setup, every contour only another part cuts a ghost.
         if let Some((id, job)) = self

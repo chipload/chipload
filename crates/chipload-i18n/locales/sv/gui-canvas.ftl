@@ -91,4 +91,8 @@ compass-value-angle = Vinkel
 compass-value-delta = ΔX ΔY
 # A part cut elsewhere than drawn: the label on the dashed box round its shapes
 # (docs/specs/part-placement.md §4).
-canvas-not-cut-here = { $part }: fräses inte här
+canvas-tab-drawing = Ritning
+canvas-tab-drawing-hover = Alla detaljers former, där de är ritade: rita och ändra dem här.
+canvas-tab-setup-hover = Dess skiva och instanserna på den, där de fräses: placera, vrid och nesta dem här.
+canvas-tab-add-hover = Lägg till en uppspänning: en skiva till
+canvas-tab-back = { $name } (baksida)

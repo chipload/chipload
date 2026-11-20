@@ -559,35 +559,139 @@ impl ChiploadApp {
         }
     }
 
-    /// What is shown follows what is selected (docs/specs/parts-and-setups.md §8a): a part
-    /// or one of its operations shows that part alone; a setup, the project, the stock,
-    /// the work zero or an instance shows the active setup; anything else leaves it.
-    pub(super) fn follow_focus(&mut self) {
-        if self.display.followed == Some(self.focus) {
-            return;
+    /// The space what is selected asks for (docs/specs/drawing-and-setup-spaces.md §2): a
+    /// part, an operation or a drawn thing the drawing; a setup, its stock, work zero or an
+    /// instance its setup's; anything else (the project, tools, the library) the one last
+    /// shown.
+    pub(super) fn space(&self) -> super::display::Space {
+        use super::display::Space;
+        match self.focus {
+            Focus::Part(_)
+            | Focus::Op(_)
+            | Focus::RestPass(..)
+            | Focus::FloorPass(_)
+            | Focus::RoughingPass(_)
+            | Focus::SmoothingPass(_)
+            | Focus::Selection
+            | Focus::Text(_)
+            | Focus::Image(_)
+            | Focus::Model(_)
+            | Focus::Dxf(_) => Space::Drawing,
+            Focus::Stock | Focus::WorkZero | Focus::Setup(_) | Focus::Instance(..) => Space::Setup,
+            _ => self.display.space,
         }
-        self.display.followed = Some(self.focus);
-        let op_part = |i: usize| {
-            self.edit
-                .as_ref()
-                .and_then(|e| e.job.operations.get(i))
-                .map(|op| Some(op.part()))
-        };
+    }
+
+    /// The part the drawing space is about: the selected part, or the selected operation's,
+    /// else the one shown last, else the active part.
+    pub(super) fn drawing_part(&self) -> Option<u64> {
+        let job = &self.edit.as_ref()?.job;
+        let op_part = |i: usize| job.operations.get(i).map(|op| op.part());
         let wanted = match self.focus {
-            Focus::Part(id) => Some(Some(id)),
+            Focus::Part(id) => Some(id),
             Focus::Op(i)
             | Focus::RestPass(i, _)
             | Focus::FloorPass(i)
             | Focus::RoughingPass(i)
             | Focus::SmoothingPass(i) => op_part(i),
-            Focus::Job | Focus::Stock | Focus::WorkZero | Focus::Setup(_) | Focus::Instance(..) => {
-                Some(None)
-            }
             _ => None,
         };
-        if let Some(part) = wanted {
-            self.show_part(part);
+        wanted
+            .or(self.display.part)
+            .filter(|&id| job.part(id).is_some())
+            .or_else(|| job.active_part_id())
+    }
+
+    /// What is shown follows what is selected (docs/specs/drawing-and-setup-spaces.md §2):
+    /// the drawing space shows its part's toolpath alone, where drawn; a setup's space the
+    /// active setup. Each space keeps its view.
+    pub(super) fn follow_focus(&mut self) {
+        if self.display.followed == Some(self.focus) {
+            return;
         }
+        self.display.followed = Some(self.focus);
+        let before = self.display.space;
+        let space = self.space();
+        self.switch_space(before, space);
+        match space {
+            super::display::Space::Drawing => self.show_part(self.drawing_part()),
+            super::display::Space::Setup => self.show_part(None),
+        }
+    }
+
+    /// Shapes are drawn in the drawing space: from a setup's space, its part is selected
+    /// and the drawing shown first (docs/specs/drawing-and-setup-spaces.md §4).
+    pub(super) fn enter_drawing_space(&mut self) {
+        if self.space() == super::display::Space::Setup
+            && let Some(part) = self.drawing_part()
+        {
+            self.focus = Focus::Part(part);
+            self.follow_focus();
+        }
+    }
+
+    /// A tab over the canvas clicked (docs/specs/drawing-and-setup-spaces.md §2): None the
+    /// drawing, else setup `id`, made active and selected. Each keeps its view.
+    pub(super) fn click_space_tab(&mut self, tab: Option<u64>) {
+        use super::display::Space;
+        match tab {
+            None => self.enter_drawing_space(),
+            Some(id) => {
+                let active = self.edit.as_ref().and_then(|e| e.job.active_setup_id());
+                if self.space() == Space::Setup && active != Some(id) {
+                    // From one board to another: this one's view kept, that one's back.
+                    self.display
+                        .views
+                        .insert(active, (self.view.scale, self.view.offset));
+                    self.activate_setup(id);
+                    match self.display.views.get(&Some(id)) {
+                        Some(&(scale, offset)) if !self.display.three_d => {
+                            self.view.scale = scale;
+                            self.view.offset = offset;
+                        }
+                        _ => self.fit_pending = true,
+                    }
+                } else if active != Some(id) {
+                    self.activate_setup(id);
+                }
+                self.focus = Focus::Setup(id);
+                self.follow_focus();
+            }
+        }
+    }
+
+    /// The key a space's view is kept under: None the drawing, a setup's id.
+    pub(super) fn view_key(&self, space: super::display::Space) -> Option<u64> {
+        match space {
+            super::display::Space::Drawing => None,
+            super::display::Space::Setup => {
+                self.edit.as_ref().and_then(|e| e.job.active_setup_id())
+            }
+        }
+    }
+
+    /// From space `from` (its view kept) to `to` (its view put back, or fitted the first
+    /// time); the scene's board and ghosts redone.
+    pub(super) fn switch_space(&mut self, from: super::display::Space, to: super::display::Space) {
+        let (old, new) = (self.view_key(from), self.view_key(to));
+        self.display.space = to;
+        if old == new && from == to {
+            return;
+        }
+        // A view still waiting for its first fit is nothing to come back to.
+        if !self.fit_pending {
+            self.display
+                .views
+                .insert(old, (self.view.scale, self.view.offset));
+        }
+        match self.display.views.get(&new) {
+            Some(&(scale, offset)) if !self.display.three_d => {
+                self.view.scale = scale;
+                self.view.offset = offset;
+            }
+            _ => self.fit_pending = true,
+        }
+        self.update_ghosts();
     }
 
     /// Export G-code: now if the toolpath is current, else once the run in progress (or one

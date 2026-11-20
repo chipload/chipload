@@ -59,6 +59,7 @@ mod shape_library;
 mod sheets;
 mod sign;
 mod simple_case;
+mod spaces;
 mod statistics;
 mod stock;
 mod styles;
@@ -161,6 +162,14 @@ fn press_with(app: &mut ChiploadApp, modifiers: egui::Modifiers, key: egui::Key)
 }
 
 /// Draw the canvas and the status bar for one frame.
+/// The active setup's space shown, as a click on its row or tab does
+/// (docs/specs/drawing-and-setup-spaces.md §2).
+fn show_setup(app: &mut ChiploadApp) {
+    let id = app.edit.as_ref().unwrap().job.active_setup_id().unwrap();
+    app.focus = Focus::Setup(id);
+    app.follow_focus();
+}
+
 fn draw_canvas(app: &mut ChiploadApp) {
     let ctx = egui::Context::default();
     let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {

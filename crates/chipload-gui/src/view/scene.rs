@@ -178,6 +178,12 @@ impl Scene {
 pub struct Scene {
     pub contours: Vec<ContourShape>,
     pub stock: Option<(Point, Point)>,
+    /// The board drawn faintly: behind the drawing space's shapes, to draw against
+    /// (docs/specs/drawing-and-setup-spaces.md §3).
+    pub stock_faint: bool,
+    /// A setup's space: the drawn shapes, pictures and models are neither drawn nor picked,
+    /// only the instances (docs/specs/drawing-and-setup-spaces.md §4).
+    pub shapes_hidden: bool,
     /// The other setups as sheets beside the active board (docs/specs/parts-and-setups.md
     /// §7): each its board and its instances' outlines, moved there for the view only.
     pub sheets: Vec<Sheet>,
@@ -235,9 +241,6 @@ pub struct Scene {
     /// The boards that take what didn't fit, in a row right of it, moved there for the view
     /// only (docs/specs/parts-and-setups.md §9).
     pub nest_more_boards: Vec<(Point, Point)>,
-    /// Parts placed elsewhere than drawn: the box round their shapes and its label, "Part
-    /// 1: not cut here", dashed (docs/specs/part-placement.md §4).
-    pub elsewhere: Vec<((Point, Point), String)>,
     /// Mirrored parts' contours where they are cut (docs/specs/mirror-part.md §5): drawn
     /// faded, never picked; the shapes as drawn stay to edit.
     pub mirrored: Vec<Vec<Point>>,
@@ -381,7 +384,7 @@ impl Scene {
 
     /// The contour nearest to a screen position, within the pick tolerance.
     pub fn pick(&self, view: &View, at: Pos2) -> Option<usize> {
-        if self.hide_drawing {
+        if self.hide_drawing || self.shapes_hidden {
             return None;
         }
         self.contours
@@ -605,7 +608,12 @@ impl Scene {
         }
         if let Some(((x0, y0), (x1, y1))) = self.stock {
             let corners = [(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)];
-            dashed(screen(&corners), Stroke::new(1.0, pal.stock));
+            let board = if self.stock_faint {
+                pal.stock.gamma_multiply(0.45)
+            } else {
+                pal.stock
+            };
+            dashed(screen(&corners), Stroke::new(1.0, board));
             // In 3D the stock is a box: its bottom outline and the vertical edges.
             if !flat && let Some((top, bottom)) = self.stock_z {
                 let at = |p: Point, z: f64| view.to_screen3((p.0, p.1, z));
@@ -684,12 +692,12 @@ impl Scene {
             sim.paint(painter, view, fade);
         }
         if !flat && self.sim.is_none() {
-            for model in &self.models {
+            for model in self.models.iter().filter(|_| !self.shapes_hidden) {
                 painter.add(Shape::mesh(model.mesh(view, true)));
             }
         }
         // Over the stock, so the trace can be compared with the cut.
-        for picture in &self.pictures {
+        for picture in self.pictures.iter().filter(|_| !self.shapes_hidden) {
             picture.paint(painter, view);
         }
         if !self.hide_drawing {
@@ -711,8 +719,8 @@ impl Scene {
             let (color, width) = match (ghost.selected, ghost.hot) {
                 (true, hot) => (pal.selected, if hot { 2.5 } else { 1.5 }),
                 // Hovered: thicker in its own colour, never mistaken for the selected one.
-                (false, true) => (pal.ghost, 2.5),
-                (false, false) => (pal.ghost, 1.0),
+                (false, true) => (pal.outer, 2.5),
+                (false, false) => (pal.outer, 1.5),
             };
             for outline in &ghost.outlines {
                 // An instance that is off is kept, not cut: dashed.
@@ -735,6 +743,9 @@ impl Scene {
             } else {
                 1.0
             };
+            if ghost.label.is_empty() {
+                continue;
+            }
             paint_badge(
                 painter,
                 badge_rect(view, ghost),
@@ -757,19 +768,9 @@ impl Scene {
                 Stroke::new(1.5, pal.selected),
             );
         }
-        for ((low, high), label) in &self.elsewhere {
-            let corners = [*low, (high.0, low.1), *high, (low.0, high.1), *low];
-            dashed(
-                corners.iter().map(|&p| view.to_screen(p)).collect(),
-                Stroke::new(1.0, pal.ghost),
-            );
-            painter.text(
-                view.to_screen((low.0, high.1)) + Vec2::new(0.0, -4.0),
-                eframe::egui::Align2::LEFT_BOTTOM,
-                label,
-                eframe::egui::FontId::proportional(12.0),
-                pal.ghost,
-            );
+        // The drawn shapes and what lies on them: not in a setup's space.
+        if self.shapes_hidden {
+            return;
         }
         if let Some((color, lines)) = &self.rim {
             for (line, width) in lines {

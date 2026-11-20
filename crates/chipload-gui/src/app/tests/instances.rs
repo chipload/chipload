@@ -15,7 +15,9 @@ fn harness() -> Harness<'static, ChiploadApp> {
             let mut app = ChiploadApp::default();
             assert!(app.open(&corpus("jobs/v5/drawn_part.chipload")));
             app.add_instance(1, false);
-            app.focus = Focus::Job;
+            // The setup's space: its instances, nothing selected
+            // (docs/specs/drawing-and-setup-spaces.md §4).
+            app.focus = Focus::Setup(1);
             app.fit_pending = true;
             app
         });
@@ -33,7 +35,14 @@ fn screen(h: &Harness<'_, ChiploadApp>, p: (f64, f64)) -> egui::Pos2 {
 
 /// A point on the ghost's first outline, halfway along its first line.
 fn on_ghost(h: &Harness<'_, ChiploadApp>) -> (f64, f64) {
-    let ghost = &h.state().scene.instances[0];
+    // The newest instance.
+    let ghost = h
+        .state()
+        .scene
+        .instances
+        .iter()
+        .max_by_key(|g| g.id)
+        .unwrap();
     let (a, b) = (ghost.outlines[0][0], ghost.outlines[0][1]);
     ((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0)
 }
@@ -77,7 +86,7 @@ fn an_instance_is_added_beside_the_part_drawn_numbered_and_undone() {
     assert_eq!(others(job, 1).len(), 1);
     assert_eq!(app.focus, Focus::Instance(1, 2));
     draw_canvas(&mut app);
-    let ghost = &app.scene.instances[0];
+    let ghost = app.scene.instances.iter().find(|g| g.id == 2).unwrap();
     assert_eq!(ghost.label, "#2");
     assert!(ghost.selected && ghost.handle.is_some());
     // Beside the part: right of everything it draws.
@@ -103,8 +112,9 @@ fn an_instance_is_added_beside_the_part_drawn_numbered_and_undone() {
     app.undo();
     app.undo();
     assert!(others(&app.edit.as_ref().unwrap().job, 1).is_empty());
+    // Back to the part cut once, where drawn: just the part, no badge.
     draw_canvas(&mut app);
-    assert!(app.scene.instances.is_empty());
+    assert!(app.scene.instances.iter().all(|g| g.label.is_empty()));
 }
 
 #[test]
@@ -139,7 +149,14 @@ fn an_instance_is_picked_moved_and_turned_on_the_canvas() {
     // Its handle turns it: a little past a quarter turn snaps to the quarter.
     h.state_mut().focus = Focus::Instance(1, 2);
     h.run_steps(3);
-    let ghost = h.state().scene.instances[0].clone();
+    let ghost = h
+        .state()
+        .scene
+        .instances
+        .iter()
+        .find(|g| g.id == 2)
+        .unwrap()
+        .clone();
     let (centre, handle) = (ghost.centre, ghost.handle.unwrap());
     let r = ((handle.0 - centre.0).powi(2) + (handle.1 - centre.1).powi(2)).sqrt();
     // From straight up round to 2° past straight left.
@@ -171,7 +188,14 @@ fn an_instance_is_changed_from_the_browser_menu_and_removed_with_delete() {
     assert!(!i.enabled);
     // The part's form and the Browser still draw; the instance is drawn dashed.
     draw_canvas(&mut app);
-    assert!(!app.scene.instances[0].enabled);
+    assert!(
+        !app.scene
+            .instances
+            .iter()
+            .find(|g| g.id == 2)
+            .unwrap()
+            .enabled
+    );
     draw_sidebar(&mut app);
     draw_properties(&mut app);
     app.focus = Focus::Instance(1, 2);
@@ -207,9 +231,11 @@ fn own(app: &ChiploadApp) -> ([f64; 2], f64) {
 #[test]
 fn the_part_itself_is_placed_shown_where_it_is_cut_and_reset() {
     let mut app = drawn_part();
+    // A project opens on its drawing: shapes, no instances
+    // (docs/specs/drawing-and-setup-spaces.md §3).
     draw_canvas(&mut app);
-    assert!(app.scene.instances.is_empty() && app.scene.elsewhere.is_empty());
-    // *Place…* opens its form: instance 1.
+    assert!(app.scene.instances.is_empty() && !app.scene.shapes_hidden);
+    // *Place…* opens its form: instance 1, in its setup's space.
     app.place_part(1);
     assert_eq!(app.focus, Focus::Instance(1, 1));
     draw_properties(&mut app);
@@ -218,14 +244,18 @@ fn the_part_itself_is_placed_shown_where_it_is_cut_and_reset() {
     assert!(app.set_instance_value(1, 1, placed));
     app.commit();
     assert_eq!(own(&app), ([300.0, 0.0], 0.0));
-    // A ghost #1 where it is cut, and a dashed box round its shapes, not cut there.
+    // #1 where it is cut; the shapes as drawn not shown in the setup's space.
     draw_canvas(&mut app);
+    assert!(app.scene.shapes_hidden);
     let ghost = app.scene.instances.iter().find(|g| g.id == 1).unwrap();
     assert!(ghost.label == "#1" && ghost.selected);
     let ((x0, _), _) = app.edit.as_ref().unwrap().job.part_box(1).unwrap();
     assert!(ghost.outlines.iter().flatten().all(|p| p.0 > x0 + 250.0));
-    assert_eq!(app.scene.elsewhere.len(), 1);
-    assert!(app.scene.elsewhere[0].1.ends_with("not cut here"));
+    // In the drawing space: the shapes, no instance, and no board (not cut here).
+    app.focus = Focus::Part(1);
+    draw_canvas(&mut app);
+    assert!(app.scene.instances.is_empty() && app.scene.stock.is_none());
+    app.focus = Focus::Instance(1, 1);
     // Turned a quarter from its menu.
     app.turn_instance(1, 1, true);
     assert_eq!(own(&app).1, FRAC_PI_2);
@@ -233,13 +263,14 @@ fn the_part_itself_is_placed_shown_where_it_is_cut_and_reset() {
     app.reset_part_placement(1);
     assert_eq!(own(&app), ([0.0, 0.0], 0.0));
     draw_canvas(&mut app);
-    // Still shown while selected, but cut where drawn: no "not cut here".
-    assert!(app.scene.elsewhere.is_empty());
-    assert!(app.scene.instances.iter().any(|g| g.id == 1));
-    // Selected elsewhere: cut where drawn, it is its shapes, no ghost.
+    // In its setup's space, cut where drawn and once: the part itself, no badge.
+    let ghost = app.scene.instances.iter().find(|g| g.id == 1).unwrap();
+    assert!(ghost.label.is_empty());
+    // In the drawing space: the board faintly behind the shapes, cut where drawn.
     app.focus = Focus::Part(1);
     draw_canvas(&mut app);
     assert!(app.scene.instances.is_empty());
+    assert!(app.scene.stock.is_some() && app.scene.stock_faint);
     app.undo();
     assert_eq!(own(&app), ([300.0, 0.0], FRAC_PI_2));
     // Like any instance (docs/specs/parts-and-setups.md §6): mirrored, off alone, removed.
@@ -275,7 +306,13 @@ fn the_compass_moves_and_turns_an_instance() {
     app.add_instance(1, false);
     draw_canvas(&mut app);
     let start = instance(&app);
-    let centre = app.scene.instances[0].centre;
+    let centre = app
+        .scene
+        .instances
+        .iter()
+        .find(|g| g.id == 2)
+        .unwrap()
+        .centre;
     // Q on the selected instance: the Compass sits on its centre.
     app.toggle_compass();
     let (at, angle, _) = app.compass_now().unwrap();
@@ -365,7 +402,14 @@ fn the_part_itself_is_shown_to_place_without_instances() {
         use egui_kittest::kittest::Queryable;
         assert!(h.query_by_label("Part 1 #1").is_some());
     }
-    let ghost = h.state().scene.instances[0].clone();
+    let ghost = h
+        .state()
+        .scene
+        .instances
+        .iter()
+        .find(|g| g.id == 1)
+        .unwrap()
+        .clone();
     assert!(ghost.id == 1 && ghost.selected && ghost.handle.is_some());
     // Where the part is drawn: on its shapes.
     let ((x0, y0), (x1, y1)) = h.state().edit.as_ref().unwrap().job.part_box(1).unwrap();
@@ -398,11 +442,18 @@ fn an_instance_is_moved_by_its_badge() {
         let ghost = state.scene.instances.iter().find(|g| g.id == id).unwrap();
         crate::view::badge_rect(&state.view, ghost).center()
     };
-    assert_eq!(h.state().focus, Focus::Job, "not selected");
+    assert_eq!(h.state().focus, Focus::Setup(1), "not selected");
     // Hovered: lit up, nothing else.
     h.hover_at(badge(&h, 2));
     h.run_steps(3);
-    let ghost = h.state().scene.instances[0].clone();
+    let ghost = h
+        .state()
+        .scene
+        .instances
+        .iter()
+        .find(|g| g.id == 2)
+        .unwrap()
+        .clone();
     assert!(ghost.hot && !ghost.selected, "{ghost:?}");
     // Dragged by it: moved and selected.
     let start = instance(h.state());
@@ -470,6 +521,11 @@ fn instance_handles_pictures() {
     h.run_steps(4);
     let image = h.render().unwrap();
     image.save(dir.join("instance-handles.png")).unwrap();
+    // The drawing space: the part's shapes, the board faint, no instances.
+    h.state_mut().focus = Focus::Part(1);
+    h.run_steps(8);
+    let image = h.render().unwrap();
+    image.save(dir.join("drawing-space.png")).unwrap();
 }
 
 #[test]
@@ -478,7 +534,13 @@ fn shift_keeps_an_instance_move_to_15_degree_steps() {
     app.add_instance(1, false);
     draw_canvas(&mut app);
     let start = instance(&app);
-    let grab = app.scene.instances[0].centre;
+    let grab = app
+        .scene
+        .instances
+        .iter()
+        .find(|g| g.id == 2)
+        .unwrap()
+        .centre;
     assert!(app.start_instance_drag((1, 2), super::super::instances::InstanceGrip::Move, grab));
     // Nearly straight up: held to straight up.
     app.drag_instance_to((grab.0 + 2.0, grab.1 + 40.0), false, true);

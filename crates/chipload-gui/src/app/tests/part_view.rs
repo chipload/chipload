@@ -21,7 +21,7 @@ fn select(app: &mut ChiploadApp, focus: Focus) {
 fn a_part_selected_is_shown_alone_and_the_setup_brings_the_board_back() {
     let mut app = two_setups();
     app.activate_setup(1);
-    app.show_part(None);
+    select(&mut app, Focus::Setup(1));
     assert!(!app.scene.sheets.is_empty(), "the other setup beside it");
     let job = app.edited_job().unwrap();
     // Part B, cut twice from the second setup.

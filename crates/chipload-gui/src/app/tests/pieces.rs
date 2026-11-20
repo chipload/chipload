@@ -8,6 +8,7 @@ use super::*;
 fn a_setup_in_pieces_is_drawn_previewed_and_exported_piece_by_piece() {
     let mut app = ChiploadApp::default();
     assert!(app.open(&corpus("jobs/v37/pieces.chipload")));
+    show_setup(&mut app);
     let names: Vec<&str> = app.scene.pieces.iter().map(|(n, _)| n.as_str()).collect();
     assert_eq!(names, ["A1", "A2"]);
     assert!(app.generate_and_wait(), "{:?}", app.report);

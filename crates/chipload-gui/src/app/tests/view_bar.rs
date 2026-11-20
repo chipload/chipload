@@ -142,9 +142,8 @@ fn a_part_selected_is_shown_alone_and_export_is_of_the_setup() {
         .collect();
     let expected: Vec<String> = whole.files.iter().map(|f| f.gcode.clone()).collect();
     assert_eq!(written, expected);
-    // The project selected: the setup again.
-    app.focus = Focus::Job;
-    app.follow_focus();
+    // The setup selected: the setup again (docs/specs/drawing-and-setup-spaces.md §2).
+    show_setup(&mut app);
     assert_eq!(app.display.part, None);
 }
 

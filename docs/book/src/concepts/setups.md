@@ -44,14 +44,15 @@ the first, empty, and becomes the active one), **Face the board**, **Nest…** a
 again** for the active setup, and **Export all setups…** with two or more. Click a setup for its name, whether it is cut and its parts; right-click it for
 what is done to that board: **New part** in it, **Nest…**, **Add the back side**.
 
-With two or more, the setup you click is the **active setup**: it is shown in full colour,
-generated, simulated and exported, its board on the drawing where it is cut. Every other
+Each setup has a tab over the canvas, beside *Drawing* ([the canvas](../window.md#the-canvas)):
+its board with its instances where they are cut, no drawn shapes. With two or more, the
+setup you click is the **active setup**: it is shown in full colour, generated, simulated
+and exported, its board where it is cut. Every other
 setup is a **sheet** beside it: its board, faint, in a row to the right (50 mm apart; a
 back right beside its front, 10 mm apart with a turn-over mark between them), with the outlines of what is cut from it and its name above. A click on a
 sheet makes that setup the active one: its board moves into place, the point you clicked
 staying under the pointer. Sheets are only drawn beside the board: the project, the G-code
-and the setup sheet keep each board where it is. Shapes only another setup cuts stay where
-they are drawn, faint. Right-click a part for **Move to setup ▸**. The machine, shared by
+and the setup sheet keep each board where it is. Right-click a part for **Move to setup ▸**. The machine, shared by
 every setup, is under **Machine**.
 
 Right-click a setup for **Export G-code of this setup…**: it becomes the active setup, is

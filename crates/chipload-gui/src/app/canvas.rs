@@ -154,6 +154,8 @@ impl ChiploadApp {
     }
 
     pub(super) fn canvas(&mut self, ui: &mut egui::Ui) {
+        // The space follows what is selected before it is drawn, not a frame late.
+        self.follow_focus();
         self.prepare_scene(ui);
         let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click_and_drag());
         let rect = response.rect;
@@ -226,6 +228,9 @@ impl ChiploadApp {
         }
         self.canvas_hover_text(ui, &response);
         self.paint_canvas(ui, &painter, rect, readout, &labels);
+        // Over the canvas's top edge, the canvas keeping its whole area; added last, so
+        // they take their clicks.
+        self.space_tabs(ui, rect);
     }
 
     /// The scene's settings for this frame, and the heights for the 3D view.
@@ -238,29 +243,29 @@ impl ChiploadApp {
         self.scene.palette = crate::view::Palette::of(ui.visuals().dark_mode);
         self.scene.work_zero = self.shown_zero_xy();
         self.scene.turn_axis = self.turn_axis_line(ui);
-        // Each part's instances, as ghosts where they are cut (docs/specs/instances.md §4):
-        // the contours its operations cut; the part itself is the drawing.
-        self.scene.instances = self.instance_ghosts();
-        // A part shown alone is the part where drawn: no instances, no "not cut here"
-        // (docs/specs/parts-and-setups.md §8a).
-        let alone = self.part_shown().is_some();
-        if alone {
-            self.scene.instances.clear();
-        }
+        // The drawing space shows the shapes, a setup's space its instances where they are
+        // cut: the contours their operations cut (docs/specs/drawing-and-setup-spaces.md
+        // §3, §4).
+        let drawing = self.space() == super::display::Space::Drawing;
+        self.scene.shapes_hidden = !drawing;
+        self.scene.instances = if drawing {
+            Vec::new()
+        } else {
+            self.instance_ghosts()
+        };
         // A nest's preview stands in for the instances while it is shown
         // (docs/specs/nesting.md §7).
-        let (nest, (board, more)) = self.nest_scene();
+        let (nest, (board, more)) = if drawing {
+            (Vec::new(), (None, Vec::new()))
+        } else {
+            self.nest_scene()
+        };
         if !nest.is_empty() {
             self.scene.instances.clear();
         }
         self.scene.nest_preview = nest;
         self.scene.nest_board = board;
         self.scene.nest_more_boards = more;
-        self.scene.elsewhere = if alone {
-            Vec::new()
-        } else {
-            self.placed_elsewhere()
-        };
         self.scene.mirrored = self.mirrored_outlines();
         self.sync_rim_preview(ui.visuals().dark_mode);
         // Heights for the 3D view: 2D items sit on the stock top (docs/specs/3d-view.md). A
@@ -320,7 +325,8 @@ impl ChiploadApp {
             .collect();
         self.scene.middle_handles = middles.into_iter().map(|&(_, p)| p).collect();
         // A selected picture's or text's box handles (docs/specs/box-handles.md).
-        let box_handles = if editing && !compass_on {
+        let drawing = self.space() == super::display::Space::Drawing;
+        let box_handles = if editing && !compass_on && drawing {
             self.box_handle_points()
         } else {
             Vec::new()
@@ -856,12 +862,23 @@ impl ChiploadApp {
             let badge = self.instance_badge_at(pos);
             let instance = picked.is_none().then(|| self.instance_at(pos)).flatten();
             if let Some((part, id)) = badge {
-                // An instance's badge is taken before any shape under it.
-                self.focus = Focus::Instance(part, id);
+                // An instance's badge is taken before any shape under it; a double-click
+                // opens its part.
+                self.focus = if response.double_clicked() {
+                    Focus::Part(part)
+                } else {
+                    Focus::Instance(part, id)
+                };
             } else if let Some(contour) = inside {
                 self.pick_alone(contour);
             } else if let Some((part, id)) = instance {
-                self.focus = Focus::Instance(part, id);
+                // A double-click opens its part in the drawing space
+                // (docs/specs/drawing-and-setup-spaces.md §4).
+                self.focus = if response.double_clicked() {
+                    Focus::Part(part)
+                } else {
+                    Focus::Instance(part, id)
+                };
             } else if picked.is_none()
                 && !toggle
                 && let Some(setup) = self.sheet_under(pos)

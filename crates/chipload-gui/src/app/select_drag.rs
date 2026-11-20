@@ -34,6 +34,7 @@ impl ChiploadApp {
             && !self.placing_text()
             && self.can_draw()
             && self.show_drawing()
+            && self.space() == super::display::Space::Drawing
     }
 
     /// A left drag starts at `at` (drawing coordinates) over the contour `picked`: drawn

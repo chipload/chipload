@@ -41,11 +41,20 @@ pub fn legend(scene: &Scene, lang: &impl Lang) -> Vec<(Swatch, String)> {
         ),
         (Swatch::Dashed(pal.stock), t!(lang, "view-legend-stock")),
     ];
-    if !scene.instances.is_empty() {
-        items.push((
-            Swatch::Line(pal.ghost, 1.0),
-            t!(lang, "view-legend-instances"),
-        ));
+    // A setup's space draws its instances, not the shapes: those two, and the board
+    // (docs/specs/drawing-and-setup-spaces.md §4).
+    if scene.shapes_hidden {
+        items = vec![
+            (
+                Swatch::Line(pal.outer, 1.5),
+                t!(lang, "view-legend-instances"),
+            ),
+            (
+                Swatch::Line(pal.selected, 1.5),
+                t!(lang, "view-legend-selected"),
+            ),
+            (Swatch::Dashed(pal.stock), t!(lang, "view-legend-stock")),
+        ];
     }
     if !scene.mirrored.is_empty() {
         items.push((Swatch::Dashed(pal.ghost), t!(lang, "view-legend-mirrored")));

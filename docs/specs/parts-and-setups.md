@@ -184,6 +184,9 @@ it), but **the window and the command line show neither until they matter**:
 
 ## 7. Sheets side by side (decision 4)
 
+**Replaced in the window** by docs/specs/drawing-and-setup-spaces.md (the user, 2026-11-20):
+a drawing space and a tab per setup. Kept here as the decision's history.
+
 - **The active setup is shown in place**, on the drawing, as today: its board, its
   instances as ghosts, the shapes where drawn. Editing works exactly as now.
 - **Every other setup is a sheet beside it:** its board, its instances' outlines and its
@@ -220,6 +223,9 @@ it), but **the window and the command line show neither until they matter**:
   and drawn.
 
 ## 8a. A part or a setup is shown, never both (decision 12)
+
+**Replaced in the window** by docs/specs/drawing-and-setup-spaces.md (the user, 2026-11-20):
+a drawing space and a tab per setup. Kept here as the decision's history.
 
 The user, 2026-11-18: "When a part is active, we should see the toolpaths for that part in
 its original place … When a setup is active we see the toolpath for all the instances in

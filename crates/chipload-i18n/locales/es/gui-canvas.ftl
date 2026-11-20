@@ -91,4 +91,8 @@ compass-value-angle = Ángulo
 compass-value-delta = ΔX ΔY
 # A part cut elsewhere than drawn: the label on the dashed box round its shapes
 # (docs/specs/part-placement.md §4).
-canvas-not-cut-here = { $part }: no se corta aquí
+canvas-tab-drawing = Dibujo
+canvas-tab-drawing-hover = Las formas de todas las piezas, donde están dibujadas: dibújelas y cámbielas aquí.
+canvas-tab-setup-hover = Su tablero y las instancias en él, donde se cortan: colóquelas, gírelas y anídelas aquí.
+canvas-tab-add-hover = Añadir una sujeción: otro tablero
+canvas-tab-back = { $name } (reverso)

@@ -1,6 +1,6 @@
 # Spec: a drawing space and a space per setup
 
-Status: **draft, 2026-11-20**, for review (decisions in §12). From the user's testing of
+Status: **approved 2026-11-20** (all decisions as recommended); step 1 built (§14). From the user's testing of
 nesting and instances: "when we select the setup we should not see the parts, only the
 instances, it gets quite messy on the screen", then "could we separate drawing space and
 setup space?", and "we should be able to drag in parts from the browser to the setup to
@@ -189,3 +189,15 @@ already places an instance anywhere, and `--like` like another.
 2. Dragging parts in (§5), the tab held open.
 3. *Reset to where drawn* and `--reset` (§8).
 4. The guide and its screenshots (§10), in each step's commit for what it changes.
+
+## 14. As built
+
+- **Step 1** (the tabs, each space's content, the selection rule, the views kept):
+  - **The project leaves the space as it is** (changed while building, from §2): a
+    project opens on *Drawing* (§6) with the project's form open, and selecting the
+    project in the Browser doesn't move a user out of the drawing they are in.
+  - **The tabs lie over the canvas's top edge,** below the ruler, so the canvas keeps its
+    whole area: a fitted or zoomed view stays as it was.
+  - **Opening Nest** shows its setup's tab, where its preview is drawn.
+  - **A setup's legend** lists instances, selected and stock only.
+  - **The other parts' shapes in Drawing** are dimmed as the part view's ghosts were.

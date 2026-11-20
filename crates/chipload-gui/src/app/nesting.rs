@@ -97,6 +97,20 @@ impl ChiploadApp {
         let Some(id) = setup.or_else(|| job.active_setup_id()) else {
             return;
         };
+        if job.setup(id).is_none() {
+            return;
+        }
+        // Nesting lays out a board: its setup's space shows, its preview on it
+        // (docs/specs/drawing-and-setup-spaces.md §4).
+        if job.active_setup_id() != Some(id) {
+            self.activate_setup(id);
+        }
+        self.focus = Focus::Setup(id);
+        self.follow_focus();
+        let Some(edit) = self.edit.as_ref() else {
+            return;
+        };
+        let job = &edit.job;
         let Some(s) = job.setup(id) else {
             return;
         };

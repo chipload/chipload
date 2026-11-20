@@ -16,7 +16,8 @@ planned and checked as any project is before it is kept.
 
 In the window:
 - **Right-click the setup** in the Browser and choose *Nest…*, or *Wizards > Nest…* for the
-  active setup. The window shows the board's size, the gap and the margin, the goal, and a
+  active setup. The canvas shows that setup's tab, where the preview is drawn. The window
+  shows the board's size, the gap and the margin, the goal, and a
   row per part with how many times it is cut and how it may turn.
 - **The goal** says what the nest makes as small as it can, once it has placed as much as
   it can:

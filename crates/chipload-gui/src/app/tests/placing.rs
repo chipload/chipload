@@ -75,7 +75,12 @@ fn a_parts_row_dropped_on_a_setup_moves_it_there() {
         .build_eframe(|_| two_setups());
     h.run_steps(4);
     let from = h.get_by_label("simple part").rect().center();
-    let to = h.get_by_label("6 mm bottom").rect().center();
+    // The Browser's row, left of the canvas's tab of the same name.
+    let to = h
+        .get_all_by_label("6 mm bottom")
+        .map(|n| n.rect().center())
+        .min_by(|a, b| a.x.total_cmp(&b.x))
+        .unwrap();
     h.hover_at(from);
     h.run_steps(2);
     h.drag_at(from);

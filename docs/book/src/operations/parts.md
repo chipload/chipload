@@ -16,12 +16,13 @@ boxes.
 - **Off:** a part that is off is left out with all its operations.
 - **The active part:** new operations go into it. Adding a part makes the new one active.
 - **A part or a setup is shown, never both.** Select a part, or one of its operations, in
-  the Browser: that part is shown alone, once, where it is drawn, and Generate, the
-  automatic update, the simulation and playback are of it, so a change to part 2 doesn't
-  plan part 1 again. The status bar says "part 2 of 2 · cycle …". Other parts' shapes are
-  ghosts. Select the setup, the project, the Stock or the Work zero (or click a setup's
-  sheet) to see every instance on the board again. Selecting a tool or a shape leaves the
-  view as it is.
+  the Browser: the canvas shows *Drawing* ([the canvas](../window.md#the-canvas)), that
+  part alone, once, where it is drawn, and Generate, the automatic update, the simulation
+  and playback are of it, so a change to part 2 doesn't plan part 1 again. The status bar
+  says "part 2 of 2 · cycle …". Other parts' shapes are dimmed. Select the setup, the
+  Stock, the Work zero or an instance (or click a setup's tab or sheet) to see every
+  instance on the board again. Selecting the project or a tool leaves the canvas as it
+  is.
 - **Its board:** a part drawn in place is shown on its own board. A part placed elsewhere,
   or cut only as copies, is shown where it is drawn on a board fitted round it, its own
   thickness when it [asks for one](#a-parts-stock).

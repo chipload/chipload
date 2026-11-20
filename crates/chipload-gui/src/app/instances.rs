@@ -292,22 +292,25 @@ impl ChiploadApp {
         let Some(edit) = &self.edit else {
             return Vec::new();
         };
-        // The selected instance shows even where its part is drawn, to be placed.
-        let shown: Vec<(u64, u32)> = match self.focus {
-            Focus::Instance(part, id) => vec![(part, id)],
-            _ => Vec::new(),
+        // Every instance on the active setup, those cut where drawn too: a setup's space shows
+        // no drawn shapes (docs/specs/drawing-and-setup-spaces.md §4).
+        let shown: Vec<(u64, u32)> = edit
+            .job
+            .parts
+            .iter()
+            .flat_map(|p| {
+                edit.job
+                    .instances_here(p.id)
+                    .into_iter()
+                    .map(|i| (p.id, i.id))
+            })
+            .collect();
+        let here = |part: u64, id: u32| shown.contains(&(part, id));
+        // A part cut once, where drawn, is just the part: no badge (parts-and-setups.md §2a).
+        let alone = |part: u64| {
+            let all = edit.job.instances_of(part);
+            all.len() == 1 && all.iter().all(|(_, i)| i.is_drawn())
         };
-        let placed = |p: &chipload_job::Part| {
-            edit.job
-                .instances_of(p.id)
-                .iter()
-                .any(|(_, i)| !i.is_drawn())
-        };
-        if shown.is_empty() && !edit.job.parts.iter().any(placed) {
-            return Vec::new();
-        }
-        // The active setup's instances (docs/specs/parts-and-setups.md §7).
-        let here = |part: u64, id: u32| edit.job.instances_here(part).iter().any(|i| i.id == id);
         let scale = self.view.scale.max(f64::MIN_POSITIVE);
         // What a press at the pointer would take, lit up (decision 13 of the handles).
         let hot = self
@@ -354,7 +357,11 @@ impl ChiploadApp {
                             points
                         })
                         .collect(),
-                    label: format!("#{}", i.id),
+                    label: if alone(i.part) {
+                        String::new()
+                    } else {
+                        format!("#{}", i.id)
+                    },
                     label_at,
                     selected,
                     enabled: i.enabled,
@@ -363,30 +370,6 @@ impl ChiploadApp {
                     hot: hot == Some((i.part, i.id))
                         || self.dragged_instance() == Some((i.part, i.id)),
                 }
-            })
-            .collect()
-    }
-
-    /// In Edit mode, the box round the shapes of each part of the active setup that is cut
-    /// elsewhere than drawn, with "Part 1: not cut here" (docs/specs/part-placement.md §4,
-    /// decision 4).
-    pub(super) fn placed_elsewhere(&self) -> Vec<((Point, Point), String)> {
-        let Some(edit) = self.edit.as_ref().filter(|_| !self.display.simulate) else {
-            return Vec::new();
-        };
-        let setup = edit.job.active_setup_id();
-        let margin = 6.0 / self.view.scale.max(f64::MIN_POSITIVE);
-        edit.job
-            .parts
-            .iter()
-            .filter(|p| edit.job.is_placed(p.id) && setup.is_none_or(|s| edit.job.part_on(p.id, s)))
-            .filter_map(|p| {
-                let ((x0, y0), (x1, y1)) = edit.job.part_box(p.id)?;
-                let label = t!(self, "canvas-not-cut-here", part = p.name.as_str());
-                Some((
-                    ((x0 - margin, y0 - margin), (x1 + margin, y1 + margin)),
-                    label,
-                ))
             })
             .collect()
     }
@@ -432,12 +415,17 @@ impl ChiploadApp {
             return None;
         }
         // The last drawn is on top.
-        self.scene.instances.iter().rev().find_map(|ghost| {
-            crate::view::badge_rect(&self.view, ghost)
-                .expand(1.0)
-                .contains(pos)
-                .then_some((ghost.part, ghost.id))
-        })
+        self.scene
+            .instances
+            .iter()
+            .rev()
+            .filter(|ghost| !ghost.label.is_empty())
+            .find_map(|ghost| {
+                crate::view::badge_rect(&self.view, ghost)
+                    .expand(1.0)
+                    .contains(pos)
+                    .then_some((ghost.part, ghost.id))
+            })
     }
 
     /// The instance a press at `pos` would take: its turn handle, its badge, or its outline

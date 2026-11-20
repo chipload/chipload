@@ -99,6 +99,7 @@ mod shortcuts;
 mod sign;
 mod simulation;
 mod sources;
+mod space_tabs;
 mod styles;
 mod tab_markers;
 #[cfg(test)]

@@ -351,9 +351,11 @@ to a program you trust. It was about four per operation; with the defaults and s
    user to try all three.
 12i. **A drawing space and a space per setup** (the user, 2026-11-20: the setup view is
    messy with drawn shapes and ghosts together; separate the spaces; drag parts from the
-   Browser onto a setup to make instances). Spec drafted for review
-   (docs/specs/drawing-and-setup-spaces.md, eight decisions); replaces parts-and-setups.md
-   §7 and §8a in the window. Includes *Reset to where drawn* for an instance.
+   Browser onto a setup to make instances). Spec approved 2026-11-20
+   (docs/specs/drawing-and-setup-spaces.md); replaces parts-and-setups.md §7 and §8a in the
+   window. Steps: (1) the tabs, each space's content, views kept: **done**; (2) parts
+   dragged from the Browser onto a board; (3) *Reset to where drawn* and `--reset`.
+   Guide screenshots to renew once all three are in.
 13. **Small follow-ups:**
     - Large files and functions (started 2026-11-16, aim: files under 1,000 lines, one job
       per function): split so far `plan/`, `pocket/`, the job's `operations/` and `library/`,

@@ -7,6 +7,7 @@ use super::*;
 fn a_setup_is_made_active_shown_with_the_others_as_ghosts_and_exported() {
     let mut app = ChiploadApp::default();
     assert!(app.open(&corpus("jobs/v34/two_setups.chipload")));
+    show_setup(&mut app);
     let job = app.edited_job().unwrap();
     assert_eq!(job.active_setup_id(), Some(1));
     // Setup 2's board is a ghost, and part B's shapes too.
@@ -469,6 +470,7 @@ fn a_backs_zero_is_locked_and_the_front_shows_it_mirrored() {
 fn a_front_and_its_back_lie_close_with_a_mark_between() {
     let mut app = two_sided();
     app.activate_setup(1);
+    show_setup(&mut app);
     draw_canvas(&mut app);
     let ((_, _), (right, _)) = app.edited_job().unwrap().stock_bounds();
     let back = &app.scene.sheets[0];

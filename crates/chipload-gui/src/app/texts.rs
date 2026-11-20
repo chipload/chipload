@@ -23,6 +23,7 @@ impl ChiploadApp {
             self.view_top(); // placed by a click in top view, as drawing is
         }
         self.enter_edit_mode();
+        self.enter_drawing_space();
         self.set_tool(ActiveTool::PlaceText);
         self.set_status(t!(self, "texts-place-hint"), STATUS_SECONDS);
     }

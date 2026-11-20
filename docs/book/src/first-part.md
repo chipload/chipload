@@ -13,7 +13,8 @@ the first steps ([below](#starting-from-a-drawing-file)).
      real thickness, 12 mm here: depths are measured from the board's top. Leave the board
      on *Fit the drawing*: it grows round what you draw. Enter creates the project.
 2. **Draw the plate:** press **R** (or the rectangle in the ribbon's DRAW group) and click
-   two opposite corners on the canvas, anywhere.
+   two opposite corners on the canvas, anywhere. You draw on the canvas's *Drawing* tab,
+   where a new project opens ([the canvas](window.md#the-canvas)).
    - The rectangle stays selected, and its values are under *Selection* in the
      [Properties](window.md#properties) panel on the right. Type the exact ones: centre
      0, 0, length 160, width 100, corner radius 8.
@@ -27,7 +28,9 @@ the first steps ([below](#starting-from-a-drawing-file)).
      its values under *Selection*. [Drawing shapes](drawings/shapes.md) has the other
      tools: lines and arcs, polygons, slots, offsets, fillets, arrays.
 4. **Check the stock and the machine:** **Stock** in the [Browser](window.md#the-browser)
-   on the left is the board you chose; **Machine** shows the machine.
+   on the left is the board you chose; **Machine** shows the machine. Clicking **Stock**
+   shows the board's own tab, *Setup 1*: the plate as it will be cut. Click *Drawing* to
+   go back.
    [Work zero](concepts/stock.md#work-zero) is at the stock's bottom-left corner (the *Work
    zero* row; drag it in the view to move it). Without a [tool library](library/tools.md)
    and [machine profiles](library/machines.md), a project has the GRBL post, a safe height

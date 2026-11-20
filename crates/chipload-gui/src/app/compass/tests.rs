@@ -68,12 +68,26 @@ fn an_instance_turns_about_the_compass_wherever_it_is() {
         output.textures_delta.clear();
     };
     draw(&mut app);
-    let before = app.scene.instances[0].outlines.clone();
+    let before = app
+        .scene
+        .instances
+        .iter()
+        .find(|g| g.id == 2)
+        .unwrap()
+        .outlines
+        .clone();
     let pivot = (40.0, -25.0);
     let target = Target::Instance(1, 2);
     app.compass_apply(&target, pivot, 0.0, Motion::Turn(30.0));
     draw(&mut app);
-    let after = app.scene.instances[0].outlines.clone();
+    let after = app
+        .scene
+        .instances
+        .iter()
+        .find(|g| g.id == 2)
+        .unwrap()
+        .outlines
+        .clone();
     let (s, c) = math::sin_cos(30f64.to_radians());
     for (a, b) in before.iter().flatten().zip(after.iter().flatten()) {
         let (x, y) = (a.0 - pivot.0, a.1 - pivot.1);
@@ -86,7 +100,14 @@ fn an_instance_turns_about_the_compass_wherever_it_is() {
     // And moved: by as much.
     app.compass_apply(&target, pivot, 0.0, Motion::Move((5.0, -7.0)));
     draw(&mut app);
-    let moved = &app.scene.instances[0].outlines;
+    let moved = app
+        .scene
+        .instances
+        .iter()
+        .find(|g| g.id == 2)
+        .unwrap()
+        .outlines
+        .clone();
     for (a, b) in after.iter().flatten().zip(moved.iter().flatten()) {
         assert!((a.0 + 5.0 - b.0).abs() < 1e-6 && (a.1 - 7.0 - b.1).abs() < 1e-6);
     }

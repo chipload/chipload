@@ -58,6 +58,7 @@ fn the_other_setups_lie_beside_the_active_board_in_a_row() {
 #[test]
 fn a_click_on_a_sheet_makes_it_active_keeping_the_point_under_the_pointer() {
     let mut app = two_setups();
+    show_setup(&mut app);
     draw_canvas(&mut app);
     let sheet = app.scene.sheets[0].clone();
     let ((x0, y0), (x1, y1)) = sheet.board;

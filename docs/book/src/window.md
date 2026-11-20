@@ -148,6 +148,28 @@ it, whatever is open. Its name is also in the status bar.
 The canvas shows the stock, the drawing and the toolpath on a soft gradient. It follows the
 colour theme: dark, or light grey.
 
+- **Two kinds of space, a tab each,** along the canvas's top left:
+  - **Drawing:** every part's shapes where they are drawn, to draw and change. The part
+    you work on is in full colour, the others dimmed (still clicked and edited; clicking
+    one makes its part the active one). The toolpath is that part's, where it is drawn.
+    When the part is cut where it is drawn, its board shows faintly behind it, to draw
+    against; no instances are shown here.
+  - **A tab per setup** ("Setup 1", a back "Setup 2 (back)"): its board, and every
+    [instance](drawings/instances.md) on it drawn where it is cut, with its badge
+    (`#2`) and the setup's toolpath. No drawn shapes: here you place, turn, copy and
+    [nest](drawings/nesting.md) the instances. Double-click an instance to open its part
+    in *Drawing*. The other setups lie beside the board as before.
+  - **+** adds a setup.
+  - **What you select picks the tab:** a part, an operation, a shape, a text or a
+    picture shows *Drawing*; a setup, its stock, its work zero or an instance shows that
+    setup's tab. The project and the tools leave the tab as it is. A drawing tool (or its
+    key) started from a setup's tab goes to *Drawing* first.
+  - **Each tab keeps its own view:** zoom into a corner of the drawing, look at the
+    board, and coming back finds the corner as you left it.
+  - **A simple project,** one board with each part on it once where drawn, looks the same
+    in both: projects open on *Drawing*, and you can draw, add operations, generate and
+    export without leaving it.
+
 - **The grid** lies on the stock top, in top view and in 3D.
   - Its fine lines are where clicks snap while drawing. A stronger line comes every ten.
   - It follows the zoom, and the status bar gives its step ("grid 5 mm").
@@ -183,9 +205,9 @@ colour theme: dark, or light grey.
     window, or a panel opening or folding), a fitted view is fitted again, and a view you
     zoomed or moved keeps showing the same area;
   - what is shown: **Toolpath**, **Drawing** (in Simulate; Edit always shows the drawing),
-    **Images** and **Grid** (G). What the toolpath is of follows the Browser: a part
-    selected shows [that part alone](operations/parts.md), a setup or the project every
-    part on its board.
+    **Images** and **Grid** (G). What the toolpath is of follows the tab: *Drawing*
+    shows [that part alone](operations/parts.md), where it is drawn; a setup's tab every
+    instance on its board.
   - When the canvas is too narrow for the names, the buttons show only their icons; hover
     over one to see its name.
 - **Drawing off** (in Simulate) hides the drawing's contours, to see the simulated stock or
@@ -197,7 +219,7 @@ colour theme: dark, or light grey.
 - **The toolpath's numbers:** each operation's first plunge has a circle and the
   operation's number. Click it to open that operation.
 - **The legend** (bottom left) explains the colours.
-- **The mouse:** the wheel zooms. In Edit, in top view, a left drag on empty canvas
+- **The mouse:** the wheel zooms. In Edit, in top view, on *Drawing*, a left drag on empty canvas
   selects with a box: from left to right it takes what lies wholly inside, from right to left also what
   it touches; Shift adds to the selection, Ctrl adds or takes out. A left drag on a drawn
   shape [moves it](drawings/shapes.md#editing). To pan, drag with the right or middle
