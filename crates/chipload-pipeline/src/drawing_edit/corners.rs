@@ -56,16 +56,26 @@ fn corner_poly(geometry: &Geometry) -> Option<Poly> {
     }
 }
 
-/// The corners of a drawn shape that can be filleted or chamfered: (vertex, where).
-pub fn shape_corners(shape: &Shape) -> Vec<(usize, (f64, f64))> {
-    corner_poly(&shape.geometry)
-        .map(|poly| {
-            corner::corners(&poly)
-                .into_iter()
-                .map(|k| (k, poly.points[k]))
-                .collect()
-        })
-        .unwrap_or_default()
+/// The corners of a drawn shape that can be filleted (`fillet`) or chamfered: (vertex,
+/// where). A fillet rounds a polyline's corner beside an arc too
+/// (docs/specs/fillet-between-shapes.md §4); a chamfer only cuts between straight sides.
+pub fn shape_corners(shape: &Shape, fillet: bool) -> Vec<(usize, (f64, f64))> {
+    let Some(poly) = corner_poly(&shape.geometry) else {
+        return Vec::new();
+    };
+    let ks: Vec<usize> = if fillet {
+        let path = chipload_core::corners::Path {
+            points: &poly.points,
+            bulges: &poly.bulges,
+            closed: poly.closed,
+        };
+        (0..poly.points.len())
+            .filter(|&k| path.turn(k).is_some())
+            .collect()
+    } else {
+        corner::corners(&poly)
+    };
+    ks.into_iter().map(|k| (k, poly.points[k])).collect()
 }
 
 /// Fillet or chamfer corner `corner` of drawn shape `id` (None: every corner). The shape
@@ -197,7 +207,8 @@ fn fillet_corners(
     corner: Option<usize>,
     r: f64,
 ) -> Result<Job, PipelineError> {
-    if !(r.is_finite() && r > 0.0) {
+    // 0: the corner sharp again (docs/specs/fillet-between-shapes.md decision 8).
+    if !(r.is_finite() && r >= 0.0) {
         return Err(refused(Message::new("pipeline-corner-size")));
     }
     let corners: Vec<[f64; 2]> = match geometry {
@@ -310,7 +321,8 @@ fn fillet_polyline(
     corner: Option<usize>,
     r: f64,
 ) -> Result<Job, PipelineError> {
-    if !(r.is_finite() && r > 0.0) {
+    // 0: the corner sharp again (docs/specs/fillet-between-shapes.md decision 8).
+    if !(r.is_finite() && r >= 0.0) {
         return Err(refused(Message::new("pipeline-corner-size")));
     }
     let pts: Vec<(f64, f64)> = points.iter().map(|p| (p[0], p[1])).collect();

@@ -454,8 +454,9 @@ fn points_table(ui: &mut egui::Ui, id: u64, geometry: &mut Geometry) {
     let mut insert_after: Option<usize> = None;
     let mut remove: Option<usize> = None;
     let segments = polyline_segment_count(points.len(), closed);
-    // Which points are corners between straight sides, that a radius can round
-    // (docs/specs/polyline-radii.md §4); an open polyline's ends aren't.
+    // Which points are corners, beside an arc too, that a radius can round
+    // (docs/specs/polyline-radii.md §4, fillet-between-shapes.md §4); an open polyline's
+    // ends aren't.
     let corners: Vec<Option<bool>> = match &bulges {
         Some(bulges) => {
             let pts: Vec<(f64, f64)> = points.iter().map(|p| (p[0], p[1])).collect();

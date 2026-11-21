@@ -384,6 +384,6 @@ job-spline-points = { $closed ->
 } a besoin d'au moins { $least } points, a { $got }
 job-radii-count = un rayon par point : { $wanted }, reçu { $got }
 job-radius-at-end = l'extrémité d'une polyligne ouverte n'a pas de coin à arrondir
-job-radius-not-a-corner = a un arc à côté, ou ses côtés continuent tout droit : pas de coin à arrondir
+job-radius-not-a-corner = ses côtés se raccordent sans angle, ou continuent tout droit ou repartent en arrière : pas de coin à arrondir
 job-radius-too-large = est trop grand pour les côtés voisins : au plus { $most }
 job-radii-and-corner-radius = donnez soit un rayon pour tous les coins, soit un rayon par coin (le rayon de coin est alors 0)

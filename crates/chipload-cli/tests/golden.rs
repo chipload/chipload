@@ -14,7 +14,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 88] = [
+const GOLDEN: [(&str, &str); 89] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -321,6 +321,13 @@ const GOLDEN: [(&str, &str); 88] = [
     // holes of radius 4, cut with `op add profile --shapes 1 2 3 4 5 --through`. Also the
     // guide's toolpath picture.
     ("v42_plate", "jobs/v42/plate.chipload"),
+    // Rounds beside arcs (docs/specs/fillet-between-shapes.md §4), made with `new
+    // --thickness 12 --size 170x110` from an empty settings folder, `shape add … polyline
+    // --points "-70,-40 70,-40 70,40 -70,40" --bulges "0 0.4 -0.3 0" --radii "6 8 5 6"
+    // --closed` (a bracket: a line into an arc, arc into arc) and a D `--points "-40,-20
+    // 0,-20 0,20 -40,20" --bulges "0 0.5 0 0" --radii "0 3 3 0" --closed`, then `op add
+    // pocket --shapes 2 --depth 3` and `op add profile --shapes 1 --through`.
+    ("v43_bracket", "jobs/v43/bracket.chipload"),
 ];
 
 /// Projects nested before they are run (docs/specs/nesting.md §13): `chipload nest` with

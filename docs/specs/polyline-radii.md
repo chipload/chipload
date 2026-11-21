@@ -140,7 +140,8 @@ chipload shape fillet P 9 --radius 5 --corner 1     # now sets corner 1's radius
 1. **A radius per point, stored beside the points** (`radii`), the points staying at the
    sharp corners. The alternative is today's way: arcs as bulges between new points, which
    is exact but not editable as a radius.
-2. **Radii only between straight sides.** The alternative is rounding where a side is an
+2. **Radii only between straight sides.** *(Since schema 43, beside arcs too:
+   docs/specs/fillet-between-shapes.md §4.)* The alternative is rounding where a side is an
    arc too (line–arc fillets), which is item 12f's larger fillet work.
 3. **Fillet on a polyline sets the radius**, keeping it editable. Chamfer stays as it is.
 4. **A *Radius* field on the status bar while drawing a polyline.**

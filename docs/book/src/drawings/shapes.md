@@ -16,9 +16,11 @@ Chipload draws the parts it cuts, with or without a DXF:
     click on either side of the edge, or type it). The rectangle is turned to the edge.
 - **Polyline** (**L**): points joined by straight or arc segments, open or closed. Click
   the first point again to close it; Enter or a double-click finishes it open.
-  - **Rounded corners:** each corner between two straight sides can have a *Radius*, an
-    arc tangent to both sides. The point stays at the sharp corner, so the numbers you
-    drew stay as they were. Set it in the form's points table (the *Radius* column), or
+  - **Rounded corners:** each corner can have a *Radius*, an arc tangent to both sides,
+    beside an arc side too (a line running into an arc, or two arcs). The point stays at
+    the sharp corner, so the numbers you drew stay as they were; an arc side is cut back
+    along its own circle to meet the round. Where the sides already meet smoothly there is
+    no corner. Set it in the form's points table (the *Radius* column), or
     give *Radius* on the status bar while drawing: every corner gets it, and a corner whose
     sides are too short gets the most that fits. An open polyline's ends have no corner. On
     the command line: `chipload shape add P polyline --points "0,0 100,0 100,60 0,60"
@@ -135,9 +137,10 @@ DXF first, [Explode](several.md)).
 - **Fillet** and **Chamfer**: select one drawn shape (or click it with the tool), then
   click a corner (it is marked when the cursor is near it) to round it with an arc of the
   *Radius* on the status bar, or cut it straight across, the *Distance* back along each
-  side. Shift+click does every corner. A corner is a point between two straight sides; a
-  radius too large for the sides is refused with the most that fits (two corners on one
-  side share it). A polyline's corner gets that *Radius* (above), so it stays editable; a
+  side. Shift+click does every corner. Fillet rounds any corner, beside an arc too;
+  Chamfer only cuts corners between two straight sides. A radius too large for the sides
+  is refused with the most that fits (two corners on one side share it); a *Radius* of 0
+  makes a rounded corner sharp again. A polyline's corner gets that *Radius* (above), so it stays editable; a
   rectangle rounded all round keeps its kind (its corner radius); any other shape becomes
   a polyline and keeps its number, so operations still cut it. Chamfer leaves rounded
   corners as they are.

@@ -1,6 +1,7 @@
 # Spec: fillets at line–arc corners and between two shapes
 
-Status: **draft, second pass 2026-11-21**, for review (decisions in §8). The first item of
+Status: **approved 2026-11-21** (the user: "go ahead"; §8 as recommended). Being built,
+see *As built* (§10). The first item of
 step 2 of the drawing review (TODO, *Next* 1; docs/specs/drawing-improvements.md).
 
 Builds on drawing-editing.md §3 (Fillet and Chamfer), §4 (Trim, Extend and the joining
@@ -215,3 +216,17 @@ tests.
 2. **Polylines:** radii beside arcs, schema 43, the table, Fillet on such corners (§4).
 3. **Two shapes:** the pipeline and `shape fillet/chamfer --with --keep` (§5, §6).
 4. **The window:** corners without selecting first, the two clicks, the preview (§5, §7).
+
+## 10. As built
+
+- **Step 1:** `chipload_core::corners::round`: `Curve` (a line or a circle), `rounds` (on
+  given sides), `picked_round` (the clicks' sides, §3), `nearest_round` (a corner),
+  `most_that_fits` (doubling, then halving to the chaining tolerance).
+- **Step 2:** `chipload_core::corners` rounds a corner beside an arc through
+  `nearest_round`, the round on the inside of the turn, the arc side cut back along its
+  circle; between straight sides it keeps the direct formula, so no G-code changed. The
+  most that fits beside an arc is searched for. Schema 43 (the migration only bumps the
+  version; v42's frozen samples migrate through it), golden `v43_bracket`. The Fillet tool
+  marks corners beside arcs, Chamfer still only straight ones; *Radius* 0 makes a corner
+  sharp again (on the command line too).
+

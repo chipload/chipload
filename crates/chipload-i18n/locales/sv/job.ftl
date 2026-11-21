@@ -384,6 +384,6 @@ job-spline-points = { $closed ->
 } spline behöver minst { $least } punkter, har { $got }
 job-radii-count = en radie per punkt: { $wanted }, fick { $got }
 job-radius-at-end = änden på en öppen polylinje har inget hörn att runda
-job-radius-not-a-corner = har en båge bredvid, eller sidorna fortsätter rakt: inget hörn att runda
+job-radius-not-a-corner = sidorna möts mjukt, eller fortsätter rakt fram eller rakt tillbaka: inget hörn att runda
 job-radius-too-large = är för stor för sidorna bredvid: högst { $most }
 job-radii-and-corner-radius = ange antingen en hörnradie för alla hörn eller en radie per hörn (då är hörnradien 0)

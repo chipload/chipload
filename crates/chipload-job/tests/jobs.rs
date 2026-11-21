@@ -2820,10 +2820,22 @@ fn v34_to_v35_gives_a_vcarve_its_passes() {
 fn v41_to_v42_changes_only_the_version() {
     let v41 = raw("v41/nesting_demo.chipload");
     let mut current = migrate(v41.clone()).unwrap();
-    assert_eq!(current["schema_version"], json!(42));
+    assert_eq!(current["schema_version"], json!(43));
     current["schema_version"] = json!(41);
     assert_eq!(current, v41);
     load_job(&corpus().join("v41/nesting_demo.chipload")).unwrap();
+}
+
+/// docs/specs/fillet-between-shapes.md §4: schema 43 only bumps the version, so an older
+/// Chipload says a project with a radius beside an arc is from a newer version.
+#[test]
+fn v42_to_v43_changes_only_the_version() {
+    let v42 = raw("v42/rounded.chipload");
+    let mut current = migrate(v42.clone()).unwrap();
+    assert_eq!(current["schema_version"], json!(43));
+    current["schema_version"] = json!(42);
+    assert_eq!(current, v42);
+    load_job(&corpus().join("v42/rounded.chipload")).unwrap();
 }
 
 /// A spline (docs/specs/splines.md): saved with its points, its segments lines and arcs
@@ -2897,14 +2909,19 @@ fn a_polylines_corner_radii_are_saved_loaded_and_checked() {
     sharp["drawing"]["shapes"][0]["radii"] = json!([0.0, 0.0, 0.0, 0.0]);
     let saved = serde_json::to_value(parse_job(sharp, "p").unwrap()).unwrap();
     assert!(saved["drawing"]["shapes"][0].get("radii").is_none());
+    // Beside an arc, since schema 43 (docs/specs/fillet-between-shapes.md §4).
+    let mut beside = data.clone();
+    beside["drawing"]["shapes"][0]["bulges"] = json!([0.0, 0.5, 0.0, 0.0]);
+    let job = parse_job(beside, "p").unwrap();
+    assert_eq!(job.drawing.shapes[0].segments().len(), 6);
     // The wrong count, a negative one, too large for its sides, at an open polyline's end,
-    // beside an arc.
+    // where a half circle runs on from the side tangentially.
     for (field, value) in [
         ("radii", json!([0.0, 5.0])),
         ("radii", json!([0.0, -1.0, 0.0, 0.0])),
         ("radii", json!([0.0, 70.0, 0.0, 0.0])),
         ("closed", json!(false)),
-        ("bulges", json!([0.0, 0.5, 0.0, 0.0])),
+        ("bulges", json!([0.0, 1.0, 0.0, 0.0])),
     ] {
         let mut bad = data.clone();
         bad["drawing"]["shapes"][0][field] = value;

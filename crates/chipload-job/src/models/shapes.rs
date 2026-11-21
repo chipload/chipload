@@ -324,8 +324,8 @@ pub fn spline_segments(points: &[[f64; 2]], closed: bool) -> Vec<PathSegment> {
 }
 
 /// The problems with a polyline's corner radii (docs/specs/polyline-radii.md §2): one per
-/// point, each a finite number 0 or more, and only at corners between straight sides that
-/// have room for them.
+/// point, each a finite number 0 or more, and only at corners (beside an arc too, since
+/// schema 43: docs/specs/fillet-between-shapes.md §4) that have room for them.
 fn radius_problems(
     closed: bool,
     points: &[[f64; 2]],

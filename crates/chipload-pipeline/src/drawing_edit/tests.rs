@@ -85,7 +85,7 @@ fn corners_are_filleted_and_chamfered_keeping_the_id() {
     );
     assert!(cut_shape_corners(&job, 2, None, Cut::Fillet(1.0)).is_err());
     assert_eq!(
-        shape_corners(job.drawing.shapes.iter().find(|s| s.id == 3).unwrap()).len(),
+        shape_corners(job.drawing.shapes.iter().find(|s| s.id == 3).unwrap(), true).len(),
         3
     );
 }
@@ -606,4 +606,50 @@ fn a_rectangle_or_polygon_corner_gets_its_own_radius() {
         geometry(&cut, 1),
         Geometry::Polyline { radii, .. } if radii.iter().filter(|&&r| r == 10.0).count() == 1
     ));
+}
+
+#[test]
+fn a_polyline_corner_beside_an_arc_is_rounded_and_made_sharp_again() {
+    // docs/specs/fillet-between-shapes.md §4: a bracket, a line into an arc at point 1.
+    let mut job = drawn_part();
+    let mut bracket = job.drawing.shapes[2].clone();
+    bracket.id = 9;
+    bracket.geometry = Geometry::Polyline {
+        closed: true,
+        points: vec![[0.0, 0.0], [40.0, 0.0], [40.0, 40.0], [0.0, 40.0]],
+        bulges: vec![0.0, 0.5, 0.0, 0.0],
+        radii: Vec::new(),
+    };
+    job.drawing.shapes.push(bracket);
+    job.drawing.next_shape_id = 10;
+    let corners: Vec<usize> = shape_corners(job.drawing.shapes.last().unwrap(), true)
+        .into_iter()
+        .map(|(k, _)| k)
+        .collect();
+    assert_eq!(corners, [0, 1, 2, 3]);
+    // A chamfer still only cuts between straight sides.
+    let straight: Vec<usize> = shape_corners(job.drawing.shapes.last().unwrap(), false)
+        .into_iter()
+        .map(|(k, _)| k)
+        .collect();
+    assert_eq!(straight, [0, 3]);
+    let round = cut_shape_corners(&job, 9, Some(1), Cut::Fillet(3.0)).unwrap();
+    assert!(matches!(
+        geometry(&round, 9),
+        Geometry::Polyline { radii, .. } if radii == &[0.0, 3.0, 0.0, 0.0]
+    ));
+    // Too large beside the arc: refused with the most that fits.
+    let err = cut_shape_corners(&job, 9, Some(1), Cut::Fillet(500.0)).unwrap_err();
+    assert!(
+        err.message().english().contains("at most"),
+        "{}",
+        err.message().english()
+    );
+    // Radius 0: sharp again.
+    let sharp = cut_shape_corners(&round, 9, Some(1), Cut::Fillet(0.0)).unwrap();
+    assert!(matches!(
+        geometry(&sharp, 9),
+        Geometry::Polyline { radii, .. } if radii.iter().all(|&r| r == 0.0)
+    ));
+    assert!(cut_shape_corners(&job, 9, Some(1), Cut::Chamfer(0.0)).is_err());
 }

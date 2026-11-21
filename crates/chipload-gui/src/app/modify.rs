@@ -304,7 +304,8 @@ impl ChiploadApp {
         };
         let shape = self.shape(id)?;
         let reach = f64::from(crate::view::PICK_TOLERANCE_PX) * 1.5 / self.view.scale;
-        shape_corners(shape)
+        let fillet = self.modify() == Some(ModifyTool::Fillet);
+        shape_corners(shape, fillet)
             .into_iter()
             .map(|(k, p)| (k, p, chipload_core::primitives::distance(p, at)))
             .filter(|&(_, _, d)| d <= reach)
@@ -1072,9 +1073,11 @@ impl ChiploadApp {
         match self.modify() {
             Some(ModifyTool::Fillet) => {
                 ui.label(t!(ui, "modify-fillet-radius"));
+                // 0 makes a rounded corner sharp again (docs/specs/fillet-between-shapes.md
+                // decision 8).
                 ui.add(
                     crate::units::length(&mut self.canvas_tools.fillet_radius)
-                        .range(0.001..=f64::MAX),
+                        .range(0.0..=f64::MAX),
                 );
                 ui.separator();
                 return;
