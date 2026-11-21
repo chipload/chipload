@@ -20,6 +20,7 @@ draw-status-polyline = Polyligne { $count ->
 draw-no-size-circle = le cercle n'aurait aucune taille
 draw-no-size-rectangle = le rectangle n'aurait aucune taille
 draw-polyline-too-short = une polyligne demande au moins 2 points
+draw-arc-behind = aucun arc tangent n'atteint un point juste derrière : cliquez sur le côté, ou passez aux lignes (L)
 
 # The point the cursor snapped to, on contour #4.
 draw-snap-end = extrémité de #{ $contour }
@@ -215,3 +216,13 @@ draw-status-slot-arc-end = Rainure en arc de rayon { $radius }, { $angle }° : c
 draw-status-slot-arc = Rainure en arc de largeur { $width } : cliquez pour donner sa largeur, ou tapez-la (grille { $grid }, Échap annule)
 draw-variant-slot-straight = Droite (deux extrémités)
 draw-variant-slot-arc = En arc (centre, extrémités, largeur)
+
+# Drawing a polyline's tangent arcs (docs/specs/polyline-tangent-arcs.md).
+draw-status-polyline-arc = Polyligne en cours, { $count ->
+        [one] { $count } point
+       *[other] { $count } points
+    }, un arc de rayon { $radius } dans le prolongement du dernier côté : cliquez où il finit ; L trace des lignes, Entrée ou double-clic la termine ouverte, le premier point la ferme, Retour arrière enlève le dernier point (grille { $grid }, Échap annule)
+draw-status-polyline-arc-first = Polyligne en cours, { $count ->
+        [one] { $count } point
+       *[other] { $count } points
+    } : un arc a besoin d'un côté à prolonger, le premier côté est donc une ligne (commencez au bout d'une forme pour la prolonger) ; cliquez le point suivant (grille { $grid }, Échap annule)

@@ -173,3 +173,7 @@ menu-draw-spline = Spline
 menu-modify-mirror = An einer Achse spiegeln
 menu-polyline-radius = Radius
 menu-polyline-radius-hover = Jede Ecke der Polylinie, die gezeichnet wird, wird mit diesem Radius gerundet (0: spitz); eine Ecke mit zu kurzen Seiten bekommt das Größte, was passt
+menu-polyline-line = Linie
+menu-polyline-line-hover = Die nächsten Seiten sind gerade Linien
+menu-polyline-arc = Bogen
+menu-polyline-arc-hover = Die nächsten Seiten sind Bögen, jeder schließt glatt an die Seite davor an; der Klick legt sein Ende fest

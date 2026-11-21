@@ -20,6 +20,7 @@ draw-status-polyline = Disegno di una polilinea, { $count ->
 draw-no-size-circle = il cerchio non avrebbe dimensione
 draw-no-size-rectangle = il rettangolo non avrebbe dimensione
 draw-polyline-too-short = una polilinea richiede almeno 2 punti
+draw-arc-behind = nessun arco tangente raggiunge un punto proprio dietro: clicca di lato, o passa alle linee (L)
 
 # The point the cursor snapped to, on contour #4.
 draw-snap-end = estremo di #{ $contour }
@@ -215,3 +216,13 @@ draw-status-slot-arc-end = Disegno di un'asola ad arco di raggio { $radius }, { 
 draw-status-slot-arc = Disegno di un'asola ad arco larga { $width }: clicca per darne la larghezza, o digitala (griglia { $grid }, Esc annulla)
 draw-variant-slot-straight = Dritta (due estremità)
 draw-variant-slot-arc = Ad arco (centro, estremità, larghezza)
+
+# Drawing a polyline's tangent arcs (docs/specs/polyline-tangent-arcs.md).
+draw-status-polyline-arc = Disegno di una polilinea, { $count ->
+        [one] { $count } punto
+       *[other] { $count } punti
+    }, un arco di raggio { $radius } che prosegue dall'ultimo lato: clicca dove finisce; L disegna linee, Invio o doppio clic la termina aperta, il primo punto la chiude, Backspace toglie l'ultimo punto (griglia { $grid }, Esc annulla)
+draw-status-polyline-arc-first = Disegno di una polilinea, { $count ->
+        [one] { $count } punto
+       *[other] { $count } punti
+    }: un arco ha bisogno di un lato da cui proseguire, quindi il primo lato è una linea (inizia sull'estremità di una forma per proseguirla); clicca il punto successivo (griglia { $grid }, Esc annulla)

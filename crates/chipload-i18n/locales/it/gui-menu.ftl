@@ -173,3 +173,7 @@ menu-draw-spline = Spline
 menu-modify-mirror = Specchia rispetto a un asse
 menu-polyline-radius = Raggio
 menu-polyline-radius-hover = Ogni angolo della polilinea disegnata è arrotondato con questo raggio (0: vivo); un angolo con lati troppo corti riceve il massimo che ci sta
+menu-polyline-line = Linea
+menu-polyline-line-hover = I lati successivi sono linee dritte
+menu-polyline-arc = Arco
+menu-polyline-arc-hover = I lati successivi sono archi, ognuno prosegue senza spigolo dal lato prima; il clic fissa dove finisce

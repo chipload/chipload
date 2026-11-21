@@ -173,3 +173,7 @@ menu-draw-spline = Spline
 menu-modify-mirror = Simetría respecto a un eje
 menu-polyline-radius = Radio
 menu-polyline-radius-hover = Cada esquina de la polilínea que se dibuja se redondea con este radio (0: viva); una esquina con lados demasiado cortos recibe el mayor que cabe
+menu-polyline-line = Línea
+menu-polyline-line-hover = Los siguientes lados son líneas rectas
+menu-polyline-arc = Arco
+menu-polyline-arc-hover = Los siguientes lados son arcos, cada uno sigue suavemente al anterior; el clic fija dónde termina

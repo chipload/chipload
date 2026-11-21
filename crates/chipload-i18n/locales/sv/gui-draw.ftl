@@ -20,6 +20,7 @@ draw-status-polyline = Ritar en polylinje { $count ->
 draw-no-size-circle = cirkeln skulle sakna storlek
 draw-no-size-rectangle = rektangeln skulle sakna storlek
 draw-polyline-too-short = en polylinje behöver minst 2 punkter
+draw-arc-behind = ingen tangerande båge når en punkt rakt bakom: klicka åt sidan, eller byt till linjer (L)
 
 # The point the cursor snapped to, on contour #4.
 draw-snap-end = ände av #{ $contour }
@@ -215,3 +216,13 @@ draw-status-slot-arc-end = Ritar ett bågspår med radie { $radius }, { $angle }
 draw-status-slot-arc = Ritar ett bågspår med bredd { $width }: klicka för att ange bredden, eller skriv den (rutnät { $grid }, Esc avbryter)
 draw-variant-slot-straight = Rakt (två ändar)
 draw-variant-slot-arc = Båge (centrum, ändar, bredd)
+
+# Drawing a polyline's tangent arcs (docs/specs/polyline-tangent-arcs.md).
+draw-status-polyline-arc = Ritar en polylinje { $count ->
+        [one] { $count } punkt
+       *[other] { $count } punkter
+    }, en båge med radie { $radius } vidare från senaste sidan: klicka där den slutar; L ritar linjer, Enter eller dubbelklick avslutar den öppen, första punkten sluter den, Backspace tar bort senaste punkten (rutnät { $grid }, Esc avbryter)
+draw-status-polyline-arc-first = Ritar en polylinje { $count ->
+        [one] { $count } punkt
+       *[other] { $count } punkter
+    }: en båge behöver en sida att fortsätta från, så första sidan blir en linje (börja i änden på en form för att fortsätta från den); klicka på nästa punkt (rutnät { $grid }, Esc avbryter)

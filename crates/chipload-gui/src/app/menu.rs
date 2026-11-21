@@ -966,6 +966,27 @@ impl ChiploadApp {
         if self.sketch().is_none_or(|s| s.tool != Tool::Polyline) {
             return;
         }
+        // Lines or tangent arcs for the next sides (docs/specs/polyline-tangent-arcs.md §3).
+        let arcs = self.sketch().is_some_and(|s| s.arcs);
+        let line = with_keys(&t!(ui, "menu-polyline-line"), Action::DrawPolyline);
+        let arc = with_keys(&t!(ui, "menu-polyline-arc"), Action::DrawArc);
+        if ui
+            .selectable_label(!arcs, line)
+            .on_hover_text(t!(ui, "menu-polyline-line-hover"))
+            .clicked()
+            && let Some(sketch) = self.sketch_mut()
+        {
+            sketch.arcs = false;
+        }
+        if ui
+            .selectable_label(arcs, arc)
+            .on_hover_text(t!(ui, "menu-polyline-arc-hover"))
+            .clicked()
+            && let Some(sketch) = self.sketch_mut()
+        {
+            sketch.arcs = true;
+        }
+        ui.separator();
         ui.label(t!(ui, "menu-polyline-radius"))
             .on_hover_text(t!(ui, "menu-polyline-radius-hover"));
         if ui

@@ -858,3 +858,82 @@ fn a_polyline_drawn_with_a_radius_has_its_corners_rounded() {
     assert!((radii[1] - 10.0).abs() < 1e-9);
     assert_eq!(radii[2], 0.0);
 }
+
+#[test]
+fn a_polyline_draws_tangent_arcs_in_arc_mode() {
+    // docs/specs/polyline-tangent-arcs.md §3: line, arc, arc, line.
+    let mut sketch = Sketch::new(Tool::Polyline);
+    sketch.click((0.0, 0.0), false);
+    // Arc mode before any side: the first side is a line, the status bar says why.
+    sketch.arcs = true;
+    assert!(!sketch.drawing_arc());
+    assert!(
+        sketch
+            .status((40.0, 0.0), 1.0, Units::Mm, &En)
+            .contains("first side is a line")
+    );
+    sketch.click((40.0, 0.0), false);
+    // On from it: a quarter circle to (60, 20), then another to (40, 40).
+    assert!(sketch.drawing_arc());
+    assert_eq!(
+        sketch.readout((60.0, 20.0), Units::Mm).unwrap(),
+        "R 20.000  90.0°"
+    );
+    sketch.click((60.0, 20.0), false);
+    sketch.click((40.0, 40.0), false);
+    // Straight behind (the last arc ends heading −X) isn't reached.
+    assert_eq!(
+        sketch.click((50.0, 40.0), false),
+        Step::Ignored(Some(Why::ArcBehind))
+    );
+    // Lines again, then Backspace takes the last point and its side.
+    sketch.arcs = false;
+    sketch.click((0.0, 40.0), false);
+    sketch.click((0.0, 60.0), false);
+    sketch.undo_point();
+    assert_eq!(sketch.bulges.len(), 4);
+    let Step::Done(Geometry::Polyline { points, bulges, .. }) = sketch.finish() else {
+        panic!("an open polyline");
+    };
+    assert_eq!(points.len(), 5);
+    let quarter = 2f64.sqrt() - 1.0;
+    assert_eq!(bulges.len(), 4);
+    assert!(bulges[0] == 0.0 && bulges[3] == 0.0, "{bulges:?}");
+    assert!((bulges[1] - quarter).abs() < 1e-9 && (bulges[2] - quarter).abs() < 1e-9);
+}
+
+#[test]
+fn a_polyline_closes_with_an_arc_and_shift_holds_the_sweep() {
+    use std::f64::consts::PI;
+    let mut sketch = Sketch::new(Tool::Polyline);
+    for p in [(0.0, 0.0), (40.0, 0.0), (40.0, 20.0)] {
+        sketch.click(p, false);
+    }
+    // Shift: a sweep of 15° steps, the chord as long as to the cursor.
+    sketch.arcs = true;
+    let end = sketch.arc_step((30.0, 31.0), None, Units::Mm).unwrap();
+    let bulge = tangent_arc_bulge((40.0, 20.0), PI / 2.0, end).unwrap();
+    let sweep = 4.0 * math::atan(bulge);
+    let steps = sweep / 15f64.to_radians();
+    assert!(
+        (steps - steps.round()).abs() < 1e-9,
+        "{}",
+        sweep.to_degrees()
+    );
+    assert!((distance((40.0, 20.0), end) - distance((40.0, 20.0), (30.0, 31.0))).abs() < 1e-9);
+    // A half circle over to (0, 20), then a click on the first point closes it with the
+    // tangent side from there: straight down, on from the half circle's end.
+    sketch.click((0.0, 20.0), false);
+    let Step::Done(Geometry::Polyline { closed, bulges, .. }) = sketch.click((0.0, 0.0), true)
+    else {
+        panic!("a closed polyline");
+    };
+    assert!(closed);
+    assert_eq!(bulges.len(), 4);
+    assert!(
+        (bulges[2] - 1.0).abs() < 1e-9 && bulges[3].abs() < 1e-9,
+        "{bulges:?}"
+    );
+    // A new polyline starts with lines.
+    assert!(!Sketch::new(Tool::Polyline).arcs);
+}

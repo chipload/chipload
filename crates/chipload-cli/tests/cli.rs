@@ -4127,3 +4127,53 @@ fn two_lines_are_joined_by_a_fillet_or_chamfer_from_the_command_line() {
         text(&parallel.stderr)
     );
 }
+
+#[test]
+fn a_bulge_t_is_a_tangent_arc_from_the_side_before() {
+    // docs/specs/polyline-tangent-arcs.md §4.
+    let dir = temp_dir("tangent-bulges");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v30/polygon.chipload"), &project).unwrap();
+    let p = path(&project);
+    let out = chipload(&[
+        "--json",
+        "shape",
+        "add",
+        p,
+        "polyline",
+        "--open",
+        "--points",
+        "0,0 40,0 60,20 60,40",
+        "--bulges",
+        "0 t t",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let value: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let index = value["ids"][0].as_u64().unwrap() - 1;
+    let got = chipload(&[
+        "--json",
+        "get",
+        p,
+        &format!("drawing.shapes.{index}.bulges"),
+    ]);
+    let value: serde_json::Value = serde_json::from_slice(&got.stdout).unwrap();
+    let bulges: Vec<f64> = value["value"]
+        .as_array()
+        .unwrap_or_else(|| panic!("{value}"))
+        .iter()
+        .map(|b| b.as_f64().unwrap())
+        .collect();
+    // A quarter circle, then a line straight on from its end: bulge 0.
+    assert!((bulges[1] - (2f64.sqrt() - 1.0)).abs() < 1e-9, "{bulges:?}");
+    assert!(bulges[2].abs() < 1e-9, "{bulges:?}");
+    // The first side of an open polyline can't be one.
+    let first = chipload(&[
+        "shape", "add", p, "polyline", "--open", "--points", "0,0 40,0", "--bulges", "t",
+    ]);
+    assert!(!first.status.success());
+    assert!(
+        text(&first.stderr).contains("first side"),
+        "{}",
+        text(&first.stderr)
+    );
+}

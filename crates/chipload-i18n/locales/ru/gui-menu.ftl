@@ -151,3 +151,7 @@ menu-draw-spline = Сплайн
 menu-modify-mirror = Отразить относительно оси
 menu-polyline-radius = Радиус
 menu-polyline-radius-hover = Каждый угол рисуемой полилинии скругляется этим радиусом (0 — острый); угол со слишком короткими сторонами получает наибольший возможный
+menu-polyline-line = Линия
+menu-polyline-line-hover = Следующие стороны — прямые линии
+menu-polyline-arc = Дуга
+menu-polyline-arc-hover = Следующие стороны — дуги, каждая плавно продолжает предыдущую сторону; щелчок задаёт её конец

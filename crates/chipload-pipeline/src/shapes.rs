@@ -920,3 +920,49 @@ mod tests {
         assert!(add_shape(&project(), "0", path).is_err());
     }
 }
+
+/// Why `t` bulges can't be worked out.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TangentWhy {
+    /// The first side of an open polyline has no side before it.
+    First,
+    /// Side `0` follows a tangent side that is worked out after it.
+    AfterTangent(usize),
+    /// Side `0`'s end lies straight behind its start's direction.
+    Behind(usize),
+    /// More bulges than sides.
+    Points,
+}
+
+/// A polyline's bulges with each tangent arc (None, `t` on the command line) worked out:
+/// the arc from its side's start, leaving in the direction the side before it ends, to its
+/// end (docs/specs/polyline-tangent-arcs.md §2, §4). Worked out in order; a closed one's
+/// first side may follow its last when that is a number.
+pub fn tangent_bulges(
+    points: &[[f64; 2]],
+    closed: bool,
+    given: &[Option<f64>],
+) -> Result<Vec<f64>, TangentWhy> {
+    use chipload_draw::construct::{side_end_heading, tangent_arc_bulge};
+    let n = points.len();
+    let sides = chipload_job::polyline_segment_count(n, closed);
+    if given.iter().any(Option::is_none) && given.len() > sides {
+        return Err(TangentWhy::Points);
+    }
+    let p = |i: usize| (points[i % n][0], points[i % n][1]);
+    let mut out: Vec<Option<f64>> = given.to_vec();
+    for i in 0..out.len() {
+        if out[i].is_some() {
+            continue;
+        }
+        let before = match (i, closed) {
+            (0, false) => return Err(TangentWhy::First),
+            (0, true) => out.len() - 1,
+            _ => i - 1,
+        };
+        let bulge = out[before].ok_or(TangentWhy::AfterTangent(i))?;
+        let heading = side_end_heading(p(before), p(before + 1), bulge);
+        out[i] = Some(tangent_arc_bulge(p(i), heading, p(i + 1)).ok_or(TangentWhy::Behind(i))?);
+    }
+    Ok(out.into_iter().map(|b| b.unwrap_or(0.0)).collect())
+}

@@ -176,3 +176,7 @@ menu-draw-spline = Spline
 menu-modify-mirror = Mirror about a line
 menu-polyline-radius = Radius
 menu-polyline-radius-hover = Every corner of the polyline being drawn is rounded by this radius (0: sharp); a corner whose sides are too short gets the most that fits
+menu-polyline-line = Line
+menu-polyline-line-hover = The next sides are straight lines
+menu-polyline-arc = Arc
+menu-polyline-arc-hover = The next sides are arcs, each going on smoothly from the side before it; the click sets where it ends

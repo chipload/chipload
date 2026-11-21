@@ -16,6 +16,15 @@ Chipload draws the parts it cuts, with or without a DXF:
     click on either side of the edge, or type it). The rectangle is turned to the edge.
 - **Polyline** (**L**): points joined by straight or arc segments, open or closed. Click
   the first point again to close it; Enter or a double-click finishes it open.
+  - **Arcs while drawing:** press **A** (or *Arc* on the status bar) and the next sides
+    are arcs, each going on smoothly from the side before it; the click sets where the
+    arc ends. **L** (or *Line*) goes back to lines. Shift holds the arc's sweep to 15°
+    steps (a quarter or half circle), and the readout shows its radius and sweep. The
+    first side needs a direction to go on from, so it is a line, unless you start on the
+    end of an open drawn shape: then the arc goes on from that shape. A point straight
+    behind can't be reached by an arc. Each new polyline starts with lines. On the command
+    line, `t` in `--bulges` is such an arc: `chipload shape add P polyline --open
+    --points "0,0 40,0 60,20 60,40" --bulges "0 t t"`.
   - **Rounded corners:** each corner can have a *Radius*, an arc tangent to both sides,
     beside an arc side too (a line running into an arc, or two arcs). The point stays at
     the sharp corner, so the numbers you drew stay as they were; an arc side is cut back

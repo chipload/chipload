@@ -20,6 +20,7 @@ draw-status-polyline = Dibujando una polilínea de { $count ->
 draw-no-size-circle = el círculo no tendría tamaño
 draw-no-size-rectangle = el rectángulo no tendría tamaño
 draw-polyline-too-short = una polilínea necesita al menos 2 puntos
+draw-arc-behind = ningún arco tangente llega a un punto justo detrás: haga clic a un lado, o cambie a líneas (L)
 
 # The point the cursor snapped to, on contour #4.
 draw-snap-end = extremo de #{ $contour }
@@ -215,3 +216,13 @@ draw-status-slot-arc-end = Dibujando una ranura en arco de radio { $radius }, { 
 draw-status-slot-arc = Dibujando una ranura en arco de ancho { $width }: haz clic para dar su ancho, o escríbelo (cuadrícula { $grid }, Esc cancela)
 draw-variant-slot-straight = Recta (dos extremos)
 draw-variant-slot-arc = En arco (centro, extremos, ancho)
+
+# Drawing a polyline's tangent arcs (docs/specs/polyline-tangent-arcs.md).
+draw-status-polyline-arc = Dibujando una polilínea, { $count ->
+        [one] { $count } punto
+       *[other] { $count } puntos
+    }, un arco de radio { $radius } a continuación del último lado: haga clic donde termina; L dibuja líneas, Intro o doble clic la termina abierta, el primer punto la cierra, Retroceso quita el último punto (rejilla { $grid }, Esc cancela)
+draw-status-polyline-arc-first = Dibujando una polilínea, { $count ->
+        [one] { $count } punto
+       *[other] { $count } puntos
+    }: un arco necesita un lado del que seguir, así que el primer lado es una línea (empiece en el extremo de una forma para seguirla); haga clic en el siguiente punto (rejilla { $grid }, Esc cancela)

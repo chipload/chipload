@@ -1,6 +1,7 @@
 # Spec: arcs while drawing a polyline
 
-Status: **draft, 2026-11-21**, for review (decisions in §7). The second item of step 2 of
+Status: **approved and built 2026-11-21** (the user: "Ok!"; §7 as recommended; see
+*As built*, §8). The second item of step 2 of
 the drawing review (TODO, *Next* 1; docs/specs/drawing-improvements.md).
 
 Builds on drawing-tools.md (the polyline tool), drawing-input.md (keys, typed values,
@@ -109,3 +110,15 @@ One commit: the construction, `t` in `--bulges`, then the window, the guide
    Later, if missed.
 6. **`t` in `--bulges` on the command line,** so the feature works from the command line
    before the window, as CLAUDE.md asks. The stored polyline keeps plain bulges.
+
+## 8. As built
+
+- `chipload_draw::construct::{tangent_arc_bulge, side_end_heading, tangent_arc_end}`;
+  `chipload_pipeline::shapes::tangent_bulges` works out `t` for the command line (the
+  CLI goes through the pipeline, never `chipload-draw`).
+- The window's `Sketch` keeps a bulge per side, `arcs` and `start_heading` (from an open
+  drawn polyline's end, or back from its start, where the first point lands). A and L
+  switch only through their shortcuts while a polyline has a point; the ribbon's and
+  menus' buttons still start the tools. The status bar's *Line* and *Arc* name their keys
+  as bound. Closing still needs three points, as before.
+

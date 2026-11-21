@@ -173,3 +173,7 @@ menu-draw-spline = Spline
 menu-modify-mirror = Spegla kring en linje
 menu-polyline-radius = Radie
 menu-polyline-radius-hover = Varje hörn i polylinjen som ritas rundas med den här radien (0: skarpt); ett hörn med för korta sidor får den största som får plats
+menu-polyline-line = Linje
+menu-polyline-line-hover = Nästa sidor är raka linjer
+menu-polyline-arc = Båge
+menu-polyline-arc-hover = Nästa sidor är bågar, var och en fortsätter mjukt från sidan före; klicket anger var den slutar

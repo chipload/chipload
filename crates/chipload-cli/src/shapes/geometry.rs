@@ -13,13 +13,40 @@ pub(crate) fn points_arg(text: &str) -> Result<Vec<[f64; 2]>, String> {
     text.split_whitespace().map(point_arg).collect()
 }
 
-pub(crate) fn bulges_arg(text: &str) -> Result<Vec<f64>, String> {
+/// Bulges "B B ...", each a number or `t`: a tangent arc, worked out from the side before it
+/// (docs/specs/polyline-tangent-arcs.md §4) once the points are known.
+pub(crate) fn bulges_arg(text: &str) -> Result<Vec<Option<f64>>, String> {
     text.split_whitespace()
         .map(|b| {
-            b.parse::<f64>()
-                .map_err(|_| format!("expected a bulge as a number, got {b:?}"))
+            if b == "t" {
+                return Ok(None);
+            }
+            b.parse::<f64>().map(Some).map_err(|_| {
+                format!("expected a bulge as a number, or t for a tangent arc, got {b:?}")
+            })
         })
         .collect()
+}
+
+/// The bulges with each `t` worked out (docs/specs/polyline-tangent-arcs.md §4).
+pub(crate) fn tangent_bulges(
+    points: &[[f64; 2]],
+    closed: bool,
+    given: &[Option<f64>],
+) -> Result<Vec<f64>, String> {
+    use chipload_pipeline::shapes::{TangentWhy, tangent_bulges};
+    tangent_bulges(points, closed, given).map_err(|why| match why {
+        TangentWhy::First => {
+            "the first side can't be a tangent arc (t): it has no side before it".to_string()
+        }
+        TangentWhy::AfterTangent(i) => {
+            format!("side {i} is a tangent arc (t) after one that is worked out later")
+        }
+        TangentWhy::Behind(i) => {
+            format!("side {i}: its end lies straight behind, no tangent arc reaches it")
+        }
+        TangentWhy::Points => "a tangent arc (t) needs a point at each end of its side".into(),
+    })
 }
 
 /// Lengths "R R ...", each as any length option takes it (units, arithmetic).
@@ -78,7 +105,7 @@ pub(crate) fn new_geometry(kind: KindArg, v: &ShapeValues) -> Result<Geometry, S
             let closed = !v.open;
             let points = points_arg(need(v.points.as_deref(), "points", "polyline")?)?;
             let bulges = match &v.bulges {
-                Some(text) => bulges_arg(text)?,
+                Some(text) => tangent_bulges(&points, closed, &bulges_arg(text)?)?,
                 None => vec![0.0; polyline_segment_count(points.len(), closed)],
             };
             Geometry::Polyline {
@@ -290,7 +317,7 @@ pub(crate) fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Ge
             }
             let count = polyline_segment_count(points.len(), *closed);
             if let Some(text) = &v.bulges {
-                *bulges = bulges_arg(text)?;
+                *bulges = tangent_bulges(points, *closed, &bulges_arg(text)?)?;
             } else if bulges.len() != count {
                 // The segments changed: straight ones stay straight, but which bend a curved
                 // one should keep isn't ours to guess.

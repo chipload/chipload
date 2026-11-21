@@ -532,7 +532,8 @@ pub(crate) struct ShapeValues {
     #[arg(long, allow_hyphen_values = true)]
     points: Option<String>,
     /// Polyline bulges "B B ...", one per segment: tan(sweep / 4) as in DXF, 0 straight,
-    /// 1 a counter-clockwise half circle, -1 clockwise (default: all straight).
+    /// 1 a counter-clockwise half circle, -1 clockwise (default: all straight); t: an arc
+    /// going on smoothly from the segment before it (docs/specs/polyline-tangent-arcs.md).
     #[arg(long, allow_hyphen_values = true)]
     bulges: Option<String>,
     /// An arc slot's start, degrees counter-clockwise from +X.

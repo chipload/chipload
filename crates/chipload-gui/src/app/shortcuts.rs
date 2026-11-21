@@ -413,10 +413,12 @@ impl ChiploadApp {
             Action::Simulate => self.set_show_simulation(!self.display.simulate),
             Action::Measure => self.toggle_measure(),
             Action::Panels => self.panels.toggle_hidden(),
+            Action::DrawPolyline if self.set_polyline_arcs(false) => {}
             Action::DrawPolyline => self.draw_shape(Tool::Polyline),
             Action::DrawSpline => self.draw_shape(Tool::Spline),
             Action::DrawCircle => self.draw_shape(Tool::Circle),
             Action::DrawRectangle => self.draw_shape(Tool::Rectangle),
+            Action::DrawArc if self.set_polyline_arcs(true) => {}
             Action::DrawArc => self.draw_shape(Tool::Arc),
             Action::DrawSlot => self.draw_shape(Tool::Slot),
             Action::DrawPolygon => self.draw_shape(Tool::Polygon),

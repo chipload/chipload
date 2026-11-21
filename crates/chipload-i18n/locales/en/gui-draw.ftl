@@ -20,6 +20,7 @@ draw-status-polyline = Drawing a polyline { $count ->
 draw-no-size-circle = the circle would have no size
 draw-no-size-rectangle = the rectangle would have no size
 draw-polyline-too-short = a polyline needs at least 2 points
+draw-arc-behind = no tangent arc reaches a point straight behind: click to the side, or switch to lines (L)
 
 # The point the cursor snapped to, on contour #4.
 draw-snap-end = end of #{ $contour }
@@ -219,3 +220,13 @@ draw-status-slot-arc-end = Drawing an arc slot radius { $radius }, { $angle }°:
 draw-status-slot-arc = Drawing an arc slot width { $width }: click to give its width, or type it (grid { $grid }, Esc cancels)
 draw-variant-slot-straight = Straight (two ends)
 draw-variant-slot-arc = Arc (centre, ends, width)
+
+# Drawing a polyline's tangent arcs (docs/specs/polyline-tangent-arcs.md).
+draw-status-polyline-arc = Drawing a polyline { $count ->
+        [one] { $count } point
+       *[other] { $count } points
+    }, an arc of radius { $radius } on from the last side: click where it ends; L draws lines, Enter or double-click finishes it open, the first point closes it, Backspace removes the last point (grid { $grid }, Esc cancels)
+draw-status-polyline-arc-first = Drawing a polyline { $count ->
+        [one] { $count } point
+       *[other] { $count } points
+    }: an arc needs a side to go on from, so the first side is a line (start on a shape's end to go on from it); click the next point (grid { $grid }, Esc cancels)

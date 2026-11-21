@@ -20,6 +20,7 @@ draw-status-polyline = Polylinie zeichnen, { $count ->
 draw-no-size-circle = der Kreis hätte keine Größe
 draw-no-size-rectangle = das Rechteck hätte keine Größe
 draw-polyline-too-short = eine Polylinie braucht mindestens 2 Punkte
+draw-arc-behind = kein tangentialer Bogen erreicht einen Punkt genau dahinter: seitlich klicken oder auf Linien wechseln (L)
 
 # The point the cursor snapped to, on contour #4.
 draw-snap-end = Ende von #{ $contour }
@@ -215,3 +216,13 @@ draw-status-slot-arc-end = Bogenlangloch zeichnen, Radius { $radius }, { $angle 
 draw-status-slot-arc = Bogenlangloch zeichnen, Breite { $width }: klicken, um die Breite anzugeben, oder sie eingeben (Raster { $grid }, Esc bricht ab)
 draw-variant-slot-straight = Gerade (zwei Enden)
 draw-variant-slot-arc = Bogen (Mitte, Enden, Breite)
+
+# Drawing a polyline's tangent arcs (docs/specs/polyline-tangent-arcs.md).
+draw-status-polyline-arc = Polylinie zeichnen, { $count ->
+        [one] { $count } Punkt
+       *[other] { $count } Punkte
+    }, ein Bogen mit Radius { $radius } weiter von der letzten Seite: klicken, wo er endet; L zeichnet Linien, Enter oder Doppelklick beendet sie offen, der erste Punkt schließt sie, Backspace entfernt den letzten Punkt (Raster { $grid }, Esc bricht ab)
+draw-status-polyline-arc-first = Polylinie zeichnen, { $count ->
+        [one] { $count } Punkt
+       *[other] { $count } Punkte
+    }: ein Bogen braucht eine Seite, an die er anschließt, daher ist die erste Seite eine Linie (am Ende einer Form beginnen, um dort anzuschließen); den nächsten Punkt anklicken (Raster { $grid }, Esc bricht ab)

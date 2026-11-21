@@ -10,7 +10,7 @@ use std::f64::consts::{PI, TAU};
 
 use chipload_core::Point;
 use chipload_core::primitives::{Arc, distance};
-use chipload_core::tolerances::CHAIN_TOL_MM;
+use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM};
 
 /// The arc from `start` through `through` to `end`: the circle through the three points,
 /// swept the way that passes `through`. None when two of them coincide or the three lie
@@ -295,6 +295,47 @@ pub fn arc_slot(arc: &Arc, width: f64) -> Option<(Vec<Point>, Vec<f64>)> {
     Some((points, bulges))
 }
 
+/// The bulge of the arc from `start`, leaving in direction `heading` (radians,
+/// counter-clockwise from +X), to `end`: tan(θ / 2), θ the signed angle from the heading
+/// to the chord, which is half the arc's sweep (the tangent–chord angle;
+/// docs/specs/polyline-tangent-arcs.md §2). 0 when `end` lies straight ahead; None when it
+/// is the start itself or straight behind (the arc would be a whole circle).
+pub fn tangent_arc_bulge(start: Point, heading: f64, end: Point) -> Option<f64> {
+    if distance(start, end) < CHAIN_TOL_MM {
+        return None;
+    }
+    let chord = math::atan2(end.1 - start.1, end.0 - start.0);
+    let theta = wrap_angle(chord - heading);
+    if theta.abs() >= PI - ANGLE_TOL_RAD {
+        return None;
+    }
+    Some(math::tan(theta / 2.0))
+}
+
+/// The direction a polyline side from `a` to `b` with `bulge` runs at `b`: an arc meets
+/// its chord again half its sweep further round.
+pub fn side_end_heading(a: Point, b: Point, bulge: f64) -> f64 {
+    math::atan2(b.1 - a.1, b.0 - a.0) + 2.0 * math::atan(bulge)
+}
+
+/// The end of the arc from `start`, leaving along `heading`, that sweeps `sweep` with a
+/// chord `chord` long: the chord points half the sweep round from the heading.
+pub fn tangent_arc_end(start: Point, heading: f64, sweep: f64, chord: f64) -> Point {
+    let (sin, cos) = math::sin_cos(heading + sweep / 2.0);
+    (start.0 + chord * cos, start.1 + chord * sin)
+}
+
+/// An angle brought into (−π, π].
+fn wrap_angle(mut angle: f64) -> f64 {
+    while angle > PI {
+        angle -= TAU;
+    }
+    while angle <= -PI {
+        angle += TAU;
+    }
+    angle
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -512,5 +553,46 @@ mod tests {
             )
             .is_some()
         );
+    }
+
+    #[test]
+    fn a_tangent_arc_leaves_along_the_heading_and_ends_where_asked() {
+        // A quarter circle: from (40, 0) along +X to (60, 20).
+        let b = tangent_arc_bulge((40.0, 0.0), 0.0, (60.0, 20.0)).unwrap();
+        assert!((b - math::tan(PI / 8.0)).abs() < 1e-12);
+        let arc = Arc::from_bulge((40.0, 0.0), (60.0, 20.0), b).unwrap();
+        assert!((arc.sweep - PI / 2.0).abs() < 1e-12);
+        assert!(distance(arc.center, (40.0, 20.0)) < 1e-9);
+        assert!((side_end_heading((40.0, 0.0), (60.0, 20.0), b) - PI / 2.0).abs() < 1e-12);
+        // A half circle to the right; straight ahead a line; behind, none.
+        let half = tangent_arc_bulge((0.0, 0.0), PI / 2.0, (10.0, 0.0)).unwrap();
+        assert!((half + 1.0).abs() < 1e-12, "{half}");
+        assert_eq!(tangent_arc_bulge((0.0, 0.0), 0.0, (5.0, 0.0)), Some(0.0));
+        assert_eq!(tangent_arc_bulge((0.0, 0.0), 0.0, (-5.0, 0.0)), None);
+        assert_eq!(tangent_arc_bulge((0.0, 0.0), 0.0, (0.0, 0.0)), None);
+        // The end of a given sweep and chord comes back to the same bulge.
+        let end = tangent_arc_end((0.0, 0.0), 0.3, PI / 2.0, 10.0);
+        let b = tangent_arc_bulge((0.0, 0.0), 0.3, end).unwrap();
+        assert!((b - math::tan(PI / 8.0)).abs() < 1e-12);
+    }
+
+    proptest::proptest! {
+        /// The arc starts in the heading's direction and ends at the end asked for.
+        #[test]
+        fn tangent_arcs_start_along_the_heading(
+            heading in -PI..PI, x in -50.0..50.0f64, y in -50.0..50.0f64,
+        ) {
+            let start = (1.0, 2.0);
+            if let Some(b) = tangent_arc_bulge(start, heading, (x, y))
+                && b != 0.0
+                && let Some(arc) = Arc::from_bulge(start, (x, y), b)
+            {
+                let dir = arc.sweep.signum();
+                let a = arc.start_angle;
+                let tangent = math::atan2(dir * math::cos(a), -dir * math::sin(a));
+                proptest::prop_assert!(wrap_angle(tangent - heading).abs() < 1e-6);
+                proptest::prop_assert!(distance(arc.point_at(a + arc.sweep), (x, y)) < 1e-6);
+            }
+        }
     }
 }

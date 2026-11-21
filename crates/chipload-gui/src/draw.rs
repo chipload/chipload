@@ -14,7 +14,8 @@ use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_draw::construct::{
     arc_as_polyline, arc_by_centre, arc_middle_for_radius, arc_slot, arc_through,
     circle_by_diameter, circle_through, left_of, polygon_by_side, polygon_on_edge,
-    rectangle_aligned, rectangle_by_centre, rectangle_by_corners,
+    rectangle_aligned, rectangle_by_centre, rectangle_by_corners, side_end_heading,
+    tangent_arc_bulge, tangent_arc_end,
 };
 use chipload_job::{Geometry, Shape, Units};
 use chipload_pipeline::units::{length_text, parse_length};
@@ -117,6 +118,14 @@ pub struct Sketch {
     /// centre; the arc goes that way round (docs/specs/drawing-variants.md §2).
     pub turned: f64,
     last_direction: Option<f64>,
+    /// A polyline: the next side is a tangent arc, not a line
+    /// (docs/specs/polyline-tangent-arcs.md §3).
+    pub arcs: bool,
+    /// A polyline: each side's bulge so far, one fewer than the points.
+    pub bulges: Vec<f64>,
+    /// A polyline started on an open shape's end: the direction it goes on in there, so
+    /// its first side can be an arc.
+    pub start_heading: Option<f64>,
 }
 
 /// What a click or Enter did.
@@ -136,6 +145,8 @@ pub enum Step {
 pub enum Why {
     /// The shape would have no size (an arc: its three points lie on a line).
     NoSize(Tool),
+    /// A polyline's tangent arc can't reach the point: it lies straight behind.
+    ArcBehind,
     /// A polyline finished with fewer than 2 points.
     /// A polyline or spline finished with fewer than 2 points.
     TooFewPoints(Tool),
@@ -166,6 +177,7 @@ impl Why {
             Why::NoSize(Tool::ArcCentre) => t!(lang, "draw-no-size-arc"),
             Why::NoSize(Tool::Slot) => t!(lang, "draw-no-size-slot"),
             Why::NoSize(Tool::SlotArc) => t!(lang, "draw-no-size-slot-arc"),
+            Why::ArcBehind => t!(lang, "draw-arc-behind"),
             Why::TooFewPoints(Tool::Spline) => t!(lang, "draw-spline-too-short"),
             Why::TooFewPoints(_) => t!(lang, "draw-polyline-too-short"),
         }
@@ -181,7 +193,66 @@ impl Sketch {
             corner_radius: 0.0,
             turned: 0.0,
             last_direction: None,
+            arcs: false,
+            bulges: Vec::new(),
+            start_heading: None,
         }
+    }
+
+    /// A polyline: the direction its last side ends in (the start's, from the shape it
+    /// started on, before any side); None when there is none yet.
+    pub fn heading(&self) -> Option<f64> {
+        match &self.points[..] {
+            [] => None,
+            [_] => self.start_heading,
+            [.., a, b] => Some(side_end_heading(
+                *a,
+                *b,
+                self.bulges.last().copied().unwrap_or(0.0),
+            )),
+        }
+    }
+
+    /// Whether the next side is drawn as an arc: in arc mode, with a direction to go on
+    /// from.
+    pub fn drawing_arc(&self) -> bool {
+        self.tool == Tool::Polyline && self.arcs && self.heading().is_some()
+    }
+
+    /// The bulge of the next side, from the last point to `p`: a tangent arc in arc mode
+    /// (with a direction), else straight.
+    fn next_bulge(&self, p: Point) -> Result<f64, Why> {
+        match (self.drawing_arc(), self.points.last(), self.heading()) {
+            (true, Some(&last), Some(heading)) => {
+                tangent_arc_bulge(last, heading, p).ok_or(Why::ArcBehind)
+            }
+            _ => Ok(0.0),
+        }
+    }
+
+    /// With Shift in arc mode: the end of the arc to the cursor at `p` with its sweep held
+    /// to 15° steps, the chord as long as from the last point to `p` (rounded to `step`
+    /// when given); None when not drawing an arc.
+    pub fn arc_step(&self, p: Point, step: Option<f64>, units: Units) -> Option<Point> {
+        if !self.drawing_arc() {
+            return None;
+        }
+        let (&last, heading) = (self.points.last()?, self.heading()?);
+        let chord = distance(last, p);
+        if chord < CHAIN_TOL_MM {
+            return Some(last);
+        }
+        let theta = math::atan2(p.1 - last.1, p.0 - last.0) - heading;
+        let theta =
+            (theta + std::f64::consts::PI).rem_euclid(std::f64::consts::TAU) - std::f64::consts::PI;
+        let step_rad = ANGLE_STEP_DEG.to_radians();
+        let most = std::f64::consts::TAU - step_rad;
+        let sweep = ((2.0 * theta / step_rad).round() * step_rad).clamp(-most, most);
+        let chord = match step {
+            Some(step) => snap((chord, 0.0), step, units).0.max(step),
+            None => chord,
+        };
+        Some(tangent_arc_end(last, heading, sweep, chord))
     }
 
     /// A click at `p`. `on_first` says the click hit the polyline's first point on screen,
@@ -196,9 +267,27 @@ impl Sketch {
         }
         self.follow(p);
         match self.tool {
-            Tool::Polyline | Tool::Spline => {
+            Tool::Spline => {
                 if on_first && self.points.len() >= 3 {
                     return Step::Done(self.open_shape(true));
+                }
+                self.points.push(p);
+                Step::Continue
+            }
+            Tool::Polyline => {
+                let first = self.points.first().copied();
+                let closing = on_first && self.points.len() >= 3;
+                let target = if closing { first.unwrap_or(p) } else { p };
+                let bulge = match self.next_bulge(target) {
+                    Ok(bulge) => bulge,
+                    Err(why) => return Step::Ignored(Some(why)),
+                };
+                if closing {
+                    self.bulges.push(bulge);
+                    return Step::Done(self.open_shape(true));
+                }
+                if !self.points.is_empty() {
+                    self.bulges.push(bulge);
                 }
                 self.points.push(p);
                 Step::Continue
@@ -245,12 +334,13 @@ impl Sketch {
         Step::Done(self.open_shape(false))
     }
 
-    /// The polyline (straight) or spline through the points clicked.
+    /// The polyline (its sides lines or arcs) or spline through the points clicked; a
+    /// closed polyline's closing side is the last bulge.
     fn open_shape(&self, closed: bool) -> Geometry {
         let points: Vec<[f64; 2]> = self.points.iter().map(|&(x, y)| [x, y]).collect();
         match self.tool {
             Tool::Spline => Geometry::Spline { closed, points },
-            _ => rounded_polyline(points, closed, self.corner_radius),
+            _ => rounded_polyline(points, self.bulges.clone(), closed, self.corner_radius),
         }
     }
 
@@ -307,9 +397,10 @@ impl Sketch {
         self.last_direction = Some(direction);
     }
 
-    /// Backspace: forget the last click.
+    /// Backspace: forget the last click (a polyline's last side with it).
     pub fn undo_point(&mut self) {
         self.points.pop();
+        self.bulges.truncate(self.points.len().saturating_sub(1));
     }
 
     /// The shape with its last click at `p`; None if it would have no size.
@@ -414,22 +505,46 @@ impl Sketch {
                     None => vec![self.points.clone()],
                 }
             }
-            // A polyline with a corner radius: rounded as it will be.
-            Tool::Polyline if self.corner_radius > 0.0 => {
+            // A polyline: its sides as drawn, the next to the cursor, corners rounded as
+            // they will be.
+            Tool::Polyline => {
                 let mut through: Vec<[f64; 2]> = self.points.iter().map(|&(x, y)| [x, y]).collect();
+                let mut bulges = self.bulges.clone();
                 if through
                     .last()
                     .is_none_or(|l| distance((l[0], l[1]), p) >= CHAIN_TOL_MM)
                 {
-                    through.push([p.0, p.1]);
+                    match self.next_bulge(p) {
+                        Ok(bulge) => {
+                            through.push([p.0, p.1]);
+                            bulges.push(bulge);
+                        }
+                        // Straight behind: the line to the cursor shows where it is.
+                        Err(_) => {
+                            let mut lines = outline(&rounded_polyline(
+                                through.clone(),
+                                bulges.clone(),
+                                false,
+                                self.corner_radius,
+                            ));
+                            if let Some(&last) = self.points.last() {
+                                lines.push(vec![last, p]);
+                            }
+                            return lines;
+                        }
+                    }
                 }
                 if through.len() < 2 {
                     return Vec::new();
                 }
-                outline(&rounded_polyline(through, false, self.corner_radius))
+                outline(&rounded_polyline(
+                    through,
+                    bulges,
+                    false,
+                    self.corner_radius,
+                ))
             }
-            Tool::Polyline
-            | Tool::Arc
+            Tool::Arc
             | Tool::ArcCentre
             | Tool::Slot
             | Tool::RectangleAligned
@@ -545,6 +660,26 @@ impl Sketch {
                 count = count,
                 grid = grid
             ),
+            (Tool::Polyline, _) if self.drawing_arc() => {
+                match self.next_bulge(p).ok().and_then(|b| {
+                    chipload_core::primitives::Arc::from_bulge(self.points[count - 1], p, b)
+                }) {
+                    Some(arc) => t!(
+                        lang,
+                        "draw-status-polyline-arc",
+                        count = count,
+                        radius = n(arc.radius),
+                        grid = grid
+                    ),
+                    None => t!(lang, "draw-status-polyline", count = count, grid = grid),
+                }
+            }
+            (Tool::Polyline, _) if self.arcs => t!(
+                lang,
+                "draw-status-polyline-arc-first",
+                count = count,
+                grid = grid
+            ),
             (Tool::Polyline, _) => {
                 t!(lang, "draw-status-polyline", count = count, grid = grid)
             }
@@ -637,10 +772,36 @@ impl Sketch {
     }
 }
 
-/// A straight polyline through `points` with every corner rounded by `radius`, a corner
-/// whose sides are too short for it by the most they have room for (0: all sharp).
-fn rounded_polyline(points: Vec<[f64; 2]>, closed: bool, radius: f64) -> Geometry {
-    let mut geometry = Geometry::straight_polyline(closed, points);
+/// The direction a polyline side from `a` to `b` with `bulge` ends in.
+pub fn side_end(a: Point, b: Point, bulge: f64) -> f64 {
+    side_end_heading(a, b, bulge)
+}
+
+/// The direction a polyline side from `a` to `b` with `bulge` leaves `a` in: an arc
+/// leaves its chord half its sweep the other way round from where it meets it again.
+pub fn side_start(a: Point, b: Point, bulge: f64) -> f64 {
+    math::atan2(b.1 - a.1, b.0 - a.0) - 2.0 * math::atan(bulge)
+}
+
+/// A polyline through `points` with `bulges` (missing ones straight) and every corner
+/// rounded by `radius`, a corner whose sides are too short for it by the most they have
+/// room for (0: all sharp). Sides that meet tangentially have no corner.
+fn rounded_polyline(
+    points: Vec<[f64; 2]>,
+    bulges: Vec<f64>,
+    closed: bool,
+    radius: f64,
+) -> Geometry {
+    let sides = chipload_job::polyline_segment_count(points.len(), closed);
+    let bulges: Vec<f64> = (0..sides)
+        .map(|i| bulges.get(i).copied().unwrap_or(0.0))
+        .collect();
+    let mut geometry = Geometry::Polyline {
+        closed,
+        points,
+        bulges,
+        radii: Vec::new(),
+    };
     if radius <= 0.0 {
         return geometry;
     }
@@ -997,6 +1158,13 @@ impl Sketch {
             (Tool::ArcCentre | Tool::SlotArc, &[c, start]) => {
                 let arc = arc_by_centre(c, start, p, self.turned)?;
                 format!("R {}  {:.1}°", n(arc.radius), arc.sweep.to_degrees())
+            }
+            (Tool::Polyline, _) if self.drawing_arc() => {
+                let bulge = self.next_bulge(p).ok()?;
+                match chipload_core::primitives::Arc::from_bulge(from, p, bulge) {
+                    Some(arc) => format!("R {}  {:.1}°", n(arc.radius), arc.sweep.to_degrees()),
+                    None => format!("L {}", n(distance(from, p))),
+                }
             }
             (Tool::PolygonSide, _) => {
                 let g = polygon_by_side(first, p, self.sides)?;

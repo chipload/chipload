@@ -1183,3 +1183,46 @@ fn fillet_rounds_a_corner_unselected_and_joins_two_lines_with_two_clicks() {
     app.undo();
     assert!(app.shape(b).is_some());
 }
+
+#[test]
+fn a_and_l_switch_a_polylines_sides_and_a_shapes_end_gives_the_first_arc_its_direction() {
+    // docs/specs/polyline-tangent-arcs.md §3.
+    let mut app = drawn_part();
+    let line = app
+        .add_drawn(Geometry::straight_polyline(
+            false,
+            vec![[200.0, 150.0], [240.0, 150.0]],
+        ))
+        .unwrap();
+    app.commit();
+    app.start_drawing(crate::draw::Tool::Polyline);
+    // Before the first point A and L are the tools' keys.
+    assert!(!app.set_polyline_arcs(true));
+    // Started on the line's end: the first side can already be an arc, on along +X.
+    app.draw_click((240.0, 150.0), false);
+    assert!(app.set_polyline_arcs(true));
+    let sketch = app.sketch().unwrap();
+    assert_eq!(sketch.start_heading, Some(0.0));
+    assert!(sketch.drawing_arc());
+    app.draw_click((260.0, 170.0), false);
+    assert!(app.set_polyline_arcs(false));
+    app.draw_click((260.0, 200.0), false);
+    app.finish_drawing();
+    let id = app
+        .edit
+        .as_ref()
+        .unwrap()
+        .job
+        .drawing
+        .shapes
+        .iter()
+        .map(|s| s.id)
+        .max()
+        .unwrap();
+    assert_ne!(id, line);
+    let Geometry::Polyline { bulges, .. } = &app.shape(id).unwrap().geometry else {
+        panic!("the new polyline");
+    };
+    assert!((bulges[0] - (2f64.sqrt() - 1.0)).abs() < 1e-9, "{bulges:?}");
+    assert_eq!(bulges[1], 0.0);
+}

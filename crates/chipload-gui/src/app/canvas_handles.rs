@@ -107,7 +107,14 @@ impl ChiploadApp {
         match anchor.filter(|_| shift) {
             Some(anchor) => {
                 let step = (!alt).then(|| grid_step(self.view.scale, self.prefs.units));
-                let p = crate::draw::angle_step(anchor, raw, step, self.prefs.units);
+                // A polyline's arc: its sweep in 15° steps
+                // (docs/specs/polyline-tangent-arcs.md §3); else the line's angle.
+                let p = self
+                    .sketch()
+                    .and_then(|s| s.arc_step(raw, step, self.prefs.units))
+                    .unwrap_or_else(|| {
+                        crate::draw::angle_step(anchor, raw, step, self.prefs.units)
+                    });
                 self.drag.snapped = Some((p, None));
                 self.scene.snap_mark = None;
                 p

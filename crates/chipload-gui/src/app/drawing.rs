@@ -181,12 +181,68 @@ impl ChiploadApp {
         }
     }
 
+    /// While a polyline is being drawn (its first point placed): its next sides arcs or
+    /// lines (keys A and L, docs/specs/polyline-tangent-arcs.md §3). Whether it was one.
+    pub fn set_polyline_arcs(&mut self, arcs: bool) -> bool {
+        match self.sketch_mut() {
+            Some(sketch) if sketch.tool == Tool::Polyline && !sketch.points.is_empty() => {
+                sketch.arcs = arcs;
+                true
+            }
+            _ => false,
+        }
+    }
+
+    /// The direction a polyline starting at `p` goes on in: from the end of an open drawn
+    /// polyline there (or back from its start), so its first side can be an arc.
+    fn heading_from_shape_at(&self, p: Point) -> Option<f64> {
+        let job = &self.edit.as_ref()?.job;
+        job.drawing
+            .shapes
+            .iter()
+            .filter(|s| s.is_drawn() && !job.drawing.is_hidden(s))
+            .find_map(|s| {
+                let Geometry::Polyline {
+                    closed: false,
+                    points,
+                    bulges,
+                    ..
+                } = &s.geometry
+                else {
+                    return None;
+                };
+                let n = points.len();
+                if n < 2 {
+                    return None;
+                }
+                let at = |i: usize| (points[i][0], points[i][1]);
+                let bulge = |i: usize| bulges.get(i).copied().unwrap_or(0.0);
+                if distance(at(n - 1), p) < CHAIN_TOL_MM {
+                    Some(crate::draw::side_end(at(n - 2), at(n - 1), bulge(n - 2)))
+                } else if distance(at(0), p) < CHAIN_TOL_MM {
+                    // Back along its first side: the reverse of the way it leaves its start.
+                    Some(crate::draw::side_start(at(0), at(1), bulge(0)) + std::f64::consts::PI)
+                } else {
+                    None
+                }
+            })
+    }
+
     /// A click while drawing, at `p` (already on the grid). `on_first`: the click hit the
     /// polyline's first point on screen.
     pub fn draw_click(&mut self, p: Point, on_first: bool) {
+        let start_heading = match self.sketch() {
+            Some(s) if s.tool == Tool::Polyline && s.points.is_empty() => {
+                self.heading_from_shape_at(p)
+            }
+            _ => None,
+        };
         let Some(sketch) = self.sketch_mut() else {
             return;
         };
+        if sketch.tool == Tool::Polyline && sketch.points.is_empty() {
+            sketch.start_heading = start_heading;
+        }
         let step = sketch.click(p, on_first);
         self.after_sketch_step(step);
     }

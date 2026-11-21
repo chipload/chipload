@@ -173,3 +173,7 @@ menu-draw-spline = Spline
 menu-modify-mirror = Symétrie par rapport à un axe
 menu-polyline-radius = Rayon
 menu-polyline-radius-hover = Chaque coin de la polyligne dessinée est arrondi de ce rayon (0 : vif) ; un coin aux côtés trop courts reçoit le plus grand qui tient
+menu-polyline-line = Ligne
+menu-polyline-line-hover = Les côtés suivants sont des lignes droites
+menu-polyline-arc = Arc
+menu-polyline-arc-hover = Les côtés suivants sont des arcs, chacun dans le prolongement du précédent sans angle ; le clic fixe sa fin

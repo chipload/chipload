@@ -716,7 +716,7 @@ chipload shape add <PROJECT> <KIND> [OPTIONS]
 | `--angle-deg <ANGLE_DEG>` | Rotation about the centre (a polygon: its first corner's angle from +X), degrees, counter-clockwise. |
 | `--corner-radius <CORNER_RADIUS>` | The radius of the rectangle's corners, at most half its shorter side (default 0: sharp) |
 | `--points <POINTS>` | Polyline points, or the points a spline passes through: "X,Y X,Y ...". |
-| `--bulges <BULGES>` | Polyline bulges "B B ...", one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight) |
+| `--bulges <BULGES>` | Polyline bulges "B B ...", one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight); t: an arc going on smoothly from the segment before it (docs/specs/polyline-tangent-arcs.md) |
 | `--start-deg <START_DEG>` | An arc slot's start, degrees counter-clockwise from +X. |
 | `--end-deg <END_DEG>` | An arc slot's end, degrees: past the start goes counter-clockwise, before it clockwise. |
 | `--radii <RADII>` | Corner radii "R R ...", mm, 0 sharp: a polyline's one per point (an open one's ends 0), a rectangle's four counter-clockwise from its (−length/2, −width/2) corner, a polygon's one per corner from its first. Each corner is rounded by an arc tangent to both sides, its point staying at the sharp corner (docs/specs/polyline-radii.md) |
@@ -748,7 +748,7 @@ chipload shape set <PROJECT> <ID> [OPTIONS]
 | `--angle-deg <ANGLE_DEG>` | Rotation about the centre (a polygon: its first corner's angle from +X), degrees, counter-clockwise. |
 | `--corner-radius <CORNER_RADIUS>` | The radius of the rectangle's corners, at most half its shorter side (default 0: sharp) |
 | `--points <POINTS>` | Polyline points, or the points a spline passes through: "X,Y X,Y ...". |
-| `--bulges <BULGES>` | Polyline bulges "B B ...", one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight) |
+| `--bulges <BULGES>` | Polyline bulges "B B ...", one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight); t: an arc going on smoothly from the segment before it (docs/specs/polyline-tangent-arcs.md) |
 | `--start-deg <START_DEG>` | An arc slot's start, degrees counter-clockwise from +X. |
 | `--end-deg <END_DEG>` | An arc slot's end, degrees: past the start goes counter-clockwise, before it clockwise. |
 | `--radii <RADII>` | Corner radii "R R ...", mm, 0 sharp: a polyline's one per point (an open one's ends 0), a rectangle's four counter-clockwise from its (−length/2, −width/2) corner, a polygon's one per corner from its first. Each corner is rounded by an arc tangent to both sides, its point staying at the sharp corner (docs/specs/polyline-radii.md) |

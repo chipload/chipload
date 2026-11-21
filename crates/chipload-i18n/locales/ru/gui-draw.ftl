@@ -15,6 +15,7 @@ draw-status-polyline = Полилиния, { $count ->
 draw-no-size-circle = окружность нулевого размера
 draw-no-size-rectangle = прямоугольник нулевого размера
 draw-polyline-too-short = для полилинии нужны хотя бы 2 точки
+draw-arc-behind = касательная дуга не дойдёт до точки прямо позади: щёлкните сбоку или переключитесь на линии (L)
 draw-snap-end = конец №{ $contour }
 draw-snap-centre = центр №{ $contour }
 draw-snap-middle = середина №{ $contour }
@@ -207,3 +208,15 @@ draw-status-slot-arc-end = Дуговой паз радиусом { $radius }, {
 draw-status-slot-arc = Дуговой паз шириной { $width }: укажите или введите ширину (сетка { $grid }, Esc — отмена)
 draw-variant-slot-straight = Прямой (два конца)
 draw-variant-slot-arc = Дуговой (центр, концы, ширина)
+
+# Drawing a polyline's tangent arcs (docs/specs/polyline-tangent-arcs.md).
+draw-status-polyline-arc = Рисование полилинии, { $count ->
+        [one] { $count } точка
+        [few] { $count } точки
+       *[other] { $count } точек
+    }, дуга радиусом { $radius } в продолжение последней стороны: щёлкните, где она кончается; L — линии, Enter или двойной щелчок завершает открытой, первая точка замыкает, Backspace удаляет последнюю точку (сетка { $grid }, Esc — отмена)
+draw-status-polyline-arc-first = Рисование полилинии, { $count ->
+        [one] { $count } точка
+        [few] { $count } точки
+       *[other] { $count } точек
+    }: дуге нужна сторона, которую она продолжит, поэтому первая сторона — линия (начните на конце фигуры, чтобы продолжить её); щёлкните следующую точку (сетка { $grid }, Esc — отмена)
