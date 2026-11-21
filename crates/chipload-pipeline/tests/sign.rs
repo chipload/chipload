@@ -313,3 +313,68 @@ fn a_raised_sign_round_drawn_shapes_groups_them() {
     assert_eq!(made_job.part(sign.part).unwrap().name, "Sign");
     run_setups(&made_job, None).unwrap();
 }
+
+/// docs/specs/text-on-arc.md §6: round words with the round frame.
+#[test]
+fn a_round_sign_puts_its_words_round_the_ring_and_its_frame_round_them() {
+    let mut request = SignRequest::new("MAKER SPACE\nEST. 2026\nHELLO", 2, 1);
+    request.kind = chipload_pipeline::frames::FrameKind::Oval;
+    request.round = true;
+    request.height = 12.0;
+    let (job, sign) = made(&request);
+    let texts = &job.drawing.texts;
+    assert_eq!(texts.len(), 3);
+    let (top, bottom) = (texts[0].arc.unwrap(), texts[1].arc.unwrap());
+    assert_eq!(top.side, chipload_job::ArcSide::Top);
+    assert_eq!(bottom.side, chipload_job::ArcSide::Bottom);
+    assert_eq!(top.radius, bottom.radius);
+    assert!(
+        texts[2].arc.is_none(),
+        "the third line straight in the middle"
+    );
+    // The frame is a circle round the ring: its radius the ring's outside and the margin.
+    let outline = job
+        .drawing
+        .shapes
+        .iter()
+        .find(|s| s.id == sign.outline)
+        .unwrap();
+    let chipload_job::Geometry::Circle { radius, center } = outline.geometry else {
+        panic!("a circle: {:?}", outline.geometry);
+    };
+    assert!(radius > top.radius + 12.0 / 2.0 + request.margin);
+    assert!(
+        radius < top.radius + 12.0 + request.margin + 10.0,
+        "{radius}"
+    );
+    assert!((center[0] - texts[0].x).abs() < 1e-6 && (center[1] - texts[0].y).abs() < 1e-6);
+    // The letters' operation cuts every text: the group without the frame's lines.
+    let Operation::Vcarve(letters) = &job.operations[sign.operations[0]] else {
+        panic!("a V-carve first");
+    };
+    assert!(matches!(letters.select.source, Some(Source::Group(_))));
+    run_setups(&job, None).unwrap();
+    // A larger radius: the frame follows the ring.
+    let mut changed = job.clone();
+    if let Some(arc) = changed.drawing.texts[0].arc.as_mut() {
+        arc.radius += 10.0;
+    }
+    let (changed, _) = chipload_pipeline::texts::remake(&job, &changed, 1, &BuiltinOnly).unwrap();
+    let (changed, _) = follow_frames(changed);
+    let chipload_job::Geometry::Circle { radius: grown, .. } = changed
+        .drawing
+        .shapes
+        .iter()
+        .find(|s| s.id == sign.outline)
+        .unwrap()
+        .geometry
+    else {
+        panic!("still a circle");
+    };
+    assert!(grown > radius + 5.0, "{grown} after {radius}");
+    // Round words need the round frame.
+    let mut square = request.clone();
+    square.kind = chipload_pipeline::frames::FrameKind::Rounded;
+    let err = add_sign(&project(), &square, &BuiltinOnly, None, Language::En).unwrap_err();
+    assert!(err.message().english().contains("oval"));
+}

@@ -672,6 +672,7 @@ pipeline-name-sign-edge = Chaflán del canto
 pipeline-name-sign-cut-out = Recorte
 pipeline-name-sign = Letrero
 pipeline-sign-raised-imported = todavía no se puede hacer un letrero en relieve alrededor de las formas de una imagen o de un DXF: su vaciado de fondo las necesita en el grupo del letrero, que solo admite formas dibujadas y textos
+pipeline-sign-round-oval = las palabras en círculo van con el marco redondo, con palabras nuevas: elija el marco ovalado
 pipeline-sign-words = un letrero necesita algunas palabras
 pipeline-sign-vbit = la herramienta { $tool } no es una fresa en V con su ángulo: las letras y ranuras de un letrero se cortan con una
 pipeline-sign-end-mill = la herramienta { $tool } no es una fresa plana: un letrero se recorta con una

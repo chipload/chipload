@@ -14,7 +14,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 89] = [
+const GOLDEN: [(&str, &str); 90] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -328,6 +328,12 @@ const GOLDEN: [(&str, &str); 89] = [
     // 0,-20 0,20 -40,20" --bulges "0 0.5 0 0" --radii "0 3 3 0" --closed`, then `op add
     // pocket --shapes 2 --depth 3` and `op add profile --shapes 1 --through`.
     ("v43_bracket", "jobs/v43/bracket.chipload"),
+    // A round plaque (docs/specs/text-on-arc.md §6), made with `new --thickness 12 --size
+    // 200x200` from an empty settings folder, `tool add "V 60" --type vbit --diameter 12.7
+    // --angle 60 --tip 0.2 --rpm 18000`, `tool use "V 60"`, then `sign add … "MAKER
+    // SPACE\nEST. 2026" --height 12 --frame oval --round --borders 1 --vbit 2 --end-mill 1
+    // --thickness 12`: the words on arcs, V-carved, the circle round their ring.
+    ("v43_round_plaque", "jobs/v43/round_plaque.chipload"),
 ];
 
 /// Projects nested before they are run (docs/specs/nesting.md §13): `chipload nest` with
@@ -654,7 +660,11 @@ fn arcs_in(gcode: &str) -> Vec<(Xy, Xy, Xy)> {
 #[test]
 fn every_golden_arc_is_consistent_as_written() {
     // After rounding to 3 decimals, start and end radius agree within 0.001 mm (GRBL checks
-    // 0.005 mm, the independent checker 0.01 mm), and no arc is a full circle.
+    // 0.005 mm, the independent checker 0.01 mm), and no arc is a full circle. One step of
+    // the third decimal is reached exactly when it can't be less: half of a circle whose
+    // diameter is an odd number of thousandths has its centre between two written values
+    // (v43_round_plaque's border), so the comparison allows that step's float error.
+    const WRITTEN_STEP_SLACK: f64 = 1e-9;
     let mut count = 0;
     for name in golden_files() {
         let gcode = std::fs::read_to_string(corpus(&format!("expected/{name}"))).unwrap();
@@ -662,7 +672,7 @@ fn every_golden_arc_is_consistent_as_written() {
             let r0 = math::hypot(start.0 - centre.0, start.1 - centre.1);
             let r1 = math::hypot(end.0 - centre.0, end.1 - centre.1);
             assert!(
-                (r0 - r1).abs() <= 0.001,
+                (r0 - r1).abs() <= 0.001 + WRITTEN_STEP_SLACK,
                 "{name}: {start:?} -> {end:?} around {centre:?}"
             );
             assert!(start != end, "{name}: full circle in one move");

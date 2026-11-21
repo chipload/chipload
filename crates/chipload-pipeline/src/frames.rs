@@ -251,6 +251,19 @@ fn place_round(
             Message::new("pipeline-frame-margin").arg("got", length(margin)),
         ));
     }
+    // An oval round texts on an arc fits their ring, not their box
+    // (docs/specs/text-on-arc.md §6): a circle `margin` out from the letters' farthest point.
+    if kind == FrameKind::Oval
+        && let Some((center, reach)) = ring_round(job, ids)
+    {
+        let across = 2.0 * (reach + margin + inset);
+        return Ok(FramePlace {
+            center,
+            width: across,
+            height: across,
+            r: r.unwrap_or_else(|| kind.default_r(across, across)),
+        });
+    }
     let ((x0, y0), (x1, y1)) =
         shapes_bounds(job, ids).ok_or_else(|| refused(Message::new("pipeline-frame-nothing")))?;
     let inner = (x1 - x0 + 2.0 * margin, y1 - y0 + 2.0 * margin);
@@ -262,6 +275,56 @@ fn place_round(
         height,
         r,
     })
+}
+
+/// Shapes `ids` that are all texts' letters, at least one text on an arc and every one
+/// on an arc round the same centre: that centre, and how far the letters reach from it.
+fn ring_round(job: &Job, ids: &[u64]) -> Option<((f64, f64), f64)> {
+    let shapes: Vec<&Shape> = ids
+        .iter()
+        .map(|id| job.drawing.shapes.iter().find(|s| s.id == *id))
+        .collect::<Option<_>>()?;
+    let mut center: Option<(f64, f64)> = None;
+    for shape in &shapes {
+        let text = job
+            .drawing
+            .texts
+            .iter()
+            .find(|t| Some(t.id) == shape.text())?;
+        if text.arc.is_some() {
+            match center {
+                None => center = Some((text.x, text.y)),
+                Some(c)
+                    if chipload_core::primitives::distance(c, (text.x, text.y))
+                        <= chipload_core::tolerances::CHAIN_TOL_MM => {}
+                Some(_) => return None,
+            }
+        }
+    }
+    let center = center?;
+    let reach = shapes
+        .iter()
+        .flat_map(|s| s.segments())
+        .map(|seg| farthest(&seg.to_primitive(), center))
+        .fold(0.0, f64::max);
+    Some((center, reach))
+}
+
+/// How far a line or arc gets from `p`: an end, or an arc's point straight away from `p`
+/// when it lies on the arc.
+fn farthest(prim: &chipload_core::primitives::Primitive, p: (f64, f64)) -> f64 {
+    use chipload_core::primitives::{Primitive, distance};
+    let ends = distance(prim.start(), p).max(distance(prim.end(), p));
+    let Primitive::Arc(arc) = prim else {
+        return ends;
+    };
+    let away = chipload_core::math::atan2(arc.center.1 - p.1, arc.center.0 - p.0);
+    let u = ((away - arc.start_angle) * arc.sweep.signum()).rem_euclid(std::f64::consts::TAU);
+    if u <= arc.sweep.abs() {
+        ends.max(distance(arc.center, p) + arc.radius)
+    } else {
+        ends
+    }
 }
 
 fn why(error: FrameError) -> PipelineError {

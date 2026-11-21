@@ -26,6 +26,12 @@ it). The dialog draws the sign as it will be and lists the operations it adds. (
   only drawn shapes and texts).
 - **Frame**: as for *Frame…* below: the kind, margin, corner, borders and their groove
   width. The frame follows the words afterwards.
+- **Words** (with the *Oval* frame): *Straight*, or *Round* for a round plaque: the first
+  line goes along the top of a circle, the second along its bottom, both on one radius
+  ([text on an arc](text.md#on-an-arc)), and any further lines straight in the middle.
+  The radius is the least that keeps the longer line within 150° of the circle and the
+  middle clear; the frame is the circle round their ring, the margin out from the
+  letters, and it follows them when you change the texts' radius, words or size.
 - **Style**:
   - *Engraved*: the letters V-carved;
   - *Raised*: the background inside the innermost border cut down round the letters with
@@ -175,6 +181,8 @@ chipload frame add sign.chipload --corners notch --around-text 1 --borders 1 --d
 chipload frame add plate.chipload --kind banner --width 300 --height 90 --corner 25
 chipload sign add sign.chipload "THE NÄSLUNDS" --font FreeSerif --frame rectangle --corners notch \
     --borders 1 --double --style engraved --edge chamfer:3 --vbit 2 --end-mill 1 --thickness 18
+chipload sign add plaque.chipload "MAKER SPACE\nEST. 2026" --frame oval --round --height 12 \
+    --borders 1 --vbit 2 --end-mill 1 --thickness 12
 chipload frame kinds
 chipload frame list sign.chipload                              # the frames that follow, with their values
 chipload frame set sign.chipload 7 --margin 15 --borders 2     # change them: drawn again

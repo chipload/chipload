@@ -1654,6 +1654,7 @@ chipload sign add <PROJECT> <WORDS> [OPTIONS]
 | `--gap <GAP>` | From the outline to the first border and between borders, mm. Default: `5`. |
 | `--border-corners <BORDER_CORNERS>` | The borders' own corners, inside a rectangular frame. One of: `sharp`, `round`, `notch`, `chamfer`, `step`. |
 | `--double` | Each border two grooves. |
+| `--round` | Round words, with `--frame oval`: the first line along the top of a circle, the second along its bottom, the rest straight in the middle; the frame the circle round them (docs/specs/text-on-arc.md §6) |
 | `--border-width <BORDER_WIDTH>` | The borders' groove width at the surface, mm: their depth comes from the V-bit. |
 | `--style <STYLE>` | engraved (V-carved letters), raised (the background cleared round them) or inlay. One of: `engraved`, `raised`, `inlay`. Default: `engraved`. |
 | `--relief <RELIEF>` | A raised sign's background depth, mm. |

@@ -32,6 +32,8 @@ pub(super) struct SignSettings {
     pub gap: f64,
     pub border_corners: Option<CornerStyle>,
     pub double: bool,
+    /// Round words with the oval frame (docs/specs/text-on-arc.md §6).
+    pub round: bool,
     pub border_width: f64,
     pub style: SignStyle,
     pub relief: f64,
@@ -80,6 +82,7 @@ impl SignSettings {
             gap: 5.0,
             border_corners: None,
             double: false,
+            round: false,
             border_width: DEFAULT_BORDER_WIDTH_MM,
             style: SignStyle::Engraved,
             relief: DEFAULT_RELIEF_MM,
@@ -120,6 +123,7 @@ impl SignSettings {
             .border_corners
             .filter(|_| self.kind.corner_style().is_some());
         request.double = self.double;
+        request.round = self.round && self.kind == FrameKind::Oval && self.around.is_empty();
         request.border_width = self.border_width;
         request.style = self.style;
         request.relief = self.relief;
@@ -421,6 +425,17 @@ fn frame_and_cut_fields(ui: &mut egui::Ui, s: &mut SignSettings, offer: &ToolOff
             ui.add(crate::units::length(&mut s.margin))
                 .on_hover_text(t!(ui, "frame-margin-hover"));
             ui.end_row();
+            // The round frame can take its words round its ring
+            // (docs/specs/text-on-arc.md §6).
+            if s.kind == FrameKind::Oval && s.around.is_empty() {
+                ui.label(t!(ui, "sign-round"))
+                    .on_hover_text(t!(ui, "sign-round-hover"));
+                ui.horizontal(|ui| {
+                    ui.selectable_value(&mut s.round, false, t!(ui, "sign-round-straight"));
+                    ui.selectable_value(&mut s.round, true, t!(ui, "sign-round-round"));
+                });
+                ui.end_row();
+            }
             if s.kind.uses_r() {
                 ui.label(t!(ui, "frame-corner"));
                 ui.horizontal(|ui| {

@@ -664,6 +664,7 @@ pipeline-name-sign-edge = Kantfas
 pipeline-name-sign-cut-out = Utskärning
 pipeline-name-sign = Skylt
 pipeline-sign-raised-imported = en upphöjd skylt runt en bilds eller en DXF:s former går inte att göra än: dess bakgrundsficka behöver dem i skyltens grupp, som bara tar ritade former och texter
+pipeline-sign-round-oval = runda ord hör till den runda ramen, med nya ord: välj den ovala ramen
 pipeline-sign-words = en skylt behöver några ord
 pipeline-sign-vbit = verktyg { $tool } är ingen V-fräs med sin vinkel: en skylts bokstäver och spår skärs med en
 pipeline-sign-end-mill = verktyg { $tool } är ingen pinnfräs: en skylt skärs ut med en

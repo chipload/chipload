@@ -1,7 +1,7 @@
 # Spec: text on an arc
 
-Status: **approved 2026-11-21** (the user: "Ok go ahead"; §8 as recommended). Step 1
-built, see *As built* (§10). The third item of step 2 of
+Status: **approved and built 2026-11-21** (the user: "Ok go ahead"; §8 as recommended;
+see *As built*, §10). The third item of step 2 of
 the drawing review (TODO, *Next* 1; docs/specs/drawing-improvements.md).
 
 Builds on text.md (texts and their letters), more-fonts.md (letters told apart) and
@@ -149,4 +149,13 @@ the texts: a frame round words on arcs is the circle round their ring.
   the box's middle, centred. The canvas box is the square round the ring (radius plus a
   capital height): Move moves the centre, Turn the angle, a corner scales radius and
   height together.
+- **Step 2:** `SignRequest::round` (`sign add --round`; *Words: Straight / Round* in
+  *New sign…* with the oval frame, for new words). The radius is the least that keeps
+  each arc line within 150° of its circle (`ROUND_WORDS_SPAN_DEG`) and the middle text
+  clear, at least two capital heights. The letters' operation selects the sign's group
+  without the frame's lines, since there are several texts. An oval frame round texts
+  on arcs that share a centre is fitted to their ring (`frames::ring_round`: the
+  letters' farthest point from the centre), not their box; this also holds when the frame
+  follows them later. `sign add` now turns `\n` in the words into a new line, as
+  `text add` does (it didn't before). Golden `v43_round_plaque`.
 

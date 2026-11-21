@@ -9,7 +9,8 @@ use chipload_core::tolerances::DEPTH_TOL_MM;
 use chipload_i18n::{Digits, Language, Message, Units, Value};
 use chipload_job::library::ToolLibrary;
 use chipload_job::{
-    EdgeSide, Job, Operation, Selector, Source, StockOrigin, TextAlign, TextAnchor, Tool, ToolType,
+    ArcSide, EdgeSide, Job, Operation, Selector, Source, StockOrigin, TextAlign, TextAnchor,
+    TextArc, Tool, ToolType,
 };
 
 use crate::PipelineError;
@@ -95,6 +96,10 @@ pub struct SignRequest {
     pub end_mill: i64,
     /// The stock fitted round the sign; None: left as it is.
     pub board: Option<SignBoard>,
+    /// Round words, with the round frame: the first line along the top of a circle, the
+    /// second along its bottom, the rest straight in the middle
+    /// (docs/specs/text-on-arc.md §6).
+    pub round: bool,
 }
 
 impl SignRequest {
@@ -123,6 +128,7 @@ impl SignRequest {
                 thickness: DEFAULT_BOARD_THICKNESS_MM,
                 margin: DEFAULT_BOARD_MARGIN_MM,
             }),
+            round: false,
         }
     }
 }
@@ -155,6 +161,26 @@ impl Artwork {
             members: Members {
                 shapes: Vec::new(),
                 texts: vec![text],
+            },
+            groupable: true,
+            name: name.to_string(),
+        }
+    }
+
+    /// Texts `texts`' letters; the selector is set once the group is made.
+    fn of_texts(job: &Job, texts: &[u64], name: &str) -> Artwork {
+        Artwork {
+            ids: job
+                .drawing
+                .shapes
+                .iter()
+                .filter(|s| s.text().is_some_and(|t| texts.contains(&t)))
+                .map(|s| s.id)
+                .collect(),
+            select: Selector::default(),
+            members: Members {
+                shapes: Vec::new(),
+                texts: texts.to_vec(),
             },
             groupable: true,
             name: name.to_string(),
@@ -239,6 +265,75 @@ impl Artwork {
             name,
         })
     }
+}
+
+/// How far round its circle a round sign's longer line goes at most, degrees: the rest of
+/// the ring stays clear between the top and bottom words.
+const ROUND_WORDS_SPAN_DEG: f64 = 150.0;
+
+/// A round sign's words (docs/specs/text-on-arc.md §6): the first line along the top of a
+/// circle round `center`, the second along its bottom, on one radius, the rest straight in
+/// the middle. The radius is the least that keeps each arc line within
+/// [`ROUND_WORDS_SPAN_DEG`] and the middle clear of the ring. Returns the texts' ids.
+fn round_words(
+    job: &Job,
+    request: &SignRequest,
+    center: (f64, f64),
+    fonts: &dyn FontSource,
+) -> Result<(Job, Vec<u64>), PipelineError> {
+    let lines: Vec<&str> = request
+        .words
+        .split('\n')
+        .map(str::trim)
+        .filter(|l| !l.is_empty())
+        .collect();
+    let h = request.height;
+    let straight = |words: &str| -> Result<(f64, f64), PipelineError> {
+        let mut new = NewText::new(words, h);
+        new.font = &request.font;
+        new.align = TextAlign::Center;
+        let (_, report) = add_text(&crate::empty_project(), new, fonts)?;
+        Ok((report.width, report.height))
+    };
+    let span = ROUND_WORDS_SPAN_DEG.to_radians();
+    let mut radius = 2.0 * h;
+    for line in lines.iter().take(2) {
+        radius = radius.max(straight(line)?.0 / span);
+    }
+    let middle = lines
+        .get(2..)
+        .map(|rest| rest.join("\n"))
+        .filter(|m| !m.is_empty());
+    if let Some(middle) = &middle {
+        let (w, m) = straight(middle)?;
+        radius = radius.max(chipload_core::math::hypot(w / 2.0, m / 2.0) + h);
+    }
+    let mut job = job.clone();
+    let mut texts = Vec::new();
+    let mut add = |job: &mut Job, words: &str, arc: Option<TextArc>| -> Result<(), PipelineError> {
+        let mut new = NewText::new(words, h);
+        new.font = &request.font;
+        (new.x, new.y) = center;
+        new.anchor = TextAnchor::Center;
+        new.align = TextAlign::Center;
+        new.arc = arc;
+        let (with, report) = add_text(job, new, fonts)?;
+        *job = with;
+        texts.push(report.id);
+        Ok(())
+    };
+    for (line, side) in lines.iter().zip([ArcSide::Top, ArcSide::Bottom]) {
+        let arc = TextArc {
+            radius,
+            side,
+            angle: side.default_angle(),
+        };
+        add(&mut job, line, Some(arc))?;
+    }
+    if let Some(middle) = &middle {
+        add(&mut job, middle, None)?;
+    }
+    Ok((job, texts))
 }
 
 /// A file's name without its folders and extension.
@@ -355,6 +450,9 @@ pub fn add_sign(
 ) -> Result<(Job, SignMade), PipelineError> {
     check_values(request)?;
     check_tools(job, request)?;
+    if request.round && (request.kind != FrameKind::Oval || !request.around.is_empty()) {
+        return Err(refused(Message::new("pipeline-sign-round-oval")));
+    }
     let art = match request.around.is_empty() {
         true => None,
         false => Some(Artwork::of(job, &request.around, lang)?),
@@ -391,8 +489,13 @@ pub fn add_sign(
         stock.fit = Some(board.margin);
     }
     // The words, centred on the stock; or the shapes already there.
-    let (job, text, art) = match art {
+    let (job, text, mut art) = match art {
         Some(art) => (job, None, art),
+        None if request.round => {
+            let (job, texts) = round_words(&job, request, center, fonts)?;
+            let art = Artwork::of_texts(&job, &texts, &name);
+            (job, texts.first().copied(), art)
+        }
         None => {
             let mut new = NewText::new(&request.words, request.height);
             new.font = &request.font;
@@ -424,6 +527,14 @@ pub fn add_sign(
     let mut members = art.members.clone();
     members.shapes.extend(framed.new_ids.iter().copied());
     let (mut job, group_id) = group(&framed.job, &members, Some(&name))?;
+    // Round words are several texts: cut as the group without the frame's lines.
+    if request.round {
+        art.select = Selector {
+            source: Some(Source::Group(group_id)),
+            exclude: framed.new_ids.clone(),
+            ..Selector::default()
+        };
+    }
     let contours = crate::load_drawing(&job)?.contours;
     let mut operations = Vec::new();
     let mut plug_setup = None;

@@ -74,6 +74,11 @@ pub struct AddSign {
     /// Each border two grooves.
     #[arg(long)]
     double: bool,
+    /// Round words, with `--frame oval`: the first line along the top of a circle, the
+    /// second along its bottom, the rest straight in the middle; the frame the circle round
+    /// them (docs/specs/text-on-arc.md §6).
+    #[arg(long)]
+    round: bool,
     /// The borders' groove width at the surface, mm: their depth comes from the V-bit.
     #[arg(value_parser = crate::lengths::length, long)]
     border_width: Option<f64>,
@@ -180,7 +185,7 @@ fn add_one(out: &mut Out, add: AddSign) -> ExitCode {
         Err(err) => return out.fail(err),
     };
     let words = match (&add.words, around.is_empty()) {
-        (Some(words), true) => words.clone(),
+        (Some(words), true) => crate::texts::lines(words),
         (None, false) => String::new(),
         _ => {
             return out.fail(
@@ -202,6 +207,7 @@ fn add_one(out: &mut Out, add: AddSign) -> ExitCode {
     request.gap = add.gap;
     request.border_corners = add.border_corners.map(Into::into);
     request.double = add.double;
+    request.round = add.round;
     request.border_width = add.border_width.unwrap_or(DEFAULT_BORDER_WIDTH_MM);
     request.style = add.style.into();
     request.relief = add.relief.unwrap_or(DEFAULT_RELIEF_MM);

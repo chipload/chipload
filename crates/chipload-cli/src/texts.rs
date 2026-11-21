@@ -225,7 +225,7 @@ fn parse_at(text: &str) -> Result<(f64, f64), String> {
 }
 
 /// "\n" typed on the command line starts a new line.
-fn lines(text: &str) -> String {
+pub(crate) fn lines(text: &str) -> String {
     text.replace("\\n", "\n")
 }
 

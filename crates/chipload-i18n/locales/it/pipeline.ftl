@@ -669,6 +669,7 @@ pipeline-name-sign-edge = Smusso del bordo
 pipeline-name-sign-cut-out = Taglio
 pipeline-name-sign = Insegna
 pipeline-sign-raised-imported = un'insegna in rilievo attorno alle forme di un'immagine o di un DXF non si può ancora fare: la sua tasca di sfondo ne ha bisogno nel gruppo dell'insegna, che accetta solo forme disegnate e testi
+pipeline-sign-round-oval = le parole in tondo vanno con la cornice rotonda, con parole nuove: scegli la cornice ovale
 pipeline-sign-words = un'insegna ha bisogno di qualche parola
 pipeline-sign-vbit = l'utensile { $tool } non è una fresa a V con il suo angolo: le lettere e le scanalature di un'insegna si tagliano con una
 pipeline-sign-end-mill = l'utensile { $tool } non è una fresa cilindrica: un'insegna si ritaglia con una

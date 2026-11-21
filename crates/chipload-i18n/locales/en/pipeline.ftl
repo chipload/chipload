@@ -666,6 +666,7 @@ pipeline-name-sign-edge = Edge chamfer
 pipeline-name-sign-cut-out = Cut out
 pipeline-name-sign = Sign
 pipeline-sign-raised-imported = a raised sign round a picture's or a DXF's shapes can't be made yet: its background pocket needs them in the sign's group, which takes only drawn shapes and texts
+pipeline-sign-round-oval = round words go on the round frame, with new words: choose the oval frame
 pipeline-sign-words = a sign needs some words
 pipeline-sign-vbit = tool { $tool } isn't a V-bit with its angle: a sign's letters and grooves are cut with one
 pipeline-sign-end-mill = tool { $tool } isn't an end mill: a sign is cut out with one

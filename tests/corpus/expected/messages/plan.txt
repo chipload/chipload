@@ -1732,6 +1732,32 @@ Chip load (at the cutting feed):
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v43/round_plaque.chipload
+exit 0
+--- stdout
+warning: Operation 1 (Letters): contours #12, #13: 0.162 mm of centre line is narrower than the tip (0.200 mm) and isn't carved
+note: Operation 2 (Borders): the V-groove is 2 mm wide at the top
+note: Operation 3 (Cut out): cuts through, 0.500 mm into the spoilboard
+note: Operation 1 (Letters): contours #1, #2, #3, #4, #5, #6, #7, #8, #9, #10, #11, #12, #13, #14, #15, #16, #17, #18, #19, #20, #21, #22, #23: wider than a carve at most 1.000 mm deep reaches (1.355 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
+Operation 3: a ring starts at (-0.000, -69.388) (default)
+Estimated time: 5 min 15 s (cutting 4 min 43 s, rapids 26 s, spindle 6 s), plus 1 tool change
+Cut outline: 144.777 × 144.767 mm (X -72.388 … 72.388, Y -72.388 … 72.378, the tool included): the smallest stock that holds the job.
+  Operation 1 (Letters): 1 min 4 s; cutting 992 mm, plunging 280 mm, rapids 2.1 m, 153 lifts
+  Operation 2 (Borders): 16 s; cutting 771 mm, plunging 3 mm, rapids 56 mm, 1 lift
+  Operation 3 (Cut out): 3 min 49 s; cutting 5.7 m, plunging 1 mm, rapids 17 mm, 1 lift
+  File 1: 1 min 23 s
+  File 2: 3 min 52 s
+  In all: cutting 7.5 m, plunging 284 mm, rapids 2.2 m, 155 lifts.
+  At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Letters): set the tool's flutes to see the chip load
+  Operation 2 (Borders): set the tool's flutes to see the chip load
+  Operation 3 (Cut out): set the tool's flutes to see the chip load
+Tool group 1: tool 2, operations 1, 2
+Tool group 2: tool 1, operations 3
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v5/drawn_part.chipload
 exit 0
 --- stdout

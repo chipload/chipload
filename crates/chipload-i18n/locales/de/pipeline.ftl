@@ -667,6 +667,7 @@ pipeline-name-sign-edge = Kantenfase
 pipeline-name-sign-cut-out = Ausschneiden
 pipeline-name-sign = Schild
 pipeline-sign-raised-imported = ein erhabenes Schild um die Formen eines Bildes oder einer DXF geht noch nicht: seine Hintergrundtasche braucht sie in der Gruppe des Schildes, die nur gezeichnete Formen und Texte aufnimmt
+pipeline-sign-round-oval = runde Wörter gehören zum runden Rahmen, mit neuen Wörtern: den ovalen Rahmen wählen
 pipeline-sign-words = ein Schild braucht ein paar Wörter
 pipeline-sign-vbit = Werkzeug { $tool } ist kein V-Fräser mit seinem Winkel: Buchstaben und Rillen eines Schildes werden mit einem geschnitten
 pipeline-sign-end-mill = Werkzeug { $tool } ist kein Schaftfräser: ein Schild wird mit einem ausgeschnitten
