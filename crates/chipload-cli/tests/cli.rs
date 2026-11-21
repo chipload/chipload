@@ -4052,3 +4052,78 @@ fn rectangles_and_polygons_take_corner_radii_from_the_command_line() {
             .success()
     );
 }
+
+#[test]
+fn two_lines_are_joined_by_a_fillet_or_chamfer_from_the_command_line() {
+    // docs/specs/fillet-between-shapes.md §6.
+    let dir = temp_dir("fillet-between");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v30/polygon.chipload"), &project).unwrap();
+    let p = path(&project);
+    let add = |points: &str| {
+        let out = chipload(&[
+            "--json", "shape", "add", p, "polyline", "--open", "--points", points,
+        ]);
+        assert!(out.status.success(), "{}", text(&out.stderr));
+        let value: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+        value["ids"][0].as_u64().unwrap().to_string()
+    };
+    let (a, b) = (add("-10,0 10,0"), add("0,-10 0,10"));
+    // --keep must come twice, and --corner doesn't go with --with.
+    let once = chipload(&[
+        "shape", "fillet", p, &a, "--radius", "2", "--with", &b, "--keep", "8,0",
+    ]);
+    assert!(!once.status.success());
+    assert!(
+        text(&once.stderr).contains("--keep twice"),
+        "{}",
+        text(&once.stderr)
+    );
+    let both = chipload(&[
+        "shape", "fillet", p, &a, "--radius", "2", "--with", &b, "--keep", "8,0", "--keep", "0,8",
+        "--corner", "1",
+    ]);
+    assert!(!both.status.success());
+    let out = chipload(&[
+        "--json", "shape", "fillet", p, &a, "--radius", "2", "--with", &b, "--keep", "8,0",
+        "--keep", "0,8",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let value: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(value["shapes"][0].as_u64().unwrap().to_string(), a);
+    assert_eq!(value["removed"][0].as_u64().unwrap().to_string(), b);
+    // The corner kept with its radius.
+    let index = a.parse::<usize>().unwrap() - 1;
+    let radii = chipload(&["get", p, &format!("drawing.shapes.{index}.radii")]);
+    assert_eq!(
+        text(&radii.stdout).split_whitespace().collect::<String>(),
+        "[0.0,2.0,0.0]"
+    );
+    // A chamfer between two more lines; parallel ones refused with the reason.
+    let (c, d) = (add("-10,30 10,30"), add("0,20 0,40"));
+    let cut = chipload(&[
+        "shape",
+        "chamfer",
+        p,
+        &c,
+        "--distance",
+        "1",
+        "--with",
+        &d,
+        "--keep",
+        "8,30",
+        "--keep",
+        "0,38",
+    ]);
+    assert!(cut.status.success(), "{}", text(&cut.stderr));
+    let e = add("-10,50 10,50");
+    let parallel = chipload(&[
+        "shape", "fillet", p, &c, "--radius", "1", "--with", &e, "--keep", "8,30", "--keep", "8,50",
+    ]);
+    assert!(!parallel.status.success());
+    assert!(
+        text(&parallel.stderr).contains("parallel"),
+        "{}",
+        text(&parallel.stderr)
+    );
+}

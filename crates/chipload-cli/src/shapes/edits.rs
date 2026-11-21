@@ -118,6 +118,40 @@ pub(crate) fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
     write_shapes(out, &job, &lines, target, report)
 }
 
+/// `shape fillet/chamfer A --with B --keep P --keep Q`: the two joined
+/// (docs/specs/fillet-between-shapes.md §6); the report names the shape they joined into
+/// and the ones gone, and the new round's id when it stays a shape of its own.
+fn between(
+    job: &Job,
+    (a, b): (u64, u64),
+    keep: &[[f64; 2]],
+    how: Between,
+    report: &mut ShapeReport,
+) -> Result<(Job, Vec<String>), PipelineError> {
+    let [p, q] = keep else {
+        return Err(PipelineError::Job(Message::new("pipeline-between-keep")));
+    };
+    let edited = fillet_between(job, (a, (p[0], p[1])), (b, (q[0], q[1])), how)?;
+    let mut lines = vec![match how {
+        Between::Fillet(_) => format!("Rounded between S{a} and S{b}."),
+        Between::Chamfer(_) => format!("Cut between S{a} and S{b}."),
+    }];
+    if !edited.new_ids.is_empty() {
+        lines.push(format!("Added shapes {}.", shape_names(&edited.new_ids)));
+    }
+    if let Some(kept) = edited.joined {
+        let removed: Vec<u64> = [a, b]
+            .into_iter()
+            .filter(|id| edited.job.drawing.shapes.iter().all(|s| s.id != *id))
+            .collect();
+        lines.push(format!("Joined into S{kept}."));
+        report.joined = Some((vec![kept], removed));
+    }
+    report.new_ids = Some(edited.new_ids.clone());
+    lines.extend(edited.notes.iter().map(Message::english));
+    Ok((edited.job, lines))
+}
+
 /// What a shape command found besides the changed project, for its report.
 #[derive(Default)]
 struct ShapeReport {
@@ -365,6 +399,20 @@ fn change_shapes(
                 (edited.job, lines)
             })
         }
+        ShapeAction::Fillet {
+            id,
+            radius,
+            with: Some(other),
+            keep,
+            ..
+        } => between(job, (id, other), &keep, Between::Fillet(radius), report),
+        ShapeAction::Chamfer {
+            id,
+            distance,
+            with: Some(other),
+            keep,
+            ..
+        } => between(job, (id, other), &keep, Between::Chamfer(distance), report),
         ShapeAction::Fillet {
             id, radius, corner, ..
         } => cut_shape_corners(job, id, corner, Cut::Fillet(radius))

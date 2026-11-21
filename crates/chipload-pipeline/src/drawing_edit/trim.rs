@@ -101,7 +101,10 @@ fn open_ends(geometry: &Geometry) -> Option<[[f64; 2]; 2]> {
 /// whose ends meet theirs (within the chaining tolerance), and with those meeting these, as
 /// one shape (the user, 2026-10-29: a slot trimmed by a line stayed two polylines). Never
 /// construction geometry; nothing joins where three ends meet.
-fn joined_where_ends_meet(edited: Edited, shape: &Shape) -> Result<Edited, PipelineError> {
+pub(super) fn joined_where_ends_meet(
+    edited: Edited,
+    shape: &Shape,
+) -> Result<Edited, PipelineError> {
     let layer = shape.layer.to_lowercase();
     let candidates: Vec<(u64, [[f64; 2]; 2])> = edited
         .job

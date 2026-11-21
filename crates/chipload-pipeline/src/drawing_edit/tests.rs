@@ -653,3 +653,244 @@ fn a_polyline_corner_beside_an_arc_is_rounded_and_made_sharp_again() {
     ));
     assert!(cut_shape_corners(&job, 9, Some(1), Cut::Chamfer(0.0)).is_err());
 }
+
+/// An open polyline to add: its id, points, bulges and layer.
+type OpenShape<'a> = (u64, &'a [(f64, f64)], &'a [f64], &'a str);
+
+/// `drawn_part` with open polylines added.
+fn with_open(shapes: &[OpenShape]) -> Job {
+    let mut job = drawn_part();
+    for &(id, points, bulges, layer) in shapes {
+        let mut shape = job.drawing.shapes[2].clone();
+        shape.id = id;
+        shape.layer = layer.to_string();
+        shape.geometry = Geometry::Polyline {
+            closed: false,
+            points: points.iter().map(|p| [p.0, p.1]).collect(),
+            bulges: bulges.to_vec(),
+            radii: Vec::new(),
+        };
+        job.drawing.shapes.push(shape);
+        job.drawing.next_shape_id = job.drawing.next_shape_id.max(id + 1);
+    }
+    job
+}
+
+fn polyline(job: &Job, id: u64) -> (Vec<[f64; 2]>, Vec<f64>, Vec<f64>) {
+    match geometry(job, id) {
+        Geometry::Polyline {
+            points,
+            bulges,
+            radii,
+            ..
+        } => (points.clone(), bulges.clone(), radii.clone()),
+        other => panic!("a polyline: {other:?}"),
+    }
+}
+
+fn at(a: [f64; 2], b: [f64; 2]) -> bool {
+    (a[0] - b[0]).abs() < 1e-6 && (a[1] - b[1]).abs() < 1e-6
+}
+
+const ACROSS: &[(f64, f64)] = &[(-10.0, 0.0), (10.0, 0.0)];
+const UP: &[(f64, f64)] = &[(0.0, -10.0), (0.0, 10.0)];
+
+#[test]
+fn two_crossing_lines_are_trimmed_to_a_round_kept_as_the_corners_radius() {
+    // docs/specs/fillet-between-shapes.md §5.
+    let job = with_open(&[(10, ACROSS, &[0.0], "drawn"), (11, UP, &[0.0], "drawn")]);
+    let edited = fillet_between(
+        &job,
+        (10, (8.0, 0.0)),
+        (11, (0.0, 8.0)),
+        Between::Fillet(3.0),
+    )
+    .unwrap();
+    assert_eq!(edited.joined, Some(10));
+    assert!(edited.job.drawing.shapes.iter().all(|s| s.id != 11));
+    let (points, bulges, radii) = polyline(&edited.job, 10);
+    assert_eq!(points.len(), 3, "{points:?}");
+    assert!(at(points[1], [0.0, 0.0]), "{points:?}");
+    assert_eq!(bulges, [0.0, 0.0]);
+    assert_eq!(radii, [0.0, 3.0, 0.0]);
+    let ends = [points[0], points[2]];
+    assert!(ends.iter().any(|&p| at(p, [10.0, 0.0])));
+    assert!(ends.iter().any(|&p| at(p, [0.0, 10.0])));
+}
+
+#[test]
+fn lines_that_fall_short_are_extended_and_radius_zero_meets_sharp() {
+    let job = with_open(&[
+        (10, &[(-10.0, 0.0), (-2.0, 0.0)], &[0.0], "drawn"),
+        (11, &[(0.0, 2.0), (0.0, 10.0)], &[0.0], "drawn"),
+    ]);
+    let round = fillet_between(
+        &job,
+        (10, (-8.0, 0.0)),
+        (11, (0.0, 8.0)),
+        Between::Fillet(1.0),
+    )
+    .unwrap();
+    let (points, _, radii) = polyline(&round.job, 10);
+    assert_eq!(points.len(), 3);
+    assert!(
+        at(points[1], [0.0, 0.0]) && radii[1] == 1.0,
+        "{points:?} {radii:?}"
+    );
+    let sharp = fillet_between(
+        &job,
+        (10, (-8.0, 0.0)),
+        (11, (0.0, 8.0)),
+        Between::Fillet(0.0),
+    )
+    .unwrap();
+    let (points, _, radii) = polyline(&sharp.job, 10);
+    assert_eq!(points.len(), 3);
+    assert!(
+        at(points[1], [0.0, 0.0]) && radii.is_empty(),
+        "{points:?} {radii:?}"
+    );
+}
+
+#[test]
+fn on_different_layers_the_round_joins_only_the_first() {
+    // The round goes on the first shape's layer: it joins that one, the other stays apart.
+    let job = with_open(&[(10, ACROSS, &[0.0], "drawn"), (11, UP, &[0.0], "other")]);
+    let edited = fillet_between(
+        &job,
+        (10, (8.0, 0.0)),
+        (11, (0.0, 8.0)),
+        Between::Fillet(3.0),
+    )
+    .unwrap();
+    assert_eq!(edited.joined, Some(10));
+    assert!(edited.new_ids.is_empty(), "{:?}", edited.new_ids);
+    let (one, bulges, _) = polyline(&edited.job, 10);
+    assert_eq!(one.len(), 3, "{one:?}");
+    assert!(at(one[1], [3.0, 0.0]) || at(one[1], [0.0, 3.0]), "{one:?}");
+    assert_eq!(bulges.iter().filter(|&&b| b != 0.0).count(), 1);
+    // The other kept on its clicked side, ending where the round touches it.
+    let (two, _, _) = polyline(&edited.job, 11);
+    assert!(at(two[0], [0.0, 3.0]) || at(two[1], [0.0, 3.0]), "{two:?}");
+    assert!(two.iter().any(|&p| at(p, [0.0, 10.0])));
+}
+
+#[test]
+fn a_line_and_an_arc_are_joined_by_a_tangent_round() {
+    // An arc above the line, bulging down towards it (its circle's centre near (0, 30),
+    // its lowest point 12 above the line).
+    let job = with_open(&[
+        (10, &[(-20.0, 0.0), (20.0, 0.0)], &[0.0], "drawn"),
+        (11, &[(-10.0, 15.0), (10.0, 15.0)], &[0.3], "drawn"),
+    ]);
+    let edited = fillet_between(
+        &job,
+        (10, (15.0, 0.0)),
+        (11, (9.0, 14.0)),
+        Between::Fillet(8.0),
+    )
+    .unwrap();
+    let kept = edited.joined.unwrap();
+    let shape = edited
+        .job
+        .drawing
+        .shapes
+        .iter()
+        .find(|s| s.id == kept)
+        .unwrap();
+    let rounds: Vec<f64> = shape
+        .segments()
+        .iter()
+        .filter_map(|s| match s.to_primitive() {
+            chipload_core::primitives::Primitive::Arc(a) => Some(a.radius),
+            _ => None,
+        })
+        .collect();
+    assert!(rounds.iter().any(|r| (r - 8.0).abs() < 1e-6), "{rounds:?}");
+    // Too small to reach across the gap of 12: no round, and none smaller fits either.
+    let none = fillet_between(
+        &job,
+        (10, (15.0, 0.0)),
+        (11, (9.0, 14.0)),
+        Between::Fillet(2.0),
+    )
+    .unwrap_err()
+    .message()
+    .english();
+    assert!(none.contains("no round of 2"), "{none}");
+}
+
+#[test]
+fn chamfers_join_lines_and_the_refusals_say_why() {
+    let job = with_open(&[
+        (10, ACROSS, &[0.0], "drawn"),
+        (11, UP, &[0.0], "drawn"),
+        (12, &[(-10.0, 4.0), (10.0, 4.0)], &[0.0], "drawn"),
+        (13, &[(-10.0, 15.0), (10.0, 15.0)], &[0.3], "drawn"),
+        (
+            14,
+            &[(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (20.0, 10.0)],
+            &[0.0; 3],
+            "drawn",
+        ),
+        (15, &[(0.0, 20.0), (30.0, 20.0)], &[0.0], "drawn"),
+    ]);
+    let cut = fillet_between(
+        &job,
+        (10, (8.0, 0.0)),
+        (11, (0.0, 8.0)),
+        Between::Chamfer(2.0),
+    )
+    .unwrap();
+    let (points, _, _) = polyline(&cut.job, 10);
+    assert_eq!(points.len(), 4, "{points:?}");
+    assert!(points.iter().any(|&p| at(p, [2.0, 0.0])));
+    assert!(points.iter().any(|&p| at(p, [0.0, 2.0])));
+    let english = |r: Result<Edited, PipelineError>| r.unwrap_err().message().english();
+    let same = english(fillet_between(
+        &job,
+        (10, (8.0, 0.0)),
+        (10, (0.0, 0.0)),
+        Between::Fillet(1.0),
+    ));
+    assert!(same.contains("two different"), "{same}");
+    let closed = english(fillet_between(
+        &job,
+        (1, (0.0, 0.0)),
+        (10, (0.0, 0.0)),
+        Between::Fillet(1.0),
+    ));
+    assert!(closed.contains("S1 isn't an open"), "{closed}");
+    let parallel = english(fillet_between(
+        &job,
+        (10, (8.0, 0.0)),
+        (12, (8.0, 4.0)),
+        Between::Fillet(1.0),
+    ));
+    assert!(parallel.contains("parallel"), "{parallel}");
+    let arc = english(fillet_between(
+        &job,
+        (10, (8.0, 0.0)),
+        (13, (9.0, 14.0)),
+        Between::Chamfer(1.0),
+    ));
+    assert!(arc.contains("S13") && arc.contains("arc"), "{arc}");
+    let middle = english(fillet_between(
+        &job,
+        (14, (10.0, 5.0)),
+        (15, (25.0, 20.0)),
+        Between::Fillet(2.0),
+    ));
+    assert!(middle.contains("middle side of S14"), "{middle}");
+    // Too large for the lines' halves kept: the most that fits is 10.
+    let large = english(fillet_between(
+        &job,
+        (10, (8.0, 0.0)),
+        (11, (0.0, 8.0)),
+        Between::Fillet(50.0),
+    ));
+    assert!(
+        large.contains("at most 10.000") || large.contains("at most 9.99"),
+        "{large}"
+    );
+}

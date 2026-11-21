@@ -140,12 +140,21 @@ DXF first, [Explode](several.md)).
   side. Shift+click does every corner. Fillet rounds any corner, beside an arc too;
   Chamfer only cuts corners between two straight sides. A radius too large for the sides
   is refused with the most that fits (two corners on one side share it); a *Radius* of 0
-  makes a rounded corner sharp again. A polyline's corner gets that *Radius* (above), so it stays editable; a
-  rectangle rounded all round keeps its kind (its corner radius); any other shape becomes
-  a polyline and keeps its number, so operations still cut it. Chamfer leaves rounded
-  corners as they are.
+  makes a rounded corner sharp again. A polyline's corner gets that *Radius* (above), so
+  it stays editable; a rectangle rounded all round keeps its kind (its corner radius); any
+  other shape becomes a polyline and keeps its number, so operations still cut it. Chamfer
+  leaves rounded corners as they are.
   `chipload shape fillet P 3 --radius 2 [--corner 0]`, `chipload shape chamfer P 3
   --distance 1`.
+- **Fillet between two shapes:** two open drawn polylines (lines and arcs too) that meet,
+  cross or fall short are joined by a round: each is trimmed or extended to it, on the
+  part you pick, and they join into one polyline as after a Trim when they're on one
+  layer (the round goes on the first one's layer). Between two lines the round stays the
+  corner's *Radius*. A radius of 0 trims or extends them to meet in a sharp corner;
+  Chamfer between two lines cuts across, the *Distance* back from where they meet. On the
+  command line, a point near each part to keep: `chipload shape fillet P 3 --with 4
+  --radius 5 --keep 10,0 --keep 0,10` (or `shape chamfer … --distance 2`). In the window,
+  this comes with the next step of the Fillet tool.
 - **Trim** (**X**), **Extend** and **Break** work on the drawn shape under the cursor; no
   need to select it first. Trim shows the piece it will remove before you click, Extend
   the shape grown to the next one ahead (click near the end to extend), Break a mark where

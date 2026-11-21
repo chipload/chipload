@@ -187,19 +187,30 @@ pub(crate) enum ShapeAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Round corners of a drawn shape with arcs of a radius; it keeps its id
-    /// (docs/specs/drawing-editing.md §3).
+    /// Round corners of a drawn shape with arcs of a radius, beside arcs too; it keeps its
+    /// id (docs/specs/drawing-editing.md §3). With --with, a round between two open drawn
+    /// polylines, lines or arcs instead, both trimmed or extended to it and joined as after
+    /// a trim (docs/specs/fillet-between-shapes.md §5).
     Fillet {
         /// The project (.chipload).
         project: PathBuf,
         /// The shape id (as `inspect` lists it, without the S).
         id: u64,
-        /// The radius, mm (or with a unit).
+        /// The radius, mm (or with a unit); 0 makes a corner sharp, or two shapes meet in
+        /// one.
         #[arg(value_parser = crate::lengths::length, long)]
         radius: f64,
         /// Only this corner: its point's number, from 0 (default: every corner).
-        #[arg(long)]
+        #[arg(long, conflicts_with = "with")]
         corner: Option<usize>,
+        /// The second shape: a round between the two.
+        #[arg(long, requires = "keep")]
+        with: Option<u64>,
+        /// With --with, twice: a point near the part of each shape to keep, "X,Y", in the
+        /// shapes' order.
+        #[arg(long, value_parser = crate::lengths::point, allow_hyphen_values = true,
+              num_args = 1, requires = "with")]
+        keep: Vec<[f64; 2]>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -406,8 +417,17 @@ pub(crate) enum ShapeAction {
         #[arg(value_parser = crate::lengths::length, long)]
         distance: f64,
         /// Only this corner: its point's number, from 0 (default: every corner).
-        #[arg(long)]
+        #[arg(long, conflicts_with = "with")]
         corner: Option<usize>,
+        /// The second shape: a straight cut between two lines, back from where they meet
+        /// (docs/specs/fillet-between-shapes.md §5).
+        #[arg(long, requires = "keep")]
+        with: Option<u64>,
+        /// With --with, twice: a point near the part of each line to keep, "X,Y", in the
+        /// shapes' order.
+        #[arg(long, value_parser = crate::lengths::point, allow_hyphen_values = true,
+              num_args = 1, requires = "with")]
+        keep: Vec<[f64; 2]>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,

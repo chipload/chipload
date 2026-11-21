@@ -229,4 +229,11 @@ tests.
   version; v42's frozen samples migrate through it), golden `v43_bracket`. The Fillet tool
   marks corners beside arcs, Chamfer still only straight ones; *Radius* 0 makes a corner
   sharp again (on the command line too).
+- **Step 3:** `chipload_pipeline::drawing_edit::fillet_between` (`Between::Fillet` or
+  `Chamfer`), on the polylines' points so their other corners keep their radii; joined
+  through Trim's `joined_where_ends_meet`. The round goes on the first shape's layer, so
+  with the second on another layer it joins the first alone. Too large: the most that
+  fits is searched for with the same picks. `shape fillet/chamfer --with ID --keep X,Y
+  --keep X,Y`; with `--json` the shape they joined into (`shapes`), the ones gone
+  (`removed`) and a round left on its own (`ids`).
 

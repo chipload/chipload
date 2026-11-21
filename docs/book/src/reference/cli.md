@@ -875,7 +875,7 @@ chipload shape offset <PROJECT> <IDS>... [OPTIONS]
 
 ### `chipload shape fillet`
 
-Round corners of a drawn shape with arcs of a radius; it keeps its id (docs/specs/drawing-editing.md §3)
+Round corners of a drawn shape with arcs of a radius, beside arcs too; it keeps its id (docs/specs/drawing-editing.md §3). With --with, a round between two open drawn polylines, lines or arcs instead, both trimmed or extended to it and joined as after a trim (docs/specs/fillet-between-shapes.md §5)
 
 ```text
 chipload shape fillet <PROJECT> <ID> [OPTIONS]
@@ -885,8 +885,10 @@ chipload shape fillet <PROJECT> <ID> [OPTIONS]
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
 | `<ID>` | The shape id (as `inspect` lists it, without the S) |
-| `--radius <RADIUS>` | The radius, mm (or with a unit) Required. |
+| `--radius <RADIUS>` | The radius, mm (or with a unit); 0 makes a corner sharp, or two shapes meet in one. Required. |
 | `--corner <CORNER>` | Only this corner: its point's number, from 0 (default: every corner) |
+| `--with <WITH>` | The second shape: a round between the two. |
+| `--keep <KEEP>` | With --with, twice: a point near the part of each shape to keep, "X,Y", in the shapes' order. Repeatable. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload shape trim`
@@ -1075,6 +1077,8 @@ chipload shape chamfer <PROJECT> <ID> [OPTIONS]
 | `<ID>` | The shape id (as `inspect` lists it, without the S) |
 | `--distance <DISTANCE>` | How far back along each side, mm (or with a unit) Required. |
 | `--corner <CORNER>` | Only this corner: its point's number, from 0 (default: every corner) |
+| `--with <WITH>` | The second shape: a straight cut between two lines, back from where they meet (docs/specs/fillet-between-shapes.md §5) |
+| `--keep <KEEP>` | With --with, twice: a point near the part of each line to keep, "X,Y", in the shapes' order. Repeatable. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload shape join`

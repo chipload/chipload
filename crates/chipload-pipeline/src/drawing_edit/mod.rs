@@ -16,6 +16,7 @@ pub use chipload_draw::trim::End;
 
 mod arrange;
 mod arrays;
+mod between;
 mod combine;
 mod corners;
 mod offsets;
@@ -28,6 +29,7 @@ pub use arrange::{
     distribute_shapes,
 };
 pub use arrays::{ARRAY_MOST, Polar, array_grid, array_linear, array_polar};
+pub use between::{Between, fillet_between};
 pub use combine::combine_shapes;
 pub use corners::{cut_shape_corners, shape_corners, shown_cutters};
 pub(crate) use offsets::offset_geometry;
