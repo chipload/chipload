@@ -58,6 +58,28 @@ shapes, and the words can no longer be edited ([Exploding](explode.md)).
 The box follows the cursor while you drag, and the text is written again when you let
 go, as one undo step. Hold **Alt** for no steps (any angle, any size) and no snapping.
 
+## On an arc
+
+Tick **On an arc** in the text's properties and its line follows a circle, as on a round
+plaque, a coaster or a badge. The circle's centre is the text's **Position** (anchor and
+rotation don't apply then), and three more fields set the rest:
+- **Radius:** of the circle through the middle of the letters, half a capital height above
+  their base. A top text and a bottom text with the same radius lie in one ring;
+- **Side:** **Top** stands the letters on the outside, reading clockwise, as a name along
+  the top; **Bottom** keeps them upright at the bottom, reading counter-clockwise, as a
+  date along the bottom;
+- **Angle:** how far the text is turned round the circle from straight up (top) or
+  straight down (bottom). With **Align** *centre* (which a text gets when it goes on an
+  arc) its middle sits there; with *left* or *right*, its start or end.
+
+Each letter is moved and turned whole onto the circle, so it keeps the font's exact shape;
+on a top text their tops spread a little and their feet close in, as on any lettered ring.
+More lines stack the way they're read: nearer the centre on the top, further out on the
+bottom. A line longer than its circle, or one that would reach the centre, is refused
+with the reason. On the canvas the box is the square round the ring: its middle moves the
+circle, its turn handle moves the text round it, and a corner scales the radius and the
+letters together.
+
 ## Fonts
 
 Chipload has 17 fonts built in, so a project writes the same letters on every computer. The
@@ -131,6 +153,9 @@ left-out letter is found again when the text changes size, place or font.
 chipload text add sign.chipload "MAKER\nSPACE" --height 20 --at 40,30 --font "FreeSerif Bold" --align center
 chipload text set sign.chipload 1 --rotate 15 --spacing 1     # change it; its letters are made again
 chipload text set sign.chipload 1 --anchor center --at 85,55  # centred on X85 Y55, and stays centred
+chipload text add plaque.chipload "MAKER SPACE" --height 12 --at 0,0 --arc 60   # along the top of a circle round 0,0
+chipload text add plaque.chipload "EST. 2026" --height 8 --at 0,0 --arc 60 --side bottom
+chipload text set plaque.chipload 1 --angle 100               # turned round the circle; --straight: off the arc
 chipload place sign.chipload --text 1 --at 10,10 --height 25  # its corner, turn and height
 chipload text list sign.chipload
 chipload text remove sign.chipload 1

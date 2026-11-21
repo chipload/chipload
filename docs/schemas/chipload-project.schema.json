@@ -38,6 +38,21 @@
       ],
       "type": "object"
     },
+    "ArcSide": {
+      "description": "Which way a text on an arc reads.",
+      "oneOf": [
+        {
+          "const": "top",
+          "description": "The letters stand on the outside of the circle and read clockwise.",
+          "type": "string"
+        },
+        {
+          "const": "bottom",
+          "description": "The letters stand upright at the bottom, inside the circle, and read\ncounter-clockwise.",
+          "type": "string"
+        }
+      ]
+    },
     "AutoThreshold": {
       "description": "The word \"auto\".",
       "enum": [
@@ -4451,6 +4466,17 @@
           "default": "corner",
           "description": "What `x` and `y` are: the box's lower-left corner (before the turn), or its centre.\nA centred text stays centred there when its words, font or size change. Missing:\nthe corner."
         },
+        "arc": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextArc"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Written along a circle round its position (docs/specs/text-on-arc.md §4); None:\non straight lines. Optional, no schema bump: an older Chipload refuses the field."
+        },
         "font": {
           "description": "The font: a built-in one (FreeSans, FreeSerif, …) or one on the computer, by its\nfull name (`chipload text fonts`). Only its name is stored; its letters are the\ntext's shapes, kept where the font isn't (docs/specs/system-fonts.md).",
           "type": "string"
@@ -4538,6 +4564,32 @@
           "type": "string"
         }
       ]
+    },
+    "TextArc": {
+      "additionalProperties": false,
+      "description": "A text on an arc: the circle through its letters' middles and where on it the text\nsits (docs/specs/text-on-arc.md §2).",
+      "properties": {
+        "angle": {
+          "description": "Where the text sits, degrees counter-clockwise from +X: its middle, start or end\nas it is aligned.",
+          "format": "double",
+          "type": "number"
+        },
+        "radius": {
+          "description": "The radius of the circle through the first line's letters' middles (half a capital\nheight above its base), mm; more than 0.",
+          "format": "double",
+          "type": "number"
+        },
+        "side": {
+          "$ref": "#/$defs/ArcSide",
+          "description": "Along the top (standing outside, read clockwise) or the bottom (upright, read\ncounter-clockwise)."
+        }
+      },
+      "required": [
+        "radius",
+        "side",
+        "angle"
+      ],
+      "type": "object"
     },
     "Tool": {
       "additionalProperties": false,

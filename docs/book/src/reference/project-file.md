@@ -32,6 +32,14 @@ From `start_angle` through `sweep` radians (positive = counter-clockwise).
 | `start_angle` | number | yes | Where the arc starts, radians from +X, counter-clockwise. |
 | `sweep` | number | yes | How far it turns, radians: positive counter-clockwise. |
 
+## ArcSide
+
+Which way a text on an arc reads.
+
+- `"top"`: The letters stand on the outside of the circle and read clockwise.
+
+- `"bottom"`: The letters stand upright at the bottom, inside the circle, and read counter-clockwise.
+
 ## AutoThreshold
 
 The word "auto".
@@ -1098,6 +1106,7 @@ A text written into shapes: what it says, its font and size, and where it goes. 
 |---|---|---|---|
 | `align` | [TextAlign](#textalign) | yes | How the lines line up against each other. |
 | `anchor` | [TextAnchor](#textanchor) | no | What `x` and `y` are: the box's lower-left corner (before the turn), or its centre. A centred text stays centred there when its words, font or size change. Missing: the corner. |
+| `arc` | [TextArc](#textarc) or null | no | Written along a circle round its position (docs/specs/text-on-arc.md §4); None: on straight lines. Optional, no schema bump: an older Chipload refuses the field. |
 | `font` | string | yes | The font: a built-in one (FreeSans, FreeSerif, …) or one on the computer, by its full name (`chipload text fonts`). Only its name is stored; its letters are the text's shapes, kept where the font isn't (docs/specs/system-fonts.md). |
 | `height` | number | yes | The height of a capital letter, mm. |
 | `id` | integer | yes | The text's id, which its letters name. |
@@ -1122,6 +1131,16 @@ What a text's position is (docs/specs/text.md §3).
 - `"corner"`: The lower-left corner of the text's box, before the turn.
 
 - `"center"`: The centre of the text's box (the turn keeps it in place).
+
+## TextArc
+
+A text on an arc: the circle through its letters' middles and where on it the text sits (docs/specs/text-on-arc.md §2).
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `angle` | number | yes | Where the text sits, degrees counter-clockwise from +X: its middle, start or end as it is aligned. |
+| `radius` | number | yes | The radius of the circle through the first line's letters' middles (half a capital height above its base), mm; more than 0. |
+| `side` | [ArcSide](#arcside) | yes | Along the top (standing outside, read clockwise) or the bottom (upright, read counter-clockwise). |
 
 ## Tool
 

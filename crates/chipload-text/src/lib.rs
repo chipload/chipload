@@ -238,6 +238,14 @@ pub struct Lettering {
     pub missing: Vec<char>,
     /// Outlines too small to keep (a speck of a glyph).
     pub dropped: usize,
+    /// Each line's base, mm up from the box's bottom (docs/specs/text-on-arc.md §3).
+    pub baselines: Vec<f64>,
+    /// For each letter (as `letter` numbers them): its line, and the middle of its advance
+    /// along the line, mm from the box's left.
+    pub places: Vec<(usize, f64)>,
+    /// Each line's start and end along it (from its first letter's pen to its last
+    /// letter's advance), mm from the box's left.
+    pub spans: Vec<(f64, f64)>,
 }
 
 /// Why a text can't be turned into letters. Its text is a message (`text.ftl`), shown in
@@ -331,6 +339,19 @@ pub fn letters_in(layout: &Layout, font: FontFile) -> Result<Lettering, TextErro
     let flat = ARC_APPROX_TOL_MM / 4.0;
     let mut contours: Vec<(usize, Vec<Point>)> = Vec::new();
     let mut letter = 0;
+    // Where each letter and line is, before the box is moved to (0, 0).
+    let mut places: Vec<(usize, f64)> = Vec::new();
+    let mut spans: Vec<(f64, f64)> = Vec::new();
+    for (n, line) in lines.iter().enumerate() {
+        let advance =
+            |glyph: GlyphId| f64::from(face.glyph_hor_advance(glyph).unwrap_or(0)) * scale;
+        for &(glyph, x) in &line.glyphs {
+            places.push((n, x + advance(glyph) / 2.0));
+        }
+        let start = line.glyphs.first().map_or(0.0, |g| g.1);
+        let end = line.glyphs.last().map_or(start, |&(g, x)| x + advance(g));
+        spans.push((start, end));
+    }
     for line in &lines {
         for &(glyph, x) in &line.glyphs {
             let mut pen = Pen::new((x, line.baseline), scale, flat);
@@ -381,6 +402,12 @@ pub fn letters_in(layout: &Layout, font: FontFile) -> Result<Lettering, TextErro
         height: hi.1 - lo.1,
         missing,
         dropped,
+        baselines: lines.iter().map(|l| l.baseline - lo.1).collect(),
+        places: places.into_iter().map(|(n, x)| (n, x - lo.0)).collect(),
+        spans: spans
+            .into_iter()
+            .map(|(a, b)| (a - lo.0, b - lo.0))
+            .collect(),
     })
 }
 

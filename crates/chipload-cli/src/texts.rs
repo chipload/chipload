@@ -5,7 +5,7 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use chipload_job::{Job, TextAlign, TextAnchor};
+use chipload_job::{ArcSide, Job, TextAlign, TextAnchor, TextArc};
 use chipload_pipeline::explode::{explode_text, which_text};
 use chipload_pipeline::fonts::{ComputerFonts, available};
 use chipload_pipeline::library::{fonts_path, settings_dir};
@@ -121,6 +121,71 @@ pub struct Settings {
     /// The layer for its letters (default "text").
     #[arg(long)]
     layer: Option<String>,
+    /// Write it along a circle round --at of this radius, through the letters' middles
+    /// (docs/specs/text-on-arc.md); a new text on an arc is centred on its angle unless
+    /// --align says otherwise.
+    #[arg(value_parser = crate::lengths::length, long, conflicts_with = "straight")]
+    arc: Option<f64>,
+    /// On an arc: along the top (read clockwise, the default) or the bottom (upright, read
+    /// counter-clockwise).
+    #[arg(long, value_enum, conflicts_with = "straight")]
+    side: Option<SideArg>,
+    /// On an arc: where it sits, degrees counter-clockwise from +X (its middle, start or
+    /// end as aligned; default 90 on the top, 270 on the bottom).
+    #[arg(long, allow_hyphen_values = true, conflicts_with = "straight")]
+    angle: Option<f64>,
+    /// Off the arc: on straight lines again.
+    #[arg(long)]
+    straight: bool,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+pub enum SideArg {
+    Top,
+    Bottom,
+}
+
+impl From<SideArg> for ArcSide {
+    fn from(s: SideArg) -> Self {
+        match s {
+            SideArg::Top => ArcSide::Top,
+            SideArg::Bottom => ArcSide::Bottom,
+        }
+    }
+}
+
+/// The text's arc after `settings`: off with --straight; --arc, --side or --angle change
+/// it (a text not yet on an arc needs --arc); else as it was.
+fn arc_after(current: Option<TextArc>, settings: &Settings) -> Result<Option<TextArc>, String> {
+    if settings.straight {
+        return Ok(None);
+    }
+    if settings.arc.is_none() && settings.side.is_none() && settings.angle.is_none() {
+        return Ok(current);
+    }
+    let radius = match (settings.arc, current) {
+        (Some(r), _) => r,
+        (None, Some(arc)) => arc.radius,
+        (None, None) => {
+            return Err("--side and --angle are for a text on an arc: give --arc RADIUS".into());
+        }
+    };
+    let side = settings
+        .side
+        .map(ArcSide::from)
+        .or(current.map(|a| a.side))
+        .unwrap_or_default();
+    // A new side without --angle sits where that side does.
+    let angle = match (settings.angle, current) {
+        (Some(a), _) => a,
+        (None, Some(arc)) if arc.side == side => arc.angle,
+        _ => side.default_angle(),
+    };
+    Ok(Some(TextArc {
+        radius,
+        side,
+        angle,
+    }))
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -238,6 +303,7 @@ pub fn text(out: &mut Out, action: TextAction) -> ExitCode {
                 if let Some(layer) = &settings.layer {
                     t.layer = layer.clone();
                 }
+                t.arc = arc_after(t.arc, &settings)?;
                 Ok(())
             };
             set(out, &project, id, change, output.as_deref())
@@ -349,6 +415,14 @@ fn add(
     if let Some(layer) = &settings.layer {
         new.layer = layer;
     }
+    match arc_after(None, settings) {
+        Ok(arc) => new.arc = arc,
+        Err(err) => return out.fail(err),
+    }
+    // On an arc the angle is the text's middle unless told otherwise.
+    if new.arc.is_some() && settings.align.is_none() {
+        new.align = TextAlign::Center;
+    }
     match add_text(&job, new, &computer_fonts()) {
         Ok((job, report)) => {
             reported(out, &report);
@@ -450,7 +524,17 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             },
             mm(text.x),
             mm(text.y),
-            if text.rotation == 0.0 {
+            if let Some(arc) = text.arc {
+                format!(
+                    ", on an arc of radius {} along the {} at {}°",
+                    mm(arc.radius),
+                    match arc.side {
+                        ArcSide::Top => "top",
+                        ArcSide::Bottom => "bottom",
+                    },
+                    chipload_pipeline::placement::degrees_text(arc.angle)
+                )
+            } else if text.rotation == 0.0 {
                 String::new()
             } else {
                 format!(
@@ -473,6 +557,7 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             "spacing": text.spacing,
             "line_spacing": text.line_spacing,
             "layer": text.layer,
+            "arc": text.arc,
             "shapes": shapes,
             "font_available": font_here,
         }));

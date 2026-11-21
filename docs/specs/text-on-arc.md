@@ -1,6 +1,7 @@
 # Spec: text on an arc
 
-Status: **draft, 2026-11-21**, for review (decisions in §8). The third item of step 2 of
+Status: **approved 2026-11-21** (the user: "Ok go ahead"; §8 as recommended). Step 1
+built, see *As built* (§10). The third item of step 2 of
 the drawing review (TODO, *Next* 1; docs/specs/drawing-improvements.md).
 
 Builds on text.md (texts and their letters), more-fonts.md (letters told apart) and
@@ -134,3 +135,18 @@ the texts: a frame round words on arcs is the circle round their ring.
 1. The text on an arc: `chipload-pipeline`'s lettering (§3), the format (§4), the command
    line, the form and the canvas (§5), the guide, the seven languages.
 2. The sign wizard's round words (§6), with the golden plaque.
+
+## 10. As built
+
+- **Step 1:** `chipload_job::{TextArc, ArcSide}`, `Text::arc`; `chipload-text`'s
+  `Lettering` also gives each line's base and span and each letter's place;
+  `chipload_pipeline::texts_arc::on_arc` places the letters before overlapping outlines
+  are joined, so joins are made where the letters end up. A letter is placed by the
+  middle of its **advance** (its spacing in the font) rather than its ink box, so letters
+  keep the font's spacing; each line is aligned on its own circle. A new text on an arc
+  from the command line is centred on its angle unless `--align` says otherwise; in the
+  window, *On an arc* puts it on a circle a third of the way round, the circle's top at
+  the box's middle, centred. The canvas box is the square round the ring (radius plus a
+  capital height): Move moves the centre, Turn the angle, a corner scales radius and
+  height together.
+

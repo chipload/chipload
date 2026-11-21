@@ -221,8 +221,18 @@ pub fn model_box(model: &chipload_job::Model, aspect: f64) -> PlacedBox {
     }
 }
 
-/// A text's box, `size` being its letters' box (`texts::text_size`).
+/// A text's box, `size` being its letters' box (`texts::text_size`). On an arc: the square
+/// round its ring, centred on the circle's centre, turned as far as its angle is from its
+/// side's own (docs/specs/text-on-arc.md §5), so the Turn handle turns it round.
 pub fn text_box(text: &Text, size: (f64, f64)) -> PlacedBox {
+    if let Some(arc) = &text.arc {
+        let across = 2.0 * ring_radius(text, arc);
+        return PlacedBox {
+            corner: (text.x - across / 2.0, text.y - across / 2.0),
+            size: (across, across),
+            rotation: (arc.angle - arc.side.default_angle()).rem_euclid(360.0),
+        };
+    }
     PlacedBox {
         corner: crate::texts::box_corner(text, size),
         size,
@@ -234,6 +244,9 @@ pub fn text_box(text: &Text, size: (f64, f64)) -> PlacedBox {
 /// box and rounded to 0.1 mm unless `free`, its anchor kept. The letters' new box is
 /// assumed to scale with the height; it is centred where the dragged box is.
 pub fn text_in_box(text: &Text, size: (f64, f64), b: &PlacedBox, free: bool) -> Text {
+    if let Some(arc) = &text.arc {
+        return arc_text_in_box(text, arc, b, free);
+    }
     // Moved or turned only: the height stays exactly.
     let height = if b.size == size || size.1 <= 0.0 {
         text.height
@@ -256,6 +269,38 @@ pub fn text_in_box(text: &Text, size: (f64, f64), b: &PlacedBox, free: bool) -> 
         y,
         height,
         rotation: b.rotation,
+        ..text.clone()
+    }
+}
+
+/// How far out a text on an arc reaches: its radius and a capital height (its letters
+/// stand half a height either side of the circle).
+fn ring_radius(text: &Text, arc: &chipload_job::TextArc) -> f64 {
+    arc.radius + text.height
+}
+
+/// A text on an arc set to box `b`: its centre the box's, its angle turned with the box,
+/// its radius and height scaled with it (the height rounded unless `free`).
+fn arc_text_in_box(text: &Text, arc: &chipload_job::TextArc, b: &PlacedBox, free: bool) -> Text {
+    let across = 2.0 * ring_radius(text, arc);
+    let (height, radius) = if (b.size.0 - across).abs() < f64::EPSILON * across.max(1.0) {
+        (text.height, arc.radius)
+    } else {
+        let factor = b.size.0 / across;
+        let height = stepped(text.height * factor, SIZE_STEP_MM, free);
+        (height, arc.radius * factor)
+    };
+    let (x, y) = b.center();
+    let angle = (arc.side.default_angle() + b.rotation).rem_euclid(360.0);
+    Text {
+        x,
+        y,
+        height,
+        arc: Some(chipload_job::TextArc {
+            radius,
+            angle,
+            ..*arc
+        }),
         ..text.clone()
     }
 }
@@ -387,6 +432,7 @@ mod tests {
             spacing: 0.0,
             line_spacing: 1.6,
             layer: "text".into(),
+            arc: None,
         };
         let size = (8.0, 10.0);
         let b = text_box(&text, size);
@@ -399,5 +445,49 @@ mod tests {
         let moved = drag_box(&b, BoxHandle::Move, (50.0, 60.0), false).unwrap();
         let after = text_in_box(&text, size, &moved, false);
         assert_eq!((after.x, after.y, after.height), (50.0, 60.0, 10.0));
+    }
+
+    #[test]
+    fn a_text_on_an_arc_has_the_square_round_its_ring_and_turns_its_angle() {
+        // docs/specs/text-on-arc.md §5.
+        let text = Text {
+            id: 1,
+            text: "ROUND".into(),
+            font: "FreeSans".into(),
+            height: 10.0,
+            x: 5.0,
+            y: 5.0,
+            anchor: TextAnchor::Corner,
+            rotation: 0.0,
+            align: chipload_job::TextAlign::Center,
+            spacing: 0.0,
+            line_spacing: 1.6,
+            layer: "text".into(),
+            arc: Some(chipload_job::TextArc {
+                radius: 40.0,
+                side: chipload_job::ArcSide::Top,
+                angle: 90.0,
+            }),
+        };
+        let b = text_box(&text, (1.0, 1.0));
+        assert!(close(b.center(), (5.0, 5.0)) && b.size == (100.0, 100.0));
+        assert_eq!(b.rotation, 0.0);
+        // Moved and turned: the centre goes, the angle turns with the box.
+        let moved = PlacedBox {
+            corner: (-40.0, -50.0),
+            rotation: 30.0,
+            ..b
+        };
+        let after = text_in_box(&text, (1.0, 1.0), &moved, false);
+        assert!(close((after.x, after.y), (10.0, 0.0)));
+        let arc = after.arc.unwrap();
+        assert_eq!((arc.angle, arc.radius, after.height), (120.0, 40.0, 10.0));
+        // Twice the size: twice the radius and height.
+        let grown = PlacedBox {
+            size: (200.0, 200.0),
+            ..b
+        };
+        let after = text_in_box(&text, (1.0, 1.0), &grown, false);
+        assert_eq!((after.arc.unwrap().radius, after.height), (80.0, 20.0));
     }
 }

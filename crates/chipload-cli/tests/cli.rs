@@ -4177,3 +4177,41 @@ fn a_bulge_t_is_a_tangent_arc_from_the_side_before() {
         text(&first.stderr)
     );
 }
+
+#[test]
+fn a_text_goes_on_an_arc_and_off_again_from_the_command_line() {
+    // docs/specs/text-on-arc.md §5.
+    let dir = temp_dir("text-arc");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v30/polygon.chipload"), &project).unwrap();
+    let p = path(&project);
+    let out = chipload(&[
+        "text", "add", p, "MAKER", "--height", "10", "--at", "0,0", "--arc", "50",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let list = |p: &str| {
+        let out = chipload(&["--json", "text", "list", p]);
+        let value: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+        value["texts"][0].clone()
+    };
+    let t = list(p);
+    assert_eq!(
+        t["arc"],
+        serde_json::json!({"radius": 50.0, "side": "top", "angle": 90.0})
+    );
+    assert_eq!(t["align"], "center");
+    // The bottom: its own angle unless told otherwise; --angle turns it.
+    let out = chipload(&["text", "set", p, "1", "--side", "bottom"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert_eq!(list(p)["arc"]["angle"], 270.0);
+    let out = chipload(&["text", "set", p, "1", "--angle", "250"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert_eq!(list(p)["arc"]["angle"], 250.0);
+    let out = chipload(&["text", "set", p, "1", "--straight"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(list(p)["arc"].is_null());
+    // --side alone on a straight text asks for --arc.
+    let out = chipload(&["text", "set", p, "1", "--side", "top"]);
+    assert!(!out.status.success());
+    assert!(text(&out.stderr).contains("--arc"), "{}", text(&out.stderr));
+}

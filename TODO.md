@@ -54,8 +54,9 @@ done is in git and in the releases' notes on GitHub, no longer listed here.
      (docs/specs/fillet-between-shapes.md, schema 43), not pushed, for the user to try;
    - ~~arcs while drawing a polyline~~ built 2026-11-21 (docs/specs/polyline-tangent-arcs.md),
      not pushed, for the user to try;
-   - text on an arc (round plaques, the sign wizard): **spec drafted**
-     (docs/specs/text-on-arc.md, six decisions for the user);
+   - text on an arc (docs/specs/text-on-arc.md, approved 2026-11-21): step 1 (texts on
+     arcs, CLI, form, canvas) built; next step 2, the sign wizard's round words and the
+     golden plaque;
    - scale by reference (two points, a new length) and stretching in X and Y;
    - spline to polyline (explode), joining open splines, their end tangents;
    - extending arc ends along their circle;

@@ -299,6 +299,8 @@ pipeline-group-no-name = un grupo necesita un nombre
 pipeline-ungroup-cut-texts = la operación { $op } corta el grupo «{ $name }», que tiene textos: elige antes de nuevo sus formas, o saca los textos del grupo
 # $text is the text's first line in quotes; $error why (a toolpath-error text).
 pipeline-text-join-failed = { $text }: no se pudieron unir los contornos superpuestos de las letras: { $error }
+pipeline-text-arc-long = la línea { $line } de { $text } es más larga que su círculo ({ $round } de vuelta): haga mayor el radio, o menor el texto
+pipeline-text-arc-centre = la línea { $line } de { $text } llegaría al centro de su círculo: haga mayor el radio
 pipeline-text-font-missing = La fuente «{ $font }» no está en este ordenador. { $text } conserva sus letras y se corta tal cual; para cambiar sus palabras o su tamaño, elige otra fuente.
 pipeline-text-no-font = No hay ninguna fuente «{ $font }» en este ordenador. Integradas: { $fonts }; `chipload text fonts` también lista las del ordenador.
 pipeline-text-moved = Se movió { $text }: { $count } { $count ->

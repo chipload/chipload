@@ -488,6 +488,50 @@ pub struct Text {
     pub line_spacing: f64,
     /// The layer its letters go on.
     pub layer: String,
+    /// Written along a circle round its position (docs/specs/text-on-arc.md §4); None:
+    /// on straight lines. Optional, no schema bump: an older Chipload refuses the field.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub arc: Option<TextArc>,
+}
+
+/// A text on an arc: the circle through its letters' middles and where on it the text
+/// sits (docs/specs/text-on-arc.md §2).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct TextArc {
+    /// The radius of the circle through the first line's letters' middles (half a capital
+    /// height above its base), mm; more than 0.
+    pub radius: f64,
+    /// Along the top (standing outside, read clockwise) or the bottom (upright, read
+    /// counter-clockwise).
+    pub side: ArcSide,
+    /// Where the text sits, degrees counter-clockwise from +X: its middle, start or end
+    /// as it is aligned.
+    pub angle: f64,
+}
+
+/// Which way a text on an arc reads.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum ArcSide {
+    /// The letters stand on the outside of the circle and read clockwise.
+    #[default]
+    Top,
+    /// The letters stand upright at the bottom, inside the circle, and read
+    /// counter-clockwise.
+    Bottom,
+}
+
+impl ArcSide {
+    /// Where a text on this side sits unless told otherwise, degrees: straight up or down.
+    pub fn default_angle(self) -> f64 {
+        match self {
+            ArcSide::Top => 90.0,
+            ArcSide::Bottom => 270.0,
+        }
+    }
 }
 
 /// What a text's position is (docs/specs/text.md §3).
@@ -592,6 +636,21 @@ impl Text {
                 format!("{at}.font"),
                 Message::new("job-must-not-be-empty"),
             ));
+        }
+        if let Some(arc) = &self.arc {
+            if !(arc.radius.is_finite() && arc.radius > 0.0) {
+                problems.push(Problem::at(
+                    format!("{at}.arc.radius"),
+                    Message::new("job-must-be-positive")
+                        .arg("got", Value::Length(arc.radius, Digits::Shortest)),
+                ));
+            }
+            if !arc.angle.is_finite() {
+                problems.push(Problem::at(
+                    format!("{at}.arc.angle"),
+                    Message::new("job-must-be-finite"),
+                ));
+            }
         }
         problems
     }

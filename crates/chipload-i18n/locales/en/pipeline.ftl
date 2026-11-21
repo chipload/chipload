@@ -288,6 +288,8 @@ pipeline-group-no-name = a group needs a name
 pipeline-ungroup-cut-texts = operation { $op } cuts the group “{ $name }”, which has texts: choose that operation's shapes again, or take the texts out of the group first
 # $text is the text's first line in quotes; $error why (a toolpath-error text).
 pipeline-text-join-failed = { $text }: couldn't join the letters' overlapping outlines: { $error }
+pipeline-text-arc-long = line { $line } of { $text } is longer than its circle ({ $round } round): make the radius larger, or the text smaller
+pipeline-text-arc-centre = line { $line } of { $text } would reach its circle's centre: make the radius larger
 pipeline-text-font-missing = Font "{ $font }" is not on this computer. { $text } keeps its letters and cuts as they are; to change its words or size, choose another font.
 pipeline-text-no-font = There is no font "{ $font }" on this computer. Built in: { $fonts }; `chipload text fonts` lists the computer's too.
 pipeline-text-moved = Moved { $text }: its { $count } { $count ->

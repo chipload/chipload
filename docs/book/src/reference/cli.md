@@ -1449,6 +1449,10 @@ chipload text add <PROJECT> <TEXT> [OPTIONS]
 | `--spacing <SPACING>` | Extra space between letters, mm (default 0: the font's own) |
 | `--line-spacing <LINE_SPACING>` | From one line's base to the next, in capital heights (default 1.6) |
 | `--layer <LAYER>` | The layer for its letters (default "text") |
+| `--arc <ARC>` | Write it along a circle round --at of this radius, through the letters' middles (docs/specs/text-on-arc.md); a new text on an arc is centred on its angle unless --align says otherwise. |
+| `--side <SIDE>` | On an arc: along the top (read clockwise, the default) or the bottom (upright, read counter-clockwise) One of: `top`, `bottom`. |
+| `--angle <ANGLE>` | On an arc: where it sits, degrees counter-clockwise from +X (its middle, start or end as aligned; default 90 on the top, 270 on the bottom) |
+| `--straight` | Off the arc: on straight lines again. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload text set`
@@ -1473,6 +1477,10 @@ chipload text set <PROJECT> <ID> [OPTIONS]
 | `--spacing <SPACING>` | Extra space between letters, mm (default 0: the font's own) |
 | `--line-spacing <LINE_SPACING>` | From one line's base to the next, in capital heights (default 1.6) |
 | `--layer <LAYER>` | The layer for its letters (default "text") |
+| `--arc <ARC>` | Write it along a circle round --at of this radius, through the letters' middles (docs/specs/text-on-arc.md); a new text on an arc is centred on its angle unless --align says otherwise. |
+| `--side <SIDE>` | On an arc: along the top (read clockwise, the default) or the bottom (upright, read counter-clockwise) One of: `top`, `bottom`. |
+| `--angle <ANGLE>` | On an arc: where it sits, degrees counter-clockwise from +X (its middle, start or end as aligned; default 90 on the top, 270 on the bottom) |
+| `--straight` | Off the arc: on straight lines again. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload text list`

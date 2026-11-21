@@ -48,6 +48,7 @@ pub mod styles;
 pub mod surface;
 pub mod tabs;
 pub mod texts;
+mod texts_arc;
 pub mod two_sided;
 pub mod units;
 

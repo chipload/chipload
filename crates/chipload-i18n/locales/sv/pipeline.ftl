@@ -291,6 +291,8 @@ pipeline-group-no-name = en grupp behöver ett namn
 pipeline-ungroup-cut-texts = operation { $op } skär gruppen ”{ $name }”, som har texter: välj först om operationens former, eller ta ut texterna ur gruppen
 # $text is the text's first line in quotes; $error why (a toolpath-error text).
 pipeline-text-join-failed = { $text }: kunde inte sammanfoga bokstävernas överlappande konturer: { $error }
+pipeline-text-arc-long = rad { $line } av { $text } är längre än sin cirkel ({ $round } runt): gör radien större, eller texten mindre
+pipeline-text-arc-centre = rad { $line } av { $text } skulle nå sin cirkels mitt: gör radien större
 pipeline-text-font-missing = Typsnittet ”{ $font }” finns inte på den här datorn. { $text } behåller sina bokstäver och fräses som de är; för att ändra ord eller storlek, välj ett annat typsnitt.
 pipeline-text-no-font = Det finns inget typsnitt ”{ $font }” på den här datorn. Inbyggda: { $fonts }; `chipload text fonts` listar även datorns.
 pipeline-text-moved = Flyttade { $text }: { $count } { $count ->

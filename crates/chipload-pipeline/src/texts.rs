@@ -10,7 +10,7 @@ use chipload_text::{Align, FontFile, Layout, Lettering, letters, letters_in};
 
 use crate::PipelineError;
 use crate::fonts::FontSource;
-use crate::images::{find_left_out_again, placed_box};
+use crate::images::{find_left_out_again, placed_box, segments_of};
 
 pub use chipload_text::{DEFAULT_FONT, font_names};
 
@@ -31,6 +31,8 @@ pub struct NewText<'a> {
     pub spacing: f64,
     pub line_spacing: f64,
     pub layer: &'a str,
+    /// On an arc round (x, y) (docs/specs/text-on-arc.md); None: straight.
+    pub arc: Option<chipload_job::TextArc>,
 }
 
 impl<'a> NewText<'a> {
@@ -48,6 +50,7 @@ impl<'a> NewText<'a> {
             spacing: 0.0,
             line_spacing: TEXT_DEFAULT_LINE_SPACING,
             layer: DEFAULT_LAYER,
+            arc: None,
         }
     }
 }
@@ -89,6 +92,7 @@ pub fn add_text(
         spacing: new.spacing,
         line_spacing: new.line_spacing,
         layer: new.layer.to_string(),
+        arc: new.arc,
     };
     let mut out = job.clone();
     out.drawing.texts.push(text);
@@ -126,6 +130,11 @@ pub fn lettering(text: &Text, fonts: &dyn FontSource) -> Result<Lettering, Pipel
             },
         )?
     };
+    // On an arc: each letter moved onto the circle first, so overlaps are joined where
+    // the letters end up (docs/specs/text-on-arc.md §3); the box is then where they are.
+    if let Some(arc) = &text.arc {
+        (lettering.outlines, lettering.letter) = crate::texts_arc::on_arc(text, arc, &lettering)?;
+    }
     let merged = chipload_toolpath::merge::merge_overlaps(&lettering.outlines, &lettering.letter)
         .map_err(|err| {
         PipelineError::Job(
@@ -135,6 +144,10 @@ pub fn lettering(text: &Text, fonts: &dyn FontSource) -> Result<Lettering, Pipel
         )
     })?;
     (lettering.outlines, lettering.letter) = merged.into_iter().unzip();
+    if text.arc.is_some() {
+        let (lo, hi) = letters_box(&lettering.outlines);
+        (lettering.width, lettering.height) = (hi.0 - lo.0, hi.1 - lo.1);
+    }
     Ok(lettering)
 }
 
@@ -212,12 +225,17 @@ pub fn remake(
             name: None,
             geometry: Geometry::Path {
                 closed: true,
-                segments: placed_box(
-                    outline,
-                    box_corner(text, (lettering.width, lettering.height)),
-                    (lettering.width, lettering.height),
-                    text.rotation,
-                ),
+                // On an arc the letters are already in place.
+                segments: if text.arc.is_some() {
+                    segments_of(outline)
+                } else {
+                    placed_box(
+                        outline,
+                        box_corner(text, (lettering.width, lettering.height)),
+                        (lettering.width, lettering.height),
+                        text.rotation,
+                    )
+                },
                 origin: Some(chipload_job::Origin::Text(id)),
             },
         });
@@ -431,5 +449,20 @@ fn report(text: &Text, l: &Lettering, shapes: Vec<u64>) -> TextReport {
         missing: l.missing.clone(),
         lines: lines.iter().map(Message::english).collect(),
         messages: lines,
+    }
+}
+
+/// The box round outlines: its lowest and highest corner.
+fn letters_box(outlines: &[Vec<chipload_core::primitives::Primitive>]) -> ((f64, f64), (f64, f64)) {
+    let mut lo = (f64::INFINITY, f64::INFINITY);
+    let mut hi = (f64::NEG_INFINITY, f64::NEG_INFINITY);
+    for (a, b) in outlines.iter().flatten().map(|p| p.bounds()) {
+        lo = (lo.0.min(a.0), lo.1.min(a.1));
+        hi = (hi.0.max(b.0), hi.1.max(b.1));
+    }
+    if lo.0.is_finite() {
+        (lo, hi)
+    } else {
+        ((0.0, 0.0), (0.0, 0.0))
     }
 }

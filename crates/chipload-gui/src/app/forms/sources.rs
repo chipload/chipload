@@ -225,7 +225,7 @@ pub(in crate::app) fn text_form(
 ) -> Option<JobRequest> {
     let units = crate::units::display(ui.ctx());
     let len_unit = chipload_pipeline::units::length_unit(units);
-    use chipload_job::{Text, TextAlign, TextAnchor};
+    use chipload_job::{ArcSide, Text, TextAlign, TextAnchor};
     let text = edit.job.drawing.texts.iter().find(|t| t.id == id)?;
     let mut request = None;
     super::browser_row::title_line(
@@ -321,58 +321,123 @@ pub(in crate::app) fn text_form(
                 finished |= response.drag_stopped() || response.lost_focus();
                 ui.end_row();
                 let (w, h) = size.unwrap_or((0.0, 0.0));
-                ui.label(t!(ui, "forms-anchor"))
-                    .on_hover_text(t!(ui, "forms-anchor-hover"));
-                let before = draft.anchor;
-                let mut anchor = draft.anchor;
-                egui::ComboBox::from_id_salt(("text-anchor", id))
-                    .selected_text(match anchor {
-                        TextAnchor::Corner => t!(ui, "forms-anchor-corner"),
-                        TextAnchor::Center => t!(ui, "forms-anchor-centre"),
-                    })
-                    .show_ui(ui, |ui| {
-                        let corner = t!(ui, "forms-anchor-corner");
-                        ui.selectable_value(&mut anchor, TextAnchor::Corner, corner);
-                        let centre = t!(ui, "forms-anchor-centre");
-                        ui.selectable_value(&mut anchor, TextAnchor::Center, centre);
-                    });
-                if anchor != before {
-                    // The text stays where it is: only what Position means changes.
-                    draft = chipload_pipeline::texts::with_anchor(&draft, anchor, (w, h));
+                // On an arc (docs/specs/text-on-arc.md §5): the circle's radius, side and
+                // angle; the position is its centre, and anchor and turn don't apply.
+                ui.label(t!(ui, "forms-text-arc"))
+                    .on_hover_text(t!(ui, "forms-text-arc-hover"));
+                let mut on_arc = draft.arc.is_some();
+                if ui
+                    .add_enabled(letters_editable, egui::Checkbox::without_text(&mut on_arc))
+                    .changed()
+                {
+                    draft = if on_arc {
+                        onto_arc(&draft, (w, h))
+                    } else {
+                        off_arc(&draft)
+                    };
                     finished = true;
                 }
                 ui.end_row();
-                // Shown as the box's lower-left corner on the stock (after the turn), or its
-                // centre, which the turn keeps in place.
-                let shown = |d: &Text| match d.anchor {
-                    TextAnchor::Center => (d.x, d.y),
-                    TextAnchor::Corner => {
-                        chipload_pipeline::images::turned_box(d.x, d.y, w, h, d.rotation).0
-                    }
-                };
-                let (x0, y0) = shown(&draft);
-                ui.label(t!(ui, "forms-position"))
-                    .on_hover_text(match draft.anchor {
-                        TextAnchor::Corner => t!(
-                            ui,
-                            "units-text-text-position-corner-hover",
-                            unit = crate::units::unit(ui.ctx())
-                        ),
-                        TextAnchor::Center => t!(
-                            ui,
-                            "units-text-text-position-centre-hover",
-                            unit = crate::units::unit(ui.ctx())
-                        ),
+                if let Some(mut arc) = draft.arc {
+                    ui.label(t!(ui, "forms-text-arc-radius"))
+                        .on_hover_text(t!(ui, "forms-text-arc-radius-hover"));
+                    let response = ui.add_enabled(
+                        letters_editable,
+                        crate::units::length(&mut arc.radius)
+                            .range(0.1..=f64::MAX)
+                            .speed(0.1),
+                    );
+                    finished |= response.drag_stopped() || response.lost_focus();
+                    ui.end_row();
+                    ui.label(t!(ui, "forms-text-arc-side"))
+                        .on_hover_text(t!(ui, "forms-text-arc-side-hover"));
+                    let before = arc.side;
+                    ui.add_enabled_ui(letters_editable, |ui| {
+                        ui.horizontal(|ui| {
+                            let top = t!(ui, "forms-text-arc-top");
+                            ui.selectable_value(&mut arc.side, ArcSide::Top, top);
+                            let bottom = t!(ui, "forms-text-arc-bottom");
+                            ui.selectable_value(&mut arc.side, ArcSide::Bottom, bottom);
+                        });
                     });
-                // Moving what is shown moves the text's own position as much.
-                let hover = t!(ui, "forms-text-reset-position");
-                finished |= position_cells(ui, (x0, y0), (&mut draft.x, &mut draft.y), &hover);
-                ui.end_row();
-                ui.label(t!(ui, "forms-rotation"))
-                    .on_hover_text(t!(ui, "forms-text-rotation-hover"));
-                let hover = t!(ui, "forms-text-reset-rotation");
-                finished |= rotation_cells(ui, &mut draft.rotation, &hover);
-                ui.end_row();
+                    if arc.side != before {
+                        // The other side sits where that side does.
+                        arc.angle = arc.side.default_angle();
+                        finished = true;
+                    }
+                    ui.end_row();
+                    ui.label(t!(ui, "forms-text-arc-angle"))
+                        .on_hover_text(t!(ui, "forms-text-arc-angle-hover"));
+                    let hover = t!(ui, "forms-text-arc-angle-reset");
+                    let mut turn = arc.angle - arc.side.default_angle();
+                    finished |= rotation_cells(ui, &mut turn, &hover);
+                    arc.angle = (arc.side.default_angle() + turn).rem_euclid(360.0);
+                    ui.end_row();
+                    draft.arc = Some(arc);
+                    ui.label(t!(ui, "forms-position")).on_hover_text(t!(
+                        ui,
+                        "forms-text-arc-centre-hover",
+                        unit = crate::units::unit(ui.ctx())
+                    ));
+                    let hover = t!(ui, "forms-text-reset-position");
+                    let shown = (draft.x, draft.y);
+                    finished |= position_cells(ui, shown, (&mut draft.x, &mut draft.y), &hover);
+                    ui.end_row();
+                } else {
+                    let (w, h) = size.unwrap_or((0.0, 0.0));
+                    ui.label(t!(ui, "forms-anchor"))
+                        .on_hover_text(t!(ui, "forms-anchor-hover"));
+                    let before = draft.anchor;
+                    let mut anchor = draft.anchor;
+                    egui::ComboBox::from_id_salt(("text-anchor", id))
+                        .selected_text(match anchor {
+                            TextAnchor::Corner => t!(ui, "forms-anchor-corner"),
+                            TextAnchor::Center => t!(ui, "forms-anchor-centre"),
+                        })
+                        .show_ui(ui, |ui| {
+                            let corner = t!(ui, "forms-anchor-corner");
+                            ui.selectable_value(&mut anchor, TextAnchor::Corner, corner);
+                            let centre = t!(ui, "forms-anchor-centre");
+                            ui.selectable_value(&mut anchor, TextAnchor::Center, centre);
+                        });
+                    if anchor != before {
+                        // The text stays where it is: only what Position means changes.
+                        draft = chipload_pipeline::texts::with_anchor(&draft, anchor, (w, h));
+                        finished = true;
+                    }
+                    ui.end_row();
+                    // Shown as the box's lower-left corner on the stock (after the turn), or its
+                    // centre, which the turn keeps in place.
+                    let shown = |d: &Text| match d.anchor {
+                        TextAnchor::Center => (d.x, d.y),
+                        TextAnchor::Corner => {
+                            chipload_pipeline::images::turned_box(d.x, d.y, w, h, d.rotation).0
+                        }
+                    };
+                    let (x0, y0) = shown(&draft);
+                    ui.label(t!(ui, "forms-position"))
+                        .on_hover_text(match draft.anchor {
+                            TextAnchor::Corner => t!(
+                                ui,
+                                "units-text-text-position-corner-hover",
+                                unit = crate::units::unit(ui.ctx())
+                            ),
+                            TextAnchor::Center => t!(
+                                ui,
+                                "units-text-text-position-centre-hover",
+                                unit = crate::units::unit(ui.ctx())
+                            ),
+                        });
+                    // Moving what is shown moves the text's own position as much.
+                    let hover = t!(ui, "forms-text-reset-position");
+                    finished |= position_cells(ui, (x0, y0), (&mut draft.x, &mut draft.y), &hover);
+                    ui.end_row();
+                    ui.label(t!(ui, "forms-rotation"))
+                        .on_hover_text(t!(ui, "forms-text-rotation-hover"));
+                    let hover = t!(ui, "forms-text-reset-rotation");
+                    finished |= rotation_cells(ui, &mut draft.rotation, &hover);
+                    ui.end_row();
+                }
                 ui.label(t!(ui, "forms-align"))
                     .on_hover_text(t!(ui, "forms-align-hover"));
                 let before = draft.align;
@@ -862,4 +927,78 @@ pub(in crate::app) fn model_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> 
         }
     });
     request
+}
+
+/// `text` put on an arc where it is (docs/specs/text-on-arc.md §5): along the top of a
+/// circle whose radius makes its line about a third of the way round, the circle's centre
+/// below the box's middle, centred on its angle. `size`: its straight box.
+fn onto_arc(text: &chipload_job::Text, size: (f64, f64)) -> chipload_job::Text {
+    let (w, h) = size;
+    let (x0, y0) = chipload_pipeline::texts::box_corner(text, size);
+    let middle = (x0 + w / 2.0, y0 + h / 2.0);
+    let radius = (w * 3.0 / std::f64::consts::TAU).max(text.height).max(1.0);
+    chipload_job::Text {
+        x: middle.0,
+        y: middle.1 - radius,
+        align: chipload_job::TextAlign::Center,
+        arc: Some(chipload_job::TextArc {
+            radius,
+            side: chipload_job::ArcSide::Top,
+            angle: chipload_job::ArcSide::Top.default_angle(),
+        }),
+        ..text.clone()
+    }
+}
+
+/// `text` off its arc: straight, centred where the arc's angle points, not turned.
+fn off_arc(text: &chipload_job::Text) -> chipload_job::Text {
+    let Some(arc) = text.arc else {
+        return text.clone();
+    };
+    let (sin, cos) = chipload_core::math::sin_cos(arc.angle.to_radians());
+    chipload_job::Text {
+        x: text.x + arc.radius * cos,
+        y: text.y + arc.radius * sin,
+        anchor: chipload_job::TextAnchor::Center,
+        rotation: 0.0,
+        arc: None,
+        ..text.clone()
+    }
+}
+
+#[cfg(test)]
+mod arc_tests {
+    use super::{off_arc, onto_arc};
+    use chipload_job::{ArcSide, Text, TextAlign, TextAnchor};
+
+    #[test]
+    fn a_text_goes_onto_an_arc_where_it_is_and_back() {
+        // docs/specs/text-on-arc.md §5.
+        let text = Text {
+            id: 1,
+            text: "ROUND".into(),
+            font: "FreeSans".into(),
+            height: 10.0,
+            x: 0.0,
+            y: 0.0,
+            anchor: TextAnchor::Corner,
+            rotation: 0.0,
+            align: TextAlign::Left,
+            spacing: 0.0,
+            line_spacing: 1.6,
+            layer: "text".into(),
+            arc: None,
+        };
+        let on = onto_arc(&text, (60.0, 10.0));
+        let arc = on.arc.unwrap();
+        assert_eq!(
+            (arc.side, arc.angle, on.align),
+            (ArcSide::Top, 90.0, TextAlign::Center)
+        );
+        // The top of its circle is the box's middle.
+        assert!((on.x - 30.0).abs() < 1e-9 && (on.y + arc.radius - 5.0).abs() < 1e-9);
+        let off = off_arc(&on);
+        assert!(off.arc.is_none() && off.anchor == TextAnchor::Center);
+        assert!((off.x - 30.0).abs() < 1e-9 && (off.y - 5.0).abs() < 1e-9);
+    }
 }
