@@ -4,6 +4,8 @@
 //! cut by the arc of radius r tangent to both, touching each r · tan(θ / 2) back from the
 //! corner, θ the angle the path turns there.
 
+pub mod round;
+
 use crate::Point;
 use crate::math;
 use crate::primitives::{Arc, Line, Primitive, distance};
