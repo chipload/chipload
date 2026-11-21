@@ -7,7 +7,7 @@ use chipload_pipeline::drawing_edit::{
     ARRAY_MOST, AlignTo, AlignWith, Combine, Corners, Cut, Edited, OffsetSide, Polar, align_shapes,
     arrange_units_in, array_grid, array_linear, array_polar, break_shape, combine_shapes,
     cut_shape_corners, distribute_shapes, extend_shape, nearer_end, nearest_drawn, nearest_point,
-    offset_at, offset_shapes, shape_corners, trim_preview, trim_shape,
+    offset_at, offset_shapes, trim_preview, trim_shape,
 };
 
 use super::*;
@@ -297,24 +297,8 @@ impl ChiploadApp {
         }
     }
 
-    /// The selected drawn shape's corner nearest the cursor at `at`, within reach on screen.
-    pub fn corner_at(&self, at: Point) -> Option<(u64, usize, Point)> {
-        let [id] = self.selected_drawn()[..] else {
-            return None;
-        };
-        let shape = self.shape(id)?;
-        let reach = f64::from(crate::view::PICK_TOLERANCE_PX) * 1.5 / self.view.scale;
-        let fillet = self.modify() == Some(ModifyTool::Fillet);
-        shape_corners(shape, fillet)
-            .into_iter()
-            .map(|(k, p)| (k, p, chipload_core::primitives::distance(p, at)))
-            .filter(|&(_, _, d)| d <= reach)
-            .min_by(|a, b| a.2.total_cmp(&b.2))
-            .map(|(k, p, _)| (id, k, p))
-    }
-
     /// The cut the fillet or chamfer tool makes.
-    fn corner_cut(&self) -> Option<Cut> {
+    pub(super) fn corner_cut(&self) -> Option<Cut> {
         match self.modify()? {
             ModifyTool::Fillet => Some(Cut::Fillet(self.canvas_tools.fillet_radius)),
             ModifyTool::Chamfer => Some(Cut::Chamfer(self.canvas_tools.chamfer_distance)),
@@ -329,10 +313,7 @@ impl ChiploadApp {
             return Vec::new();
         };
         let target = if all {
-            match self.selected_drawn()[..] {
-                [id] => Some((id, None)),
-                _ => None,
-            }
+            self.all_corners_shape(at).map(|id| (id, None))
         } else {
             self.corner_at(at).map(|(id, k, _)| (id, Some(k)))
         };
@@ -385,15 +366,7 @@ impl ChiploadApp {
         let (free, all) = keys;
         match self.modify() {
             Some(ModifyTool::Offset) => self.offset_click(picked, at, toggle, free),
-            Some(ModifyTool::Fillet | ModifyTool::Chamfer) => {
-                if self.picks_unselected_drawn(picked) {
-                    self.click(picked, toggle);
-                } else if all && let [id] = self.selected_drawn()[..] {
-                    self.apply_corner_cut(id, None);
-                } else if let Some((id, k, _)) = self.corner_at(at) {
-                    self.apply_corner_cut(id, Some(k));
-                }
-            }
+            Some(ModifyTool::Fillet | ModifyTool::Chamfer) => self.corner_click(picked, at, all),
             Some(tool @ (ModifyTool::Trim | ModifyTool::Extend | ModifyTool::Break)) => {
                 if let Some(id) = self.drawn_under(picked, at) {
                     self.apply_on_shape(tool, id, at);
@@ -1034,8 +1007,11 @@ impl ChiploadApp {
                 ),
                 None => t!(self, "modify-offset-pick"),
             },
-            ModifyTool::Fillet | ModifyTool::Chamfer if self.selected_drawn().len() != 1 => {
-                t!(self, "modify-corner-pick")
+            ModifyTool::Fillet | ModifyTool::Chamfer if self.canvas_tools.between.is_some() => {
+                match &self.canvas_tools.between_why {
+                    Some(why) => why.clone(),
+                    None => t!(self, "modify-between-second"),
+                }
             }
             ModifyTool::Fillet => t!(self, "modify-fillet-status"),
             ModifyTool::Chamfer => t!(self, "modify-chamfer-status"),

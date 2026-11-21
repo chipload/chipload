@@ -55,6 +55,7 @@ mod dropping;
 mod dxf_export;
 mod editing;
 mod export_all;
+mod fillet_tool;
 mod forms;
 mod frames;
 mod generation;

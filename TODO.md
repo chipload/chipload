@@ -50,10 +50,8 @@ done is in git and in the releases' notes on GitHub, no longer listed here.
 
 1. **Drawing, step 2** (the review of the drawing tools, 2026-11-18; docs/specs/
    drawing-improvements.md), in this order:
-   - fillet and chamfer at line-arc corners and between two shapes
-     (docs/specs/fillet-between-shapes.md, approved 2026-11-21): steps 1 (core), 2
-     (polyline corners beside arcs, schema 43) and 3 (two shapes, command line) built;
-     next step 4, the window;
+   - ~~fillet and chamfer at line-arc corners and between two shapes~~ built 2026-11-21
+     (docs/specs/fillet-between-shapes.md, schema 43), not pushed, for the user to try;
    - arcs while drawing a polyline (a tangent-arc mode);
    - text on an arc (round plaques, the sign wizard);
    - scale by reference (two points, a new length) and stretching in X and Y;

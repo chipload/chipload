@@ -47,6 +47,10 @@ pub struct CanvasTools {
     /// The fillet tool's radius and the chamfer tool's distance, mm, kept for the session.
     pub fillet_radius: f64,
     pub chamfer_distance: f64,
+    /// A fillet between two shapes: the first shape picked and where
+    /// (docs/specs/fillet-between-shapes.md §5); why the round under the cursor can't be.
+    pub between: Option<(u64, (f64, f64))>,
+    pub(super) between_why: Option<String>,
     pub(super) offset_preview: modify::OffsetPreview,
     /// The Mirror tool's choice and first point (docs/specs/drawing-improvements.md §1).
     pub mirror: super::mirror_tool::MirrorSettings,
@@ -79,6 +83,8 @@ impl Default for CanvasTools {
             offset_count: 1,
             fillet_radius: 3.0,
             chamfer_distance: 1.0,
+            between: None,
+            between_why: None,
             offset_preview: modify::OffsetPreview::default(),
             mirror: super::mirror_tool::MirrorSettings::default(),
             array: modify::ArraySettings::default(),
@@ -98,6 +104,8 @@ impl ChiploadApp {
     /// preview belong to the tool they were made with, so they go.
     pub(super) fn set_tool(&mut self, tool: ActiveTool) {
         self.canvas_tools.typed = None;
+        self.canvas_tools.between = None;
+        self.canvas_tools.between_why = None;
         self.canvas_tools.offset_preview = modify::OffsetPreview::default();
         self.canvas_tools.active = tool;
     }

@@ -1,7 +1,7 @@
 # Spec: fillets at line–arc corners and between two shapes
 
-Status: **approved 2026-11-21** (the user: "go ahead"; §8 as recommended). Being built,
-see *As built* (§10). The first item of
+Status: **approved and built 2026-11-21** (the user: "go ahead"; §8 as recommended; see
+*As built*, §10). The first item of
 step 2 of the drawing review (TODO, *Next* 1; docs/specs/drawing-improvements.md).
 
 Builds on drawing-editing.md §3 (Fillet and Chamfer), §4 (Trim, Extend and the joining
@@ -236,4 +236,10 @@ tests.
   fits is searched for with the same picks. `shape fillet/chamfer --with ID --keep X,Y
   --keep X,Y`; with `--json` the shape they joined into (`shapes`), the ones gone
   (`removed`) and a round left on its own (`ids`).
+- **Step 4:** the window (`app/fillet_tool.rs`): a corner of any drawn shape shown is
+  marked and rounded without selecting first (the selected shape's corners first; Shift:
+  every corner of that shape). Away from corners, a click on an open drawn polyline picks
+  the first shape (its outline marked); over the second the result of `fillet_between` is
+  previewed, its refusal on the status bar; the second click is one undo step. Escape or
+  empty space forgets the first pick; a click on a closed shape selects it, as before.
 

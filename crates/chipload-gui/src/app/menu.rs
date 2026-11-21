@@ -78,6 +78,8 @@ impl ChiploadApp {
                 // The instance goes back (docs/specs/instances.md §4).
             } else if self.close_compass_menu() {
                 // Nothing moved (docs/specs/compass.md §6).
+            } else if self.forget_between_pick() {
+                // The tool stays (docs/specs/fillet-between-shapes.md §5).
             } else if self.tool_active() {
                 self.end_tool();
             } else if self.hide_compass() {

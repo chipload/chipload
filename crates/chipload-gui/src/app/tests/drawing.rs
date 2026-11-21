@@ -1115,3 +1115,71 @@ fn the_mirror_tool_mirrors_about_two_clicks_or_a_clicked_line() {
     let copy = shapes.last().unwrap().id;
     assert_eq!(center(&app, copy), [600.0 - was[0], was[1]]);
 }
+
+#[test]
+fn fillet_rounds_a_corner_unselected_and_joins_two_lines_with_two_clicks() {
+    // docs/specs/fillet-between-shapes.md §5, decision 7.
+    use super::modify::ModifyTool;
+    let mut app = drawn_part();
+    app.view.scale = 10.0;
+    app.start_modify(ModifyTool::Fillet);
+    app.canvas_tools.fillet_radius = 2.0;
+    // The triangle's corner, nothing selected first.
+    assert_eq!(app.selected_drawn(), Vec::<u64>::new());
+    app.modify_click(None, (110.2, 65.1), false, (false, false));
+    let Geometry::Polyline { radii, .. } = &app.shape(3).unwrap().geometry else {
+        panic!("the triangle, a polyline now");
+    };
+    assert_eq!(radii.as_slice(), &[2.0, 0.0, 0.0]);
+    app.commit();
+    // Two lines away from the sample's shapes.
+    let line = |app: &mut ChiploadApp, a: [f64; 2], b: [f64; 2]| {
+        let id = app
+            .add_drawn(Geometry::straight_polyline(false, vec![a, b]))
+            .unwrap();
+        app.commit();
+        id
+    };
+    let a = line(&mut app, [200.0, 150.0], [240.0, 150.0]);
+    let b = line(&mut app, [220.0, 140.0], [220.0, 180.0]);
+    app.start_modify(ModifyTool::Fillet);
+    app.canvas_tools.fillet_radius = 2.0;
+    // The first pick, then Esc forgets it; picked again, the second click joins them.
+    app.modify_click(
+        Some(contour_of(&app, a)),
+        (235.0, 150.0),
+        false,
+        (false, false),
+    );
+    assert_eq!(app.canvas_tools.between.map(|p| p.0), Some(a));
+    let (lines, _) = app.corner_tool_preview(Some(contour_of(&app, b)), (220.0, 170.0), false);
+    assert!(
+        !lines.is_empty(),
+        "the round previewed before the second click"
+    );
+    assert!(app.forget_between_pick());
+    assert!(app.canvas_tools.between.is_none());
+    app.modify_click(
+        Some(contour_of(&app, a)),
+        (235.0, 150.0),
+        false,
+        (false, false),
+    );
+    app.modify_click(
+        Some(contour_of(&app, b)),
+        (220.0, 170.0),
+        false,
+        (false, false),
+    );
+    assert!(app.canvas_tools.between.is_none());
+    assert!(app.shape(b).is_none(), "joined into the first");
+    let Geometry::Polyline { points, radii, .. } = &app.shape(a).unwrap().geometry else {
+        panic!("one polyline");
+    };
+    assert_eq!(points.len(), 3);
+    assert_eq!(points[1], [220.0, 150.0]);
+    assert_eq!(radii.as_slice(), &[0.0, 2.0, 0.0]);
+    // One undo step brings both lines back.
+    app.undo();
+    assert!(app.shape(b).is_some());
+}

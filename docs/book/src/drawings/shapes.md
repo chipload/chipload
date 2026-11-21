@@ -134,8 +134,9 @@ DXF first, [Explode](several.md)).
   polygon inward or with sharp corners keep their kind; anything else becomes a polyline
   with true arcs. On the command line: `chipload shape offset P 1 2 --distance 3
   [--side inside] [--corners sharp] [--count 2]`.
-- **Fillet** and **Chamfer**: select one drawn shape (or click it with the tool), then
-  click a corner (it is marked when the cursor is near it) to round it with an arc of the
+- **Fillet** and **Chamfer**: click a corner of any drawn shape (it is marked when the
+  cursor is near it; no need to select the shape first, and a selected shape's corners
+  come first) to round it with an arc of the
   *Radius* on the status bar, or cut it straight across, the *Distance* back along each
   side. Shift+click does every corner. Fillet rounds any corner, beside an arc too;
   Chamfer only cuts corners between two straight sides. A radius too large for the sides
@@ -154,7 +155,10 @@ DXF first, [Explode](several.md)).
   Chamfer between two lines cuts across, the *Distance* back from where they meet. On the
   command line, a point near each part to keep: `chipload shape fillet P 3 --with 4
   --radius 5 --keep 10,0 --keep 0,10` (or `shape chamfer … --distance 2`). In the window,
-  this comes with the next step of the Fillet tool.
+  with Fillet (or Chamfer): click the first shape on the part to keep (away from its
+  corners), then move to the second: the round and both shapes trimmed or extended are
+  shown before you click it, on its part to keep; if no round fits, the status bar says
+  why. Escape, or a click on empty space, forgets the first pick. One undo step.
 - **Trim** (**X**), **Extend** and **Break** work on the drawn shape under the cursor; no
   need to select it first. Trim shows the piece it will remove before you click, Extend
   the shape grown to the next one ahead (click near the end to extend), Break a mark where

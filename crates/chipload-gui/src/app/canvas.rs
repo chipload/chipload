@@ -719,15 +719,16 @@ impl ChiploadApp {
             self.scene.preview = lines;
             self.scene.snap_mark = mark;
         } else {
-            // A corner tool: the corner under the cursor marked, the result previewed.
-            self.scene.snap_mark = self
-                .cursor
-                .and_then(|c| self.corner_at(c))
-                .map(|(_, _, p)| p);
-            self.scene.preview = self
-                .cursor
-                .map(|c| self.corner_preview(c, shift))
-                .unwrap_or_default();
+            // A corner tool: the corner under the cursor marked, the result previewed; or a
+            // round between two shapes (docs/specs/fillet-between-shapes.md §5).
+            let hover = response.hover_pos();
+            let picked = hover.and_then(|pos| self.scene.pick(&self.view, pos));
+            let (lines, mark) = match self.cursor {
+                Some(c) => self.corner_tool_preview(picked, c, shift),
+                None => (Vec::new(), None),
+            };
+            self.scene.preview = lines;
+            self.scene.snap_mark = mark;
         }
         if response.clicked()
             && let Some(pos) = response.interact_pointer_pos()
