@@ -822,15 +822,14 @@ exit 1
 --- stdout
 problem: operations.0.end_depth: Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)
 problem: operations.1.end_depth: Operation 2 (Outline): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)
-problem: operations.2.end_depth: Operation 3 (Logo): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)
 problem: operations.3.end_depth: Operation 4 (Outline B): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)
 --- stderr
-error: 4 problems, the first: Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)
+error: 3 problems, the first: Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)
 
 $ chipload check-project tests/corpus/messages/two_parts_deep.chipload --json
 exit 1
 --- stdout
-{"chipload_json":1,"error":{"message":"4 problems, the first: Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","problems":[{"path":"operations.0.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"},{"path":"operations.1.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 2 (Outline): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"},{"path":"operations.2.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 3 (Logo): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"},{"path":"operations.3.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 4 (Outline B): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"}]},"notes":["problem: operations.0.end_depth: Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","problem: operations.1.end_depth: Operation 2 (Outline): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","problem: operations.2.end_depth: Operation 3 (Logo): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","problem: operations.3.end_depth: Operation 4 (Outline B): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"],"ok":false,"problems":[{"path":"operations.0.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"},{"path":"operations.1.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 2 (Outline): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"},{"path":"operations.2.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 3 (Logo): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"},{"path":"operations.3.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 4 (Outline B): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"}],"written":[]}
+{"chipload_json":1,"error":{"message":"3 problems, the first: Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","problems":[{"path":"operations.0.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"},{"path":"operations.1.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 2 (Outline): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"},{"path":"operations.3.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 4 (Outline B): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"}]},"notes":["problem: operations.0.end_depth: Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","problem: operations.1.end_depth: Operation 2 (Outline): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","problem: operations.3.end_depth: Operation 4 (Outline B): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"],"ok":false,"problems":[{"path":"operations.0.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 1 (Holes): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"},{"path":"operations.1.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 2 (Outline): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"},{"path":"operations.3.end_depth","short":"end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)","text":"Operation 4 (Outline B): end depth 17 mm is 5.000 mm below the stock (12 mm thick), more than the allowed 0 mm (max depth below stock)"}],"written":[]}
 --- stderr
 
 $ chipload plan tests/corpus/messages/two_parts_deep.chipload
@@ -926,10 +925,11 @@ exit 0
 $ chipload plan tests/corpus/messages/vcarve_letters_big_tool.chipload
 exit 0
 --- stdout
-Estimated time: 41 s (cutting 31 s, rapids 6 s, spindle 3 s)
+note: Operation 1 (Letters): the carve goes 3.481 mm deep at most, so its 3 passes share that depth
+Estimated time: 40 s (cutting 31 s, rapids 6 s, spindle 3 s)
 Cut outline: 113.446 × 79.800 mm (X -24.900 … 88.546, Y -24.900 … 54.900, the tool included): the smallest stock that holds the job.
-  Operation 1 (Letters): 38 s; cutting 349 mm, plunging 78 mm, rapids 542 mm, 28 lifts
-  In all: cutting 349 mm, plunging 78 mm, rapids 542 mm, 28 lifts.
+  Operation 1 (Letters): 37 s; cutting 349 mm, plunging 73 mm, rapids 537 mm, 27 lifts
+  In all: cutting 349 mm, plunging 73 mm, rapids 537 mm, 27 lifts.
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Letters): 0.033 mm/tooth
@@ -937,23 +937,29 @@ Planned … moves.
 --- stderr
 
 $ chipload check-project tests/corpus/messages/vcarve_letters_deep.chipload
-exit 1
+exit 0
 --- stdout
-problem: operations.0.end_depth: Operation 1 (Letters): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)
+No problems.
 --- stderr
-error: 1 problem: Operation 1 (Letters): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)
 
 $ chipload check-project tests/corpus/messages/vcarve_letters_deep.chipload --json
-exit 1
+exit 0
 --- stdout
-{"chipload_json":1,"error":{"message":"1 problem: Operation 1 (Letters): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)","problems":[{"path":"operations.0.end_depth","short":"end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 1 (Letters): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)"}]},"notes":["problem: operations.0.end_depth: Operation 1 (Letters): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)"],"ok":false,"problems":[{"path":"operations.0.end_depth","short":"end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)","text":"Operation 1 (Letters): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)"}],"written":[]}
+{"chipload_json":1,"notes":["No problems."],"ok":true,"problems":[],"written":[]}
 --- stderr
 
 $ chipload plan tests/corpus/messages/vcarve_letters_deep.chipload
-exit 1
+exit 0
 --- stdout
+Estimated time: 19 s (cutting 15 s, rapids 1 s, spindle 3 s)
+Cut outline: 66.146 × 32.500 mm (X -1.250 … 64.896, Y -1.250 … 31.250, the tool included): the smallest stock that holds the job.
+  Operation 1 (Letters): 16 s; cutting 200 mm, plunging 15 mm, rapids 120 mm, 11 lifts
+  In all: cutting 200 mm, plunging 15 mm, rapids 120 mm, 11 lifts.
+  At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Letters): 0.033 mm/tooth
+Planned … moves.
 --- stderr
-error: Operation 1 (Letters): end depth 15 mm is 5.000 mm below the stock (10 mm thick), more than the allowed 0.5 mm (max depth below stock)
 
 $ chipload check-project tests/corpus/messages/vcarve_letters_huge.chipload
 exit 1

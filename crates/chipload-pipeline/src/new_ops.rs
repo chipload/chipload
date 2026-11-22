@@ -716,6 +716,10 @@ struct Start {
     pattern: (f64, f64),
     /// A new moulding's stepover with the tool, mm (docs/specs/moulding.md §6).
     moulding_stepover: f64,
+    /// A new V-carve's end depth with the tool: its cone's depth, at most half the stock.
+    /// The end depth is a limit, and the passes share the depth the carve goes to, so a
+    /// generous one only lets letters carve fully (the review of 2026-11-22).
+    vcarve_depth: f64,
 }
 
 impl Start {
@@ -765,6 +769,9 @@ impl Start {
             flute_depth: chosen.map_or(DEFAULT_FLUTE_DEPTH, flute_depth),
             pattern: chosen.map_or((DEFAULT_PATTERN_DEPTH, 2.0), pattern_start),
             moulding_stepover: moulding_stepover(chosen),
+            vcarve_depth: chosen
+                .and_then(chipload_toolpath::plan::vbit_cone_depth)
+                .map_or(DEFAULT_DEPTH, |cone| cone.min(job.stock().thickness / 2.0)),
             cutting: tool_cutting(job, library, tool),
             thickness: job.stock().thickness,
             below: job.stock().max_overcut,
@@ -775,10 +782,15 @@ impl Start {
 
     /// The depth a new pocket, V-carve or path takes: the last of its kind's.
     fn depth(&self, kind: OpKind) -> (f64, Option<f64>) {
+        let first = if kind == OpKind::Vcarve {
+            self.vcarve_depth
+        } else {
+            DEFAULT_DEPTH
+        };
         self.last
             .iter()
             .find(|(k, _, _)| *k == kind)
-            .map_or((DEFAULT_DEPTH, None), |(_, end, through)| (*end, *through))
+            .map_or((first, None), |(_, end, through)| (*end, *through))
     }
 
     /// A profile on `side`; `told` when the selection told the side (outlines or holes):

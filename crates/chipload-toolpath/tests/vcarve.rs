@@ -696,16 +696,20 @@ fn passes_go_down_in_steps_and_never_recut() {
     let (single, passes) = (feed_moves(&one.program), feed_moves(&stepped.program));
     assert!((lowest(&single) + 2.5).abs() < 1e-9, "{}", lowest(&single));
     assert!((lowest(&passes) + 2.5).abs() < 1e-9);
-    // Four passes of equal load to the end depth, 2.5 below the surface (v-carve.md
-    // decision 12): pass k at 0.5 + 2.5 × √(k / 4) below the top, where the carve is that
-    // deep; the rectangle is 2 deep, so the third pass reaches its bottom and the fourth
-    // finds nothing left.
+    // Four passes of equal load (v-carve.md decision 12) sharing the depth carved, 2 below
+    // the surface (the end depth, 2.5, is only the limit; the review of 2026-11-22): pass k
+    // at 0.5 + 2 × √(k / 4) below the top.
     let levels: Vec<f64> = passes
         .iter()
         .filter(|(a, b)| a[2] == b[2] && (a[0] != b[0] || a[1] != b[1]))
         .map(|(_, b)| b[2])
         .collect();
-    for z in [-0.5 - 1.25, -0.5 - 2.5 * 0.5_f64.sqrt(), -2.5] {
+    for z in [
+        -0.5 - 1.0,
+        -0.5 - 2.0 * 0.5_f64.sqrt(),
+        -0.5 - 2.0 * 0.75_f64.sqrt(),
+        -2.5,
+    ] {
         assert!(
             levels.iter().any(|l| (l - z).abs() < 1e-9),
             "{z} in {levels:?}"
@@ -747,8 +751,8 @@ fn each_area_is_finished_before_the_next() {
     assert!(!areas[0], "the nearer area first");
     let switches = areas.windows(2).filter(|w| w[0] != w[1]).count();
     assert_eq!(switches, 1, "one move from the first area to the second");
-    // Both areas get the same passes: 1.94 below the top, then the bottom at 2.5 (the
-    // third pass finds nothing left; a 4 wide rectangle is 2 deep below the surface).
+    // Both areas get the same passes, three sharing the 2 the 4 wide rectangle is deep
+    // below the surface at 0.5: 0.5 + 2 × √(k / 3) below the top.
     let levels = |far: bool| {
         let mut zs: Vec<i64> = feed_moves(&plan.program)
             .iter()
@@ -760,7 +764,7 @@ fn each_area_is_finished_before_the_next() {
         zs
     };
     assert_eq!(levels(false), levels(true));
-    assert_eq!(levels(false), [-2500, -1943]);
+    assert_eq!(levels(false), [-2500, -2133, -1655]);
 }
 
 /// Depth passes remove equal cross-sections (v-carve.md decision 12): the last exactly the
@@ -1072,4 +1076,94 @@ proptest! {
         let levels = chipload_toolpath::vcarve::carve_levels(cap + below, passes, None);
         assert_moves_ok_below(&shape, &plan, &bit, &levels, below);
     }
+}
+
+// -- the review's findings (2026-11-22)
+
+/// The passes share the depth the carve goes to, not a generous end depth: a 10 × 4
+/// rectangle with a 90° bit is 2 deep, so with the end depth 10 below the surface its 3
+/// passes go to 2 × √(1/3), 2 × √(2/3) and 2 below the surface, and a fact says so.
+#[test]
+fn passes_share_the_depth_carved_not_the_end_depth() {
+    let shape = [common::rect(1, 0.0, 0.0, 10.0, 4.0)];
+    let plan =
+        chipload_toolpath::plan_job(&vcarve_job(vbit_tool(Some(0.0)), 10.5, 3), &shape).unwrap();
+    let mut levels: Vec<i64> = feed_moves(&plan.program)
+        .iter()
+        .filter(|(a, b)| a[2] == b[2] && (a[0] != b[0] || a[1] != b[1]))
+        .map(|(_, b)| (b[2] * 1000.0).round() as i64)
+        .collect();
+    levels.sort_unstable();
+    levels.dedup();
+    let expected: Vec<i64> = [1.0, 2.0f64 / 3.0, 1.0 / 3.0]
+        .iter()
+        .map(|share: &f64| ((-0.5 - 2.0 * share.sqrt()) * 1000.0).round() as i64)
+        .collect();
+    assert_eq!(levels, expected);
+    assert!(
+        plan.facts
+            .iter()
+            .any(|f| f.text.contains("its 3 passes share")),
+        "{:?}",
+        plan.facts
+    );
+    // Set to the depth carved, no such fact.
+    let plan =
+        chipload_toolpath::plan_job(&vcarve_job(vbit_tool(Some(0.0)), 2.5, 3), &shape).unwrap();
+    assert!(!plan.facts.iter().any(|f| f.text.contains("passes share")));
+}
+
+/// The end depth is a limit: past the stock and its overcut it isn't refused, nor warned
+/// about, when the carve stays in the stock; a carve that does go too deep is refused.
+#[test]
+fn the_depth_carved_is_checked_against_the_stock_not_the_end_depth() {
+    let shape = [common::rect(1, 0.0, 0.0, 10.0, 4.0)];
+    // Stock 18 thick, overcut 0.5: an end depth of 18.4 or 30, a carve 2.5 deep.
+    for end in [18.4, 30.0] {
+        let plan =
+            chipload_toolpath::plan_job(&vcarve_job(vbit_tool(Some(0.0)), end, 1), &shape).unwrap();
+        assert!(
+            !plan.notes.iter().any(|n| n.text.contains("spoilboard")),
+            "{end}: {:?}",
+            plan.notes
+        );
+    }
+    // From 17 down, 2 deep: 19, more than 0.5 below the stock.
+    let mut job = vcarve_job(vbit_tool(Some(0.0)), 30.0, 1);
+    if let chipload_job::Operation::Vcarve(v) = &mut job.operations[0] {
+        v.start_depth = 17.0;
+    }
+    let err = chipload_toolpath::plan_job(&job, &shape).unwrap_err();
+    assert!(err.to_string().contains("below the stock"), "{err}");
+    // From 16.2: 18.2, within the overcut, warned about.
+    if let chipload_job::Operation::Vcarve(v) = &mut job.operations[0] {
+        v.start_depth = 16.2;
+    }
+    let plan = chipload_toolpath::plan_job(&job, &shape).unwrap();
+    assert!(
+        plan.notes.iter().any(|n| n.text.contains("spoilboard")),
+        "{:?}",
+        plan.notes
+    );
+}
+
+/// A loop of the centre line goes in where the stroke is narrowest: a ring between two
+/// circles off centre is 4 wide on one side and 6 on the other.
+#[test]
+fn a_loop_starts_at_its_shallowest_point() {
+    let shape = [
+        common::circle_id(1, (0.0, 0.0), 10.0),
+        common::circle_id(2, (1.0, 0.0), 5.0),
+    ];
+    let bit = bit(90.0, 0.0);
+    let plan = carve(&shape, &bit, 100.0);
+    let walk = &plan.walks[0];
+    let least = walk.depths.iter().copied().fold(f64::INFINITY, f64::min);
+    assert!(
+        walk.depths[0] <= least + 0.01,
+        "starts at {} deep, the loop's least is {least}",
+        walk.depths[0]
+    );
+    // The narrow side is at +x: the start is there.
+    assert!(walk.points[0].0 > 5.0, "{:?}", walk.points[0]);
 }

@@ -3,9 +3,9 @@
 
 use chipload_core::Point;
 use chipload_core::math;
-use chipload_core::tolerances::FLOOR_LEFT_MM;
+use chipload_core::tolerances::{DEPTH_TOL_MM, FLOOR_LEFT_MM};
 use chipload_i18n::{Digits, Message, Value};
-use chipload_job::{Tool, ToolType, VcarveOp};
+use chipload_job::{Operation, Tool, ToolType, VcarveOp};
 
 use super::check_passes::plug_face;
 use super::{Context, Planned, job_error};
@@ -139,9 +139,50 @@ pub(super) fn plan_vcarve_op(
             );
         }
     }
-    // From the end depth the user set, so the passes are what they asked for
-    // (docs/specs/v-carve.md decision 12, vcarve-step-down.md).
-    let levels = carve_levels(op.end_depth - op.start_depth, op.passes, op.step_down);
+    // How deep it goes, below the stock only within its allowance: the end depth is a
+    // limit, not the depth cut, so the planned deepest is checked here rather than the end
+    // depth before planning (as for prisms). A floor pass clears a wide stroke's floor at
+    // the end depth (docs/specs/vcarve-wide-strokes.md §4).
+    let range = op.end_depth - op.start_depth;
+    let floor_bottom = if floor_tool.is_some() && plan.wide {
+        range
+    } else {
+        0.0
+    };
+    let bottom = op.start_depth + plan.deepest.max(floor_bottom);
+    let stock = ctx
+        .job
+        .setup_of(&Operation::Vcarve(op.clone()))
+        .map_or(ctx.job.stock(), |s| &s.stock);
+    let below = bottom - stock.thickness;
+    if below > stock.max_overcut + DEPTH_TOL_MM {
+        return Err(job_error(labelled_note(
+            ctx.label_message,
+            Message::new("toolpath-vcarve-below-stock")
+                .arg("depth", Value::mm(bottom))
+                .arg("thickness", Value::mm(stock.thickness))
+                .arg("allowed", Value::mm(stock.max_overcut)),
+        )));
+    }
+    if below > DEPTH_TOL_MM {
+        notes.push(
+            Message::new("toolpath-into-spoilboard")
+                .arg("below", Value::Length(below, Digits::Fixed(3))),
+        );
+    }
+    // The passes share the depth the carve goes to, not the end depth: set generously, the
+    // end depth would leave every pass but the last with nothing to cut (the review of
+    // 2026-11-22). Equal loads or steps as asked (docs/specs/v-carve.md decision 12,
+    // vcarve-step-down.md).
+    let carved = range.min(plan.deepest);
+    let levels = carve_levels(carved, op.passes, op.step_down);
+    if levels.len() > 1 && carved < range - DEPTH_TOL_MM {
+        facts.push(
+            Message::new("toolpath-vcarve-passes-over")
+                .arg("count", levels.len())
+                .arg("depth", Value::mm(op.start_depth + carved)),
+        );
+    }
     let moves = vcarve_moves(
         &plan.area_walks(),
         &levels,

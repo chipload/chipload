@@ -88,19 +88,13 @@ done is in git and in the releases' notes on GitHub, no longer listed here.
    near 180, depth past the overcut); the cone caps the depth; the floor pass is a checked
    pocket; rapids sideways only at safe Z. New: a property test of the moves as written
    (joined through grooves, in passes, flat tips, small bits, plugs), not only the planned
-   paths: no gouge in 1,000 random cases. Findings, not yet fixed (the user decides):
-   1. **Passes are split to the end depth, not to how deep the carve goes.** The end depth
-      is a limit; set generously (10 mm for strokes that need 4.4), 3 passes become one
-      full-depth pass. Suggested: levels from the lesser of the end depth and the plan's
-      deepest. Changes G-code where that differs.
-   2. **The end depth is checked as if it were cut:** a false "cuts 0.5 mm below the stock"
-      warning at end depth 10.5 in 10 mm stock (the carve goes to 4.04), and a generous
-      limit past the overcut refused. Suggested: as for prisms, check the planned deepest.
-   3. **A new V-carve's default depth is 1 mm** (`op add`, *New operation*): on 30 mm letters
-      only the walls are cut, the floor left. Suggested: the bit's cone depth, at most the
-      stock's thickness (safe once 1 and 2 are done).
-   4. **A looped centre line (O, the bowl of a, rings) starts with a straight plunge** to
-      the first pass's depth mid-stroke. Suggested: start a loop at its shallowest point.
+   paths: no gouge in 1,000 random cases. Its four findings fixed the same day (the user:
+   "Go ahead"): the passes share the depth the carve goes to, not the end depth (a fact
+   says so); the depth checked against the stock is the planned deepest (with a floor pass
+   on wide strokes, the end depth), no longer the end depth; a new V-carve starts at the
+   bit's cone depth, at most half the stock; a loop of the centre line starts at its
+   shallowest point (a ring of even width still goes in at nearly full depth: a ramp
+   along the loop could come later).
 5. **V-carve, Ignore kinks by segment length too** (the user, 2026-11-02): a corner whose
    adjoining segments are short ignored at any angle. Spec first (the review is done).
 6. **First-run setup:** on the first start, ask for the machine's travel and the first tool.

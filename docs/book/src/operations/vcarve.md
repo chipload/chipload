@@ -20,7 +20,7 @@ a V-bit without one is refused.
 | Setting | |
 |---|---|
 | **Start depth** | where the carved surface is: 0 for the stock top, more to carve into a floor an earlier pocket cut |
-| **End depth** | the deepest the tip may go. Strokes that need more get walls (see *Wide strokes*). The bit's own size is a limit too: it can't go deeper than its cutting edge reaches. |
+| **End depth** | the deepest the tip may go: a limit, not the depth cut. Strokes that need more get walls (see *Wide strokes*). The bit's own size is a limit too: it can't go deeper than its cutting edge reaches. A new V-carve starts at the bit's full cone depth, at most half the stock, so letters carve fully; a deeper limit than the strokes need does no harm, since only the depth actually cut is checked against the stock |
 | **Depth passes** | how the depth is split into passes: **Equal load** or **Step down** (see *Passes*) |
 | **Passes** | with *Equal load*: how many passes to the end depth, 1 for one. Each removes as much as the others, so they get shallower on the way down. Their depths are shown under the field |
 | **Step down** | with *Step down*: the deepest each pass goes. The passes are equal, the last at the end depth, as in a pocket. Their depths are shown under the field |
@@ -44,13 +44,17 @@ machine. *Depth passes* chooses how the depth is split:
   equal steps. 5 mm with a 2 mm step down goes to 1.67, 3.33 and 5 mm. Each pass removes
   more than the one before (with three, 1 : 3 : 5), so pick a step the last pass can take.
 
-Either way, the depths are counted from the end depth, so a stroke that is shallower than
-that is done in fewer passes: the deeper ones find nothing left to cut. Switching from one
+Either way, the passes share the depth the carve actually goes to: with the end depth at
+10 mm and strokes that need 4.4 mm, 3 passes go to 2.54, 3.59 and 4.4 mm, and the Report
+says so. The depths under the field are counted from the end depth, so they are what you
+get when the carve goes that deep. Within one carve, a stroke shallower than the deepest is
+done in fewer passes: the deeper ones find nothing left to cut there. Switching from one
 to the other keeps the count of passes, for when you switch back.
 
 The carving is done area by area: each letter (or each closed part of a drawing, such as
 the dot of an *i*) gets all its passes, and its walls, before the bit moves to the
-nearest next one.
+nearest next one. A loop of the centre line (an *O*, the bowl of an *a*) has no corner to
+go in at, so the bit goes in where the stroke is narrowest, the shallowest point of the loop.
 
 Within a letter the bit lifts as little as it can. The short branches the centre line
 runs into sharp corners (shorter than 5 mm) are cut out and back as the bit passes them,

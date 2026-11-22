@@ -104,6 +104,9 @@ pub struct VcarvePlan {
     pub floor_left: Option<Message>,
     /// The deepest any path goes, mm below the carved surface.
     pub deepest: f64,
+    /// Some region was too wide to carve from its centre line: it has walls at the cap, and
+    /// a floor pass would clear its floor at the end depth (vcarve-wide-strokes.md §3).
+    pub wide: bool,
     /// With a floor pass: each wide region's floor its end mill and the V-bit don't clear
     /// (docs/specs/vcarve-wide-strokes.md §4.1).
     pub floors: Vec<FloorLeft>,
@@ -168,6 +171,7 @@ pub fn plan_vcarve_at(
     let mut floors = Vec::new();
     let mut floor_left_ids: Vec<usize> = Vec::new();
     let mut floor_top: Option<f64> = None;
+    let mut wide = false;
     let mut standing = |top: f64| floor_top = Some(floor_top.map_or(top, |t: f64| t.min(top)));
     for region in build_region(contours)? {
         let mut walls = Vec::new();
@@ -178,6 +182,7 @@ pub fn plan_vcarve_at(
         axis.prune_kinks(&outline, ignore_kinks, VCARVE_TOL_MM);
         let widest = axis.widest(&outline);
         if widest > cap_radius + VCARVE_TOL_MM {
+            wide = true;
             // Too wide to reach both sides: the centre line where the stroke is narrow
             // enough, walls along the outline where it is wider (vcarve-wide-strokes.md §3).
             // Within half the tolerance over the cap the centre line still reaches.
@@ -265,6 +270,7 @@ pub fn plan_vcarve_at(
         notes,
         floor_left,
         deepest,
+        wide,
         floors,
         floor_top,
     };
@@ -302,6 +308,7 @@ fn areas_in_order(
         let (graph, walls) = regions.remove(pick);
         let before = walks.len();
         for mut walked in graph.walk(at) {
+            start_loop_shallowest(&mut walked);
             smooth_radii(&mut walked, SMOOTH_STEP_MM);
             let pieces = carve_pieces(&walked, bit, cap);
             if pieces.is_empty() {
@@ -326,6 +333,30 @@ fn areas_in_order(
         }
     }
     (paths, walks, areas)
+}
+
+/// A closed walk (a loop of the centre line: an O, the bowl of an a, a ring) started at its
+/// shallowest point, where the stroke is narrowest, so the tool goes in there rather than
+/// plunging to the depth of wherever the walk began (the review of 2026-11-22). A loop that
+/// is no shallower anywhere than where it starts, by more than the tolerance, is left as
+/// it is. Open walks start at a corner already, at depth 0.
+fn start_loop_shallowest(walk: &mut Vec<(Point, f64)>) {
+    let n = walk.len();
+    if n < 3 || distance(walk[0].0, walk[n - 1].0) > CHAIN_TOL_MM {
+        return;
+    }
+    let mut k = 0;
+    for (i, w) in walk.iter().enumerate().take(n - 1) {
+        if w.1 < walk[k].1 {
+            k = i;
+        }
+    }
+    if k == 0 || walk[k].1 >= walk[0].1 - VCARVE_TOL_MM {
+        return;
+    }
+    walk.pop();
+    walk.rotate_left(k);
+    walk.push(walk[0]);
 }
 
 /// How far an area is from `at`: to its centre line's nearest node with an edge, or its

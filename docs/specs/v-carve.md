@@ -277,3 +277,13 @@ the next, there is a lot of back and forth now"):
     and an operation after a V-carve can start elsewhere, since the V-carve ends elsewhere.
     Rapid travel in the golden files drops by up to a quarter. Chosen over finishing each
     centre-line path before the next, which would re-enter a letter.
+
+## Changed by the review of 2026-11-22
+
+- The passes share the depth the carve goes to (the lesser of the end depth and the plan's
+  deepest), not the end depth: set generously, the end depth left every pass but the last
+  with nothing to cut. A fact says so when the two differ.
+- The depth checked against the stock is the planned deepest (the end depth where a floor
+  pass clears wide strokes), as for prisms, not the end depth before planning.
+- A new V-carve's end depth is its bit's cone depth, at most half the stock.
+- A loop of the centre line starts at its shallowest point.

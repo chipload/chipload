@@ -356,8 +356,12 @@ impl<'a> OpCheck<'a> {
         let stock = self.stock();
         // Dowel holes go deeper, for the pins (docs/specs/two-sided.md §6).
         let allowed = self.op.allowed_below(stock.max_overcut);
-        // A prism's end depth is only how deep its bit could go; how deep it does go follows
-        // from its shapes and is checked when it is planned (docs/specs/prism.md §4).
+        // A prism's or V-carve's end depth is only how deep its bit may go; how deep it does
+        // go follows from its shapes and is checked when it is planned (docs/specs/prism.md
+        // §4; for V-carves, the review of 2026-11-22).
+        if matches!(self.op, Operation::Vcarve(_)) {
+            return;
+        }
         if below > allowed + DEPTH_TOL_MM && !matches!(self.op, Operation::Prism(_)) {
             let (_, end_depth) = self.op.depths(&self.job.tools);
             self.problem(

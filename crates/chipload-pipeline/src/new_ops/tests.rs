@@ -320,3 +320,25 @@ fn a_shape_inside_another_parts_outline_is_an_outline_of_its_own() {
         .collect();
     assert_eq!(sides, [Side::Inside, Side::Outside]);
 }
+
+/// A new V-carve goes as deep as its bit's cone, at most half the stock: the end depth is a
+/// limit, so letters carve fully instead of only their walls (the review of 2026-11-22).
+#[test]
+fn a_new_vcarve_goes_as_deep_as_the_cone_within_half_the_stock() {
+    let (mut job, contours) = part();
+    let mut vbit = tool(ToolType::Vbit, 6.0);
+    vbit.angle = Some(std::f64::consts::FRAC_PI_2);
+    job.tools = vec![vbit];
+    // A 6 mm 90° bit's cone is 3 mm deep.
+    let made = add(&job, &contours, OpKind::Vcarve, layer("HOLES"));
+    assert!((made.ops[0].op.depths(&[]).1 - 3.0).abs() < 1e-9);
+    // A 12.7 mm 60° bit's is 11 mm: half the stock instead.
+    job.tools[0].diameter = 12.7;
+    job.tools[0].angle = Some(60f64.to_radians());
+    let made = add(&job, &contours, OpKind::Vcarve, layer("HOLES"));
+    assert_eq!(made.ops[0].op.depths(&[]).1, job.stock().thickness / 2.0);
+    // Without an angle: the plain default.
+    job.tools[0].angle = None;
+    let made = add(&job, &contours, OpKind::Vcarve, layer("HOLES"));
+    assert_eq!(made.ops[0].op.depths(&[]).1, DEFAULT_DEPTH);
+}
