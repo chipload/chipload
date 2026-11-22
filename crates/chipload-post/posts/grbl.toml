@@ -1,6 +1,7 @@
 # GRBL 1.1 routers. Persisted format: see crates/chipload-post/src/lib.rs (ADR 0003, 0007).
 schema_version = 1
 name = "GRBL"
+controllers = ["GRBL", "grblHAL", "FluidNC", "Carbide Motion"]
 template = "grbl.nc.j2"
 decimals = 3
 inch_decimals = 4

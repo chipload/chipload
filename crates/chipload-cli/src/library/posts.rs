@@ -67,6 +67,7 @@ pub fn post(out: &mut Out, action: PostAction) -> ExitCode {
                         .map(|c| serde_json::json!({
                             "name": c.name,
                             "builtin": c.builtin,
+                            "controllers": c.controllers,
                             "problem": c.problem.as_ref().map(Message::english),
                         }))
                         .collect::<Vec<_>>()
@@ -74,8 +75,13 @@ pub fn post(out: &mut Out, action: PostAction) -> ExitCode {
             );
             for choice in choices {
                 let kind = if choice.builtin { "built in" } else { "yours" };
+                let for_ = if choice.controllers.is_empty() {
+                    String::new()
+                } else {
+                    format!(": {}", choice.controllers.join(", "))
+                };
                 match &choice.problem {
-                    None => out.line(format!("  {} ({kind})", choice.name)),
+                    None => out.line(format!("  {} ({kind}){for_}", choice.name)),
                     Some(problem) => {
                         out.line(format!(
                             "  {} ({kind}) can't be used: {}",

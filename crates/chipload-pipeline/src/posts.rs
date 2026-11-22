@@ -37,8 +37,15 @@ pub fn job_post(job: &Job) -> Result<PostConfig, PipelineError> {
 pub struct PostChoice {
     pub name: String,
     pub builtin: bool,
+    /// The controllers it is for, as its config names them (docs/specs/more-posts.md §2).
+    pub controllers: Vec<String>,
     /// Why it can't be used; None: usable.
     pub problem: Option<Message>,
+}
+
+/// The controllers built-in post `name` is for; none for a name that isn't one.
+pub fn builtin_controllers(name: &str) -> Vec<String> {
+    load_builtin_post(name).map_or_else(|_| Vec::new(), |c| c.controllers)
 }
 
 /// Every post: built-in ones first, then the user's (sorted), with problems.
@@ -48,19 +55,27 @@ pub fn post_choices(posts: Option<&Path>) -> Vec<PostChoice> {
         .map(|name| PostChoice {
             name: name.to_string(),
             builtin: true,
+            controllers: builtin_controllers(name),
             problem: None,
         })
         .collect();
     if let Some(dir) = posts {
-        choices.extend(
-            list_user_posts(dir)
-                .into_iter()
-                .map(|(name, read)| PostChoice {
-                    name,
-                    builtin: false,
-                    problem: read.err().map(|e| e.message()),
-                }),
-        );
+        choices.extend(list_user_posts(dir).into_iter().map(|(name, read)| {
+            let config = read.as_ref().ok().map(parse_user_post);
+            PostChoice {
+                name,
+                builtin: false,
+                controllers: match &config {
+                    Some(Ok(c)) => c.controllers.clone(),
+                    _ => Vec::new(),
+                },
+                problem: match (read, config) {
+                    (Err(e), _) => Some(e.message()),
+                    (_, Some(Err(e))) => Some(e.message()),
+                    _ => None,
+                },
+            }
+        }));
     }
     choices
 }
@@ -102,6 +117,13 @@ pub fn post_fact_messages(name: &str, posts: Option<&Path>) -> Result<Vec<Messag
         0,
         Message::new("pipeline-post-name").arg("name", &config.name),
     );
+    if !config.controllers.is_empty() {
+        lines.insert(
+            1,
+            Message::new("pipeline-post-controllers")
+                .arg("controllers", config.controllers.join(", ")),
+        );
+    }
     lines.push(Message::new("pipeline-post-extension").arg("extension", &config.file_extension));
     lines.push(
         Message::new("pipeline-post-decimals")

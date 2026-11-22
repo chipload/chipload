@@ -1,0 +1,20 @@
+# MASSO G2 and G3 controllers. Persisted format: see crates/chipload-post/src/lib.rs (ADR 0003,
+# 0007); docs/specs/more-posts.md, written from MASSO's own documentation of its codes.
+schema_version = 1
+name = "MASSO"
+controllers = ["MASSO G2", "MASSO G3"]
+template = "masso.nc.j2"
+decimals = 3
+inch_decimals = 4
+# G21 and G20: the template writes {{ units_word }} (docs/specs/inch-units.md §4.2)
+units = ["mm", "inch"]
+file_extension = ".nc"
+spindle_dwell_s = 3
+# MASSO's G04 reads P in milliseconds.
+dwell_unit = "ms"
+# G02/G03 with I and J from the arc's start, MASSO's only way (it has no G90.1/G91.1).
+arcs = true
+# One file per tool, as for LinuxCNC: a program with M06 needs the controller's tool lengths.
+tool_changes = ["files"]
+# Shown on the setup sheet (the template says the same in each program).
+note = "Not yet tested on a real MASSO machine: check the program and air-cut first."

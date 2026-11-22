@@ -22,20 +22,24 @@ use serde::{Deserialize, Serialize};
 pub const CURRENT_VERSION: i64 = 1;
 
 /// Built-in posts: (name, config TOML).
-const BUILTIN_POSTS: [(&str, &str); 3] = [
+const BUILTIN_POSTS: [(&str, &str); 5] = [
     ("grbl", include_str!("../posts/grbl.toml")),
     ("linuxcnc", include_str!("../posts/linuxcnc.toml")),
     ("mach3", include_str!("../posts/mach3.toml")),
+    ("masso", include_str!("../posts/masso.toml")),
+    ("acorn", include_str!("../posts/acorn.toml")),
 ];
 
 /// Templates a built-in config may name: (file name, source).
-const TEMPLATES: [(&str, &str); 3] = [
+const TEMPLATES: [(&str, &str); 5] = [
     ("grbl.nc.j2", include_str!("../templates/grbl.nc.j2")),
     (
         "linuxcnc.ngc.j2",
         include_str!("../templates/linuxcnc.ngc.j2"),
     ),
     ("mach3.tap.j2", include_str!("../templates/mach3.tap.j2")),
+    ("masso.nc.j2", include_str!("../templates/masso.nc.j2")),
+    ("acorn.cnc.j2", include_str!("../templates/acorn.cnc.j2")),
 ];
 
 /// Template steps a render may take per move, on top of [`RENDER_FUEL_BASE`]: a template
@@ -140,6 +144,14 @@ pub struct PostConfig {
     // Spec: docs/specs/tool-per-operation.md §3.2.
     #[serde(default = "default_tool_changes")]
     pub tool_changes: Vec<ToolChange>,
+    /// The controllers the post is for, as `post list` names them, e.g. GRBL, grblHAL.
+    /// Missing: none named (docs/specs/more-posts.md §2).
+    #[serde(default)]
+    pub controllers: Vec<String>,
+    /// The unit of the dwell's P: `s` (seconds) or `ms` (milliseconds, MASSO). Missing:
+    /// seconds (docs/specs/more-posts.md §4).
+    #[serde(default)]
+    pub dwell_unit: DwellUnit,
     /// A word for the operator, shown on the setup sheet, e.g. that the post isn't tested
     /// on a real controller yet. Missing: none.
     // Spec: docs/specs/setup-sheet.md §2.
@@ -149,6 +161,28 @@ pub struct PostConfig {
     /// template `template` names. Not part of the file.
     #[serde(skip)]
     pub template_text: Option<String>,
+}
+
+/// The unit a controller reads a dwell's P in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "lowercase")]
+pub enum DwellUnit {
+    /// Seconds (LinuxCNC, GRBL, Centroid CNC12).
+    #[default]
+    S,
+    /// Milliseconds (MASSO).
+    Ms,
+}
+
+impl PostConfig {
+    /// The spindle's dwell as the template writes it, in the post's unit; None for none.
+    fn dwell_text(&self) -> Option<String> {
+        (self.spindle_dwell_s > 0.0).then(|| match self.dwell_unit {
+            DwellUnit::S => format_number(self.spindle_dwell_s, self.decimals),
+            DwellUnit::Ms => format_number(self.spindle_dwell_s * 1000.0, 0),
+        })
+    }
 }
 
 /// A user post as read from the posts folder, or as copied into a project: the config's
@@ -723,9 +757,8 @@ fn render(
             Spindle::Ccw => "ccw",
         },
         safe_z: fmt(output.safe_z),
-        // Seconds: written the same in either units.
-        dwell: (config.spindle_dwell_s > 0.0)
-            .then(|| format_number(config.spindle_dwell_s, config.decimals)),
+        // Time: written the same in either units, in the post's dwell unit.
+        dwell: config.dwell_text(),
         work_zero: work_zero.map(comment_safe),
         file: file.map(|f| FileContext {
             number: f.number,
@@ -802,9 +835,8 @@ pub fn render_with_tool_changes(
             Spindle::Ccw => "ccw",
         },
         safe_z: fmt(first.program.safe_z / out.units.mm_per_unit()),
-        // Seconds: written the same in either units.
-        dwell: (config.spindle_dwell_s > 0.0)
-            .then(|| format_number(config.spindle_dwell_s, config.decimals)),
+        // Time: written the same in either units, in the post's dwell unit.
+        dwell: config.dwell_text(),
         work_zero: work_zero.map(comment_safe),
         file: None,
         tools: Some(tool_list(parts, out)),

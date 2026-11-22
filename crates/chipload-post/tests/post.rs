@@ -183,6 +183,37 @@ fn every_builtin_post_renders_a_program_the_checker_passes() {
     assert!(mach.contains("G4 P3.000"));
 }
 
+/// docs/specs/more-posts.md: MASSO waits in milliseconds and writes only codes in its
+/// list; Centroid comments with `;` and writes .cnc; both read I and J from the start.
+#[test]
+fn masso_and_centroid_write_their_own_dialects() {
+    let masso_post = load_builtin_post("masso").unwrap();
+    assert_eq!(masso_post.dwell_unit, chipload_post::DwellUnit::Ms);
+    let masso = render_program(&program(Spindle::Cw), &masso_post).unwrap();
+    assert!(masso.contains("G4 P3000\n"), "{masso}");
+    for absent in ["G91.1", "G64", "G49", "%"] {
+        assert!(!masso.contains(absent), "{absent}: {masso}");
+    }
+    let acorn_post = load_builtin_post("acorn").unwrap();
+    assert_eq!(acorn_post.file_extension, ".cnc");
+    let acorn = render_program(&program(Spindle::Cw), &acorn_post).unwrap();
+    assert!(
+        acorn.starts_with("; Chipload - Centroid Acorn\n"),
+        "{acorn}"
+    );
+    assert!(acorn.contains("G4 P3.000\n") && !acorn.contains("G91.1"));
+    assert!(!acorn.contains('('), "comments with ; only: {acorn}");
+    // Every built-in post names its controllers; GRBL's include grblHAL and FluidNC.
+    for name in chipload_post::builtin_posts() {
+        assert!(
+            !load_builtin_post(name).unwrap().controllers.is_empty(),
+            "{name}"
+        );
+    }
+    let grbl = load_builtin_post("grbl").unwrap().controllers;
+    assert!(grbl.iter().any(|c| c == "grblHAL") && grbl.iter().any(|c| c == "FluidNC"));
+}
+
 #[test]
 fn a_user_post_is_read_from_its_folder_and_renders_from_its_own_template() {
     let dir = posts_dir("read");

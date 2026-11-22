@@ -356,7 +356,14 @@ pub(in crate::app) fn machine_rows(
             .selected_text(machine.post.clone())
             .show_ui(ui, |ui| {
                 for name in chipload_pipeline::posts::builtin_posts() {
-                    if ui.selectable_label(machine.post == name, name).clicked() {
+                    // The controllers it is for (docs/specs/more-posts.md §2).
+                    let controllers = chipload_pipeline::posts::builtin_controllers(name);
+                    let label = if controllers.is_empty() {
+                        name.to_string()
+                    } else {
+                        format!("{name} · {}", controllers.join(", "))
+                    };
+                    if ui.selectable_label(machine.post == name, label).clicked() {
                         picked = Some(name.to_string());
                     }
                 }

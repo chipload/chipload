@@ -9,7 +9,9 @@ A post-processor is a small TOML file (`name.toml`) and a Jinja template (`name.
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `arcs` | boolean | no | Write arcs as G2/G3; false writes them as short lines (G1). Missing: false. |
+| `controllers` | list of string | no | The controllers the post is for, as `post list` names them, e.g. GRBL, grblHAL. Missing: none named (docs/specs/more-posts.md §2). |
 | `decimals` | integer | no | Decimals for coordinates and feeds in mm. Missing: 3. |
+| `dwell_unit` | [DwellUnit](#dwellunit) | no | The unit of the dwell's P: `s` (seconds) or `ms` (milliseconds, MASSO). Missing: seconds (docs/specs/more-posts.md §4). |
 | `file_extension` | string | no | The G-code file's extension, e.g. `.nc`. Missing: `.nc`. |
 | `inch_decimals` | integer | no | Decimals for coordinates and feeds in inches. Missing: 4. |
 | `name` | string | yes | The post's display name, e.g. "GRBL". |
@@ -20,6 +22,14 @@ A post-processor is a small TOML file (`name.toml`) and a Jinja template (`name.
 | `tool_changes` | list of [ToolChange](#toolchange) | no | How the template can write a job with several tools: `files` (one program per tool), and `program` (one file with tool changes) if the template writes them. Missing: files only. |
 | `units` | list of [Units](#units) | no | The units the template can write: `mm` (G21) and `inch` (G20) if it writes `{{ units_word }}` instead of a fixed G21. Missing: mm only, so a machine set to inch is refused rather than given inch numbers under G21. |
 | `written_by` | string or null | no | Who or what wrote the file, for reference. |
+
+## DwellUnit
+
+The unit a controller reads a dwell's P in.
+
+- `"s"`: Seconds (LinuxCNC, GRBL, Centroid CNC12).
+
+- `"ms"`: Milliseconds (MASSO).
 
 ## ToolChange
 
@@ -40,3 +50,5 @@ One of: `"mm"`, `"inch"`.
 | `grbl` | `.nc` | 3 | G2/G3 | 3 | files, program |  |
 | `linuxcnc` | `.ngc` | 3 | G2/G3 | 3 | files | Not yet tested on a real LinuxCNC machine: check the program and air-cut first. |
 | `mach3` | `.tap` | 3 | G2/G3 | 3 | files | Not yet tested on a real Mach3 or Mach4 machine: check the program and air-cut first. |
+| `masso` | `.nc` | 3 | G2/G3 | 3 | files | Not yet tested on a real MASSO machine: check the program and air-cut first. |
+| `acorn` | `.cnc` | 3 | G2/G3 | 3 | files | Not yet tested on a real Centroid machine: check the program and air-cut first. |

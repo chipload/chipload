@@ -303,6 +303,7 @@ pipeline-post-no-settings = нет папки настроек, поэтому �
 pipeline-post-no-folder = Нет постпроцессора «{ $name }»: он не встроенный, а папка posts отсутствует
 pipeline-post-no-posts-folder = нет папки posts
 pipeline-post-name = Имя: { $name }
+pipeline-post-controllers = Для: { $controllers }
 pipeline-post-builtin = Встроенный
 pipeline-post-yours = Ваш
 pipeline-post-settings = Настройки: { $path }

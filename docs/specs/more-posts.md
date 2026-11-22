@@ -1,6 +1,7 @@
 # Spec: more post-processors
 
-Status: **draft for review, 2026-11-22.** From the review of capability gaps (the user:
+Status: **approved 2026-11-22** (the user: "Go ahead"; §6 as recommended; see *As built*,
+§8). From the review of capability gaps (the user:
 "Do 1, 2 and 4"). Builds on user-posts.md (posts as data, the checker's list of codes),
 inch-units.md and tool-per-operation.md.
 
@@ -74,3 +75,24 @@ code added only after it is checked against the standard and the manual.
 
 One commit per post, the checker's `dwell_unit` with MASSO, the GRBL post's description
 first.
+
+## 8. As built
+
+- **MASSO** (`masso`, `.nc`), from MASSO's online documentation (docs.masso.com.au, its
+  supported G- and M-codes and the G02 and G04 pages): I and J are relative to the arc's
+  start ("incremental I, J, K offsets from the start point"), and there is no G90.1/G91.1;
+  G04 P is milliseconds; G17, G20/G21, G40, G54, G80, G90, G94 and M30 are listed; G49,
+  G64 and G91.1 aren't, so the post doesn't write them; comments in parentheses.
+- **Centroid Acorn** (`acorn`, `.cnc`), from Centroid's CNC12 G-code chapter (M-Series
+  Operator's Manual, chapter 12): I, J, K are "the center point of the arc as incremental
+  values from the start position", no G91.1; G4 P is seconds; G17, G20/G21, G40, G49,
+  G54, G80, G90, G94 listed; M30 is a customisable code that does nothing by default (M2
+  would home Z and restart the program, so the post ends with M5, M30); G64 takes ON/OFF,
+  not a tolerance, so it isn't written; comments after `;`, as the chapter's examples.
+- **UCCNC waits** (decision 3): its user's manual doesn't say whether I and J are relative
+  to the start or absolute, and lists no units codes (G20/G21) among its modal groups.
+- `controllers` and `dwell_unit` in post configs (schema 1, optional); `post list`,
+  `post show` and the machine's *Post* list name the controllers. The checker needed no
+  change: it requires a P on G4 and doesn't read its value. The golden test comparing
+  inch and mm programs skips `;` comment lines too. Goldens `v43_bracket_masso` and
+  `v43_bracket_acorn`.

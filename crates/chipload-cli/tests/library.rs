@@ -753,10 +753,13 @@ fn a_user_post_is_listed_copied_into_the_project_and_kept_there() {
     add_user_post(&settings, "shop", "(Shop router)");
     std::fs::write(settings.join("posts/broken.toml"), "schema_version = 1\n").unwrap();
     let listed = ok(&settings, &["post", "list"]);
+    // Built-in posts name their controllers (docs/specs/more-posts.md §2).
     for line in [
-        "  grbl (built in)",
-        "  linuxcnc (built in)",
-        "  mach3 (built in)",
+        "  grbl (built in): GRBL, grblHAL, FluidNC, Carbide Motion",
+        "  linuxcnc (built in): LinuxCNC",
+        "  mach3 (built in): Mach3, Mach4",
+        "  masso (built in): MASSO G2, MASSO G3",
+        "  acorn (built in): Centroid Acorn, Centroid CNC12",
         "  shop (yours)",
     ] {
         assert!(listed.lines().any(|l| l == line), "{line}\n{listed}");

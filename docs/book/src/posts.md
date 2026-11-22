@@ -1,20 +1,28 @@
 # Post-processors
 
 A post-processor turns Chipload's toolpath into the G-code dialect your controller reads.
-Three are built in:
+Five are built in:
 
 | Post | For | Files | Tool changes |
 |---|---|---|---|
-| `grbl` | GRBL 1.1 routers (and senders such as UGS, CNCjs, gSender) | `.nc` | one file per tool, or one file with `T… M6` for a sender that handles the change |
+| `grbl` | GRBL 1.1, grblHAL, FluidNC and Carbide Motion routers (and senders such as UGS, CNCjs, gSender) | `.nc` | one file per tool, or one file with `T… M6` for a sender that handles the change |
 | `linuxcnc` | LinuxCNC | `.ngc` | one file per tool |
 | `mach3` | Mach3 and Mach4 | `.tap` | one file per tool |
+| `masso` | MASSO G2 and G3 | `.nc` | one file per tool |
+| `acorn` | Centroid Acorn and other CNC12 controls | `.cnc` | one file per tool |
 
-**The LinuxCNC and Mach3/4 posts haven't been run on a real controller yet.** Their
-programs say so in a header comment: check the program and air-cut before you cut. If you
-run one of them successfully, please report it.
+`chipload post list` names the controllers each post is for, and so does the *Post* list
+in the app.
+
+**Only the GRBL post has been run on a real controller so far.** The others' programs say
+so in a header comment: check the program and air-cut before you cut. If you run one of
+them successfully, please report it.
 
 Every post writes arcs as G2/G3, mm and absolute coordinates, and waits 3 s after starting
-the spindle. The [post-processor reference](reference/posts.md) lists every post's
+the spindle. Each writes its controller's own dialect, from the controller's own manual:
+MASSO's wait is written in milliseconds (`G4 P3000`), as MASSO reads it; the Centroid post
+comments with `;`; neither writes G91.1, since both read I and J from the arc's start
+anyway. The [post-processor reference](reference/posts.md) lists every post's
 settings.
 
 ## Choosing the post
@@ -35,7 +43,11 @@ A post is two files in the `posts` folder of your [settings folder](install.md#y
 
 The easiest start is a copy of a built-in post, from the `crates/chipload-post/posts/` and
 `templates/` folders of the source. Rules:
-- **Names:** a post can't take a built-in name (`grbl`, `linuxcnc`, `mach3`).
+- **Names:** a post can't take a built-in name (`grbl`, `linuxcnc`, `mach3`, `masso`,
+  `acorn`).
+- **Controllers and the wait:** `controllers = ["My router"]` names what the post is for,
+  shown by `post list`; `dwell_unit = "ms"` writes the spindle's wait in milliseconds, for
+  a controller whose G4 reads P that way (seconds otherwise).
 - **Copied into the project:** a project that uses your post keeps its own copy of both
   files, so it gives the same G-code on another computer or after you change the files.
   When your files differ from the project's copy, the app shows **Update** next to the Post
@@ -65,7 +77,7 @@ cut).
 | `tool_id`, `tool_diameter`, `rpm` | the (first) tool, its diameter in the program's units, its spindle speed |
 | `spindle` | `"cw"` or `"ccw"` |
 | `safe_z` | the safe height, in the program's units |
-| `dwell` | seconds to wait after starting the spindle, or none |
+| `dwell` | the wait after starting the spindle, in seconds (or milliseconds with `dwell_unit = "ms"`), or none |
 | `work_zero` | where the work zero is, as text for a comment, or none |
 | `file` | with one file per tool: `number`, `count`, `tool` (text) and `operations` (text); otherwise none |
 | `tools` | with one file and tool changes: a list of the tools as text; otherwise none |

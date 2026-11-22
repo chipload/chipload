@@ -433,6 +433,7 @@ pipeline-post-no-posts-folder = no hay carpeta posts
 # What a post-processor is, one line each (Settings, Library). $name, $extension,
 # the paths and the units (mm, inch) and modes (files, program) are written as in its file.
 pipeline-post-name = Nombre: { $name }
+pipeline-post-controllers = Para: { $controllers }
 pipeline-post-builtin = Incluido
 pipeline-post-yours = Tuyo
 pipeline-post-settings = Ajustes: { $path }

@@ -2,6 +2,7 @@
 # docs/specs/user-posts.md §5.
 schema_version = 1
 name = "Mach3/4"
+controllers = ["Mach3", "Mach4"]
 template = "mach3.tap.j2"
 decimals = 3
 inch_decimals = 4

@@ -428,6 +428,7 @@ pipeline-post-no-posts-folder = kein Ordner posts
 # What a post-processor is, one line each (Settings, Library). $name, $extension,
 # the paths and the units (mm, inch) and modes (files, program) are written as in its file.
 pipeline-post-name = Name: { $name }
+pipeline-post-controllers = Für: { $controllers }
 pipeline-post-builtin = Eingebaut
 pipeline-post-yours = Eigener
 pipeline-post-settings = Einstellungen: { $path }

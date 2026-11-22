@@ -1,0 +1,20 @@
+# Centroid Acorn and the other CNC12 mills and routers. Persisted format: see
+# crates/chipload-post/src/lib.rs (ADR 0003, 0007); docs/specs/more-posts.md, written from
+# Centroid's CNC12 G-code chapter (M-Series Operator's Manual, chapter 12).
+schema_version = 1
+name = "Centroid Acorn"
+controllers = ["Centroid Acorn", "Centroid CNC12"]
+template = "acorn.cnc.j2"
+decimals = 3
+inch_decimals = 4
+# G21 and G20: the template writes {{ units_word }} (docs/specs/inch-units.md §4.2)
+units = ["mm", "inch"]
+# CNC12's programs are .cnc files.
+file_extension = ".cnc"
+spindle_dwell_s = 3  # G4 P is seconds in CNC12
+# G2/G3 with I and J from the arc's start, as CNC12 reads them.
+arcs = true
+# One file per tool: a program with M6 needs the controller's tool lengths (G43).
+tool_changes = ["files"]
+# Shown on the setup sheet (the template says the same in each program).
+note = "Not yet tested on a real Centroid machine: check the program and air-cut first."

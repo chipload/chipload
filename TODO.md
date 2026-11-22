@@ -51,8 +51,9 @@ done is in git and in the releases' notes on GitHub, no longer listed here.
 0. **From the capability review** (2026-11-22, the user: "Do 1, 2 and 4"), specs approved:
    - ~~single-line text~~ built 2026-11-22 (docs/specs/single-line-text.md), not pushed,
      for the user to try;
-   - more post-processors (docs/specs/more-posts.md): MASSO, Centroid Acorn, UCCNC, the
-     GRBL post named for grblHAL and FluidNC;
+   - ~~more post-processors~~ built 2026-11-22 (docs/specs/more-posts.md): MASSO, Centroid
+     Acorn, controllers named; UCCNC waits for a manual that says how it reads I and J and
+     its units (§8);
    - signs from a list (docs/specs/batch-signs.md).
 1. **Drawing, step 2** (the review of the drawing tools, 2026-11-18; docs/specs/
    drawing-improvements.md), in this order:

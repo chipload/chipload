@@ -425,6 +425,7 @@ pipeline-post-no-posts-folder = ingen posts-mapp
 # What a post-processor is, one line each (Settings, Library). $name, $extension,
 # the paths and the units (mm, inch) and modes (files, program) are written as in its file.
 pipeline-post-name = Namn: { $name }
+pipeline-post-controllers = För: { $controllers }
 pipeline-post-builtin = Inbyggd
 pipeline-post-yours = Din egen
 pipeline-post-settings = Inställningar: { $path }

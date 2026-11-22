@@ -14,7 +14,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 91] = [
+const GOLDEN: [(&str, &str); 93] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -341,6 +341,11 @@ const GOLDEN: [(&str, &str); 91] = [
     // path --layer text --depth 0.5` and `op tool --op 1 --tool 2`: open strokes, one pass
     // of the V-bit each, with arcs.
     ("v43_nameplate", "jobs/v43/nameplate.chipload"),
+    // v43_bracket through the MASSO and the Centroid Acorn posts (docs/specs/more-posts.md),
+    // `post use --post masso` and `--post acorn`: MASSO's dwell in milliseconds, Centroid's
+    // `;` comments and .cnc, neither with G91.1 (both read I and J from the arc's start).
+    ("v43_bracket_masso", "jobs/v43/bracket_masso.chipload"),
+    ("v43_bracket_acorn", "jobs/v43/bracket_acorn.chipload"),
 ];
 
 /// Projects nested before they are run (docs/specs/nesting.md §13): `chipload nest` with
@@ -788,7 +793,11 @@ fn motions(gcode: &str, scale: f64) -> (Vec<Motion>, Vec<String>) {
     let mut at = [f64::NAN; 3];
     let (mut code, mut feed) = (0, 0.0);
     let (mut moves, mut other) = (Vec::new(), Vec::new());
-    for line in gcode.lines().filter(|l| !l.starts_with('(')) {
+    // Comments in parentheses or after `;` (Centroid's posts).
+    for line in gcode
+        .lines()
+        .filter(|l| !l.starts_with('(') && !l.starts_with(';'))
+    {
         let ws = words(line);
         let moving = ws.iter().any(|(l, _)| "XYZ".contains(*l));
         if !moving {
