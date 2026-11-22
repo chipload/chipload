@@ -10,8 +10,11 @@ size as a blank, for a frame you cut with operations of your own. A sign you wil
 
 **New sign…** (**Sign** in the ribbon's *WIZARDS* group, or *Wizards > New sign…*) makes a whole sign: the words, a frame round them, and every operation that
 cuts it, in a part of its own named after the words (a new project's empty part becomes
-it). The dialog draws the sign as it will be and lists the operations it adds. (Design:
-`docs/specs/sign-maker.md`.)
+it). The dialog draws the sign as it will be and lists the operations it adds. With no
+project open, **New sign…** on the start page starts a new project for it, with the
+choices last made in the new project dialog (the library's defaults the first time),
+without asking for them again: the sign fits the board round itself. Cancel the sign and
+the empty project stays. (Design: `docs/specs/sign-maker.md`, `sign-size-and-start.md`.)
 
 ![New sign… filled in: the words, a notched frame with double lines, an edge chamfer, the sign drawn below and the operations it adds](../images/new-sign.png)
 

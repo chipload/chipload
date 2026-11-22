@@ -404,6 +404,13 @@ impl ChiploadApp {
                         self.ask_new();
                     }
                     if ui
+                        .add(egui::Button::new(t!(ui, "panels-new-sign")).min_size(wide))
+                        .on_hover_text(t!(ui, "panels-new-sign-hover"))
+                        .clicked()
+                    {
+                        self.new_sign_project();
+                    }
+                    if ui
                         .add(egui::Button::new(t!(ui, "panels-import-dxf")).min_size(wide))
                         .on_hover_text(t!(ui, "panels-import-dxf-hover"))
                         .clicked()

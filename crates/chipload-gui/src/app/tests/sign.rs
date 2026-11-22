@@ -236,3 +236,21 @@ fn a_sign_of_a_fixed_size_shows_its_letters_height_and_is_that_size() {
     // One word: the height limits it, 100 less the margin, gap and border each side.
     assert!(height > 40.0 && height < 80.0, "{height}");
 }
+
+#[test]
+fn new_sign_on_the_start_page_makes_a_project_and_opens_the_dialog() {
+    // docs/specs/sign-size-and-start.md §2.
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1400.0, 1000.0))
+        .build_eframe(|_| ChiploadApp::default());
+    harness.run_steps(2);
+    assert!(harness.state().edit.is_none());
+    click(&mut harness, "New sign…");
+    let app = harness.state();
+    assert!(app.edit.is_some(), "a new project");
+    assert!(
+        matches!(app.dialogs.prompt, Some(Prompt::Sign(_))),
+        "the sign's dialog"
+    );
+    assert!(app.edit.as_ref().unwrap().job.drawing.shapes.is_empty());
+}

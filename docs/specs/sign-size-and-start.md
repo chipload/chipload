@@ -104,3 +104,8 @@ languages).
   that size round them, the shapes as they are. In *New sign…*: *Size: Fit the words /
   Fixed*, *Outer size* (W, H) or *Diameter* for round words, and *Letters* showing the
   height found by the preview.
+- **Start page:** *New sign…* below *New project* (`ChiploadApp::new_sign_project`): the
+  project starts from the choices last made in the New project dialog
+  (`remembered_start`, as a picture dropped on an empty window does), else the library's
+  defaults, then *New sign…* opens on it. The French texts call the sign *enseigne*, as
+  the dialog does ("panneau" is the stock board there).

@@ -98,8 +98,7 @@ done is in git and in the releases' notes on GitHub, no longer listed here.
      different ends, linking passes;
    - reliefs: a time estimate in the wizard, dropping a file on it, the board's size in
      step 3; simplifying a large model; an end-mill pass for a wide flat;
-   - signs: a second sign beside the first,
-     *New sign…* on the start page.
+   - signs: a second sign beside the first.
 9. **Small follow-ups:**
    - Large files and functions (aim: files under 1,000 lines, one job per function). Left
      over 1,000 lines: `app/compass.rs`, `simulate.rs`, `app/modify.rs`, `app/menu.rs`,

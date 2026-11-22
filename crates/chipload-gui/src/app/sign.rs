@@ -179,6 +179,22 @@ fn style_name(ui: &egui::Ui, style: SignStyle) -> String {
 }
 
 impl ChiploadApp {
+    /// *New sign…* on the start page (docs/specs/sign-size-and-start.md §2): a new project
+    /// with the choices last made (the library's defaults when there are none), without the
+    /// New project dialog since the sign fits the board, and the sign's dialog on it.
+    /// Cancelled, the empty project stays, as *New project* leaves it.
+    pub fn new_sign_project(&mut self) {
+        if !self.guard(Pending::New) {
+            return;
+        }
+        let start = self.remembered_start();
+        let first = t!(self, "app-new-project");
+        self.create_project(chipload_pipeline::empty_project(), &start, first, None);
+        if self.edit.is_some() {
+            self.start_sign();
+        }
+    }
+
     /// *New sign…*: the dialog; round the selection when there is one.
     pub fn start_sign(&mut self) {
         let around = self.framed_shape_ids();
