@@ -209,6 +209,27 @@ DXF first, [Explode](several.md)).
   place and keep their numbers, and operations' start points and tabs on them follow. On
   the command line: `chipload shape mirror P 3 4 --line "0,0 0,100" [--copy]`, or
   `--about-shape 7` for a drawn line.
+- **Scale by a length:** when you know what a length on the drawing should be (two holes
+  100 mm apart, a side 450 mm long), select what to scale, choose *Scale* in MODIFY and
+  click the two ends of that length. They snap, and the first one stays where it is. The
+  entry beside the cursor shows the length now; type the length it should be (units and
+  arithmetic work, as in every field) and press Enter, or click a third point: its
+  distance from the first becomes the new length, so a length can be taken from another
+  shape. The two points don't have to lie on the selection. Esc goes back a step. It
+  scales whatever the box's corners scale: drawn shapes, a text, a picture, a group or a
+  whole DXF, which is handy for a drawing or a traced picture that came in at the wrong
+  size. On the command line: `chipload shape scale P 3 4 --reference "10,10 110,12"
+  --length 120`, and for a DXF `chipload place P --reference "0,0 254,0" --length 100`.
+- **Stretch:** a different factor along X and along Y, to make shapes wider without making
+  them taller. Straight sides stretch exactly. A rectangle square to the axes stays a
+  rectangle; a spline goes through its stretched points. A stretched circle or arc is part
+  of an ellipse, which can't be cut as one arc, so a circle, a polygon, a turned
+  rectangle or a polyline with arcs becomes a polyline of lines and arcs that follows the
+  stretched curve within 0.01 mm; it keeps its number, so the operations that cut it
+  follow. Corner radii stay the radii you typed. Equal factors scale evenly, and a circle
+  stays a circle. Only drawn shapes stretch: explode a DXF (`chipload dxf explode`) or
+  turn a text's letters into shapes first. On the command line: `chipload shape stretch P
+  3 4 --x 1.25` (about the middle of their box), `--width 500 --about 0,0`, `--y 0.8`.
 - **Arrays** add copies of drawn shapes in a grid or round a centre; the originals stay
   and the copies go on their layers with new numbers. A grid counts the originals in its
   columns and rows and spaces them centre to centre (negative goes left or down). A polar
@@ -387,6 +408,8 @@ chipload shape mirror part.chipload 8 9 --axis x      # flip in place; ids kept
 chipload shape move part.chipload 8 9 --dx 10 --dy -5
 chipload shape turn part.chipload 8 9 --angle-deg 30  # about the middle of their box (or --about X,Y)
 chipload shape scale part.chipload 8 --factor 1.5
+chipload shape scale part.chipload 8 --reference "0,0 30,0" --length 45   # A–B becomes 45 long, A stays
+chipload shape stretch part.chipload 8 9 --x 1.5      # wider, not taller (also --y, --width, --height, --about)
 chipload shape remove part.chipload 8
 chipload shape join part.chipload --gap 0.05   # join ends that almost meet
 ```

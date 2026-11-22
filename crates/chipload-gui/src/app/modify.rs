@@ -38,6 +38,9 @@ pub enum ModifyTool {
     /// The selection mirrored about a line of two clicks or a straight side
     /// (docs/specs/drawing-improvements.md §1).
     Mirror,
+    /// The selection scaled so a length measured by two clicks becomes a length typed or
+    /// clicked (docs/specs/scale-and-stretch.md §2).
+    Scale,
     /// Copies of the selection in a grid, set under Selection (§6).
     Array,
     /// Copies of the selection round a centre clicked on the canvas (§6).
@@ -139,6 +142,7 @@ impl ChiploadApp {
             self.view_top();
         }
         self.canvas_tools.mirror.from = None;
+        self.canvas_tools.scale = super::scale_tool::ScaleSettings::default();
         self.set_tool(ActiveTool::Modify(tool));
         if matches!(
             tool,
@@ -382,6 +386,7 @@ impl ChiploadApp {
                 }
             }
             Some(ModifyTool::Mirror) => self.mirror_click(picked, at, toggle, (free, all)),
+            Some(ModifyTool::Scale) => self.scale_click(picked, at, toggle, (free, all)),
             Some(ModifyTool::Subtract) => {
                 if let Some(base) = self.drawn_under(picked, at)
                     && self.combine(Combine::Subtract, &self.subtract_ids(base))
@@ -1029,6 +1034,17 @@ impl ChiploadApp {
                 t!(self, "modify-mirror-first")
             }
             ModifyTool::Mirror => t!(self, "modify-mirror-second"),
+            ModifyTool::Scale if self.canvas_tools.scale.first.is_some() => {
+                if self.canvas_tools.scale.second.is_some() {
+                    t!(self, "modify-scale-third")
+                } else {
+                    t!(self, "modify-scale-second")
+                }
+            }
+            ModifyTool::Scale if self.selection == CanvasSelection::Nothing => {
+                t!(self, "modify-scale-pick")
+            }
+            ModifyTool::Scale => t!(self, "modify-scale-first"),
             ModifyTool::Array | ModifyTool::PolarArray | ModifyTool::LinearArray
                 if self.selected_drawn().is_empty() =>
             {

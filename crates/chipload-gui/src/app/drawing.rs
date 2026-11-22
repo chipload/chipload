@@ -32,6 +32,8 @@ pub enum TypedTarget {
     Offset,
     /// An exact value for a part of the Compass (docs/specs/compass.md §4).
     Compass(super::compass::CompassPart),
+    /// The Scale tool's new length (docs/specs/scale-and-stretch.md §2).
+    ScaleLength,
 }
 
 impl ChiploadApp {
@@ -157,6 +159,10 @@ impl ChiploadApp {
             }
             Some(TypedTarget::Compass(part)) => {
                 self.apply_typed_compass(part);
+                return;
+            }
+            Some(TypedTarget::ScaleLength) => {
+                self.apply_typed_scale();
                 return;
             }
             _ => {}

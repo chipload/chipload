@@ -171,6 +171,7 @@ menu-preferences = Einstellungen…
 menu-preferences-hover = Einstellungen im Browser, unter der Bibliothek: Einheiten, Sprache, Farbschema, Einrichteblatt, automatisch aktualisieren
 menu-draw-spline = Spline
 menu-modify-mirror = An einer Achse spiegeln
+menu-modify-scale = Über eine Länge skalieren
 menu-polyline-radius = Radius
 menu-polyline-radius-hover = Jede Ecke der Polylinie, die gezeichnet wird, wird mit diesem Radius gerundet (0: spitz); eine Ecke mit zu kurzen Seiten bekommt das Größte, was passt
 menu-polyline-line = Linie

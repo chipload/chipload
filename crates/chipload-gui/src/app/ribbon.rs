@@ -268,6 +268,13 @@ fn modify_group(app: &mut ChiploadApp, ui: &mut egui::Ui) {
             Some(Action::Mirror),
         ),
         (
+            super::modify::ModifyTool::Scale,
+            Icon::Scale,
+            t!(ui, "header-scale"),
+            t!(ui, "header-scale-hover"),
+            None,
+        ),
+        (
             super::modify::ModifyTool::Array,
             Icon::Array,
             t!(ui, "header-array"),

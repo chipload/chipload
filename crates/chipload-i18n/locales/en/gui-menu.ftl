@@ -174,6 +174,7 @@ menu-preferences = Preferences…
 menu-preferences-hover = Preferences in the Browser, below the Library: units, language, colour theme, the setup sheet, updating automatically
 menu-draw-spline = Spline
 menu-modify-mirror = Mirror about a line
+menu-modify-scale = Scale by a length
 menu-polyline-radius = Radius
 menu-polyline-radius-hover = Every corner of the polyline being drawn is rounded by this radius (0: sharp); a corner whose sides are too short gets the most that fits
 menu-polyline-line = Line

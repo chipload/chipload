@@ -136,4 +136,6 @@ header-spline = Spline
 header-spline-hover = Dessiner une spline : cliquez les points par lesquels passe une courbe lisse
 header-mirror = Symétrie
 header-mirror-hover = Symétriser les formes dessinées sélectionnées par rapport à un axe : cliquez ses deux points, ou une ligne droite comme un axe central
+header-scale = Mettre à l'échelle
+header-scale-hover = Mettre la sélection à l'échelle d'après une longueur : cliquez deux points, puis tapez la longueur que doit avoir leur distance, ou cliquez un troisième point à cette distance. Le premier point reste
 header-slot-arc-hover = Dessiner une rainure en arc : le centre de son arc, le début et la fin de sa ligne médiane, puis sa largeur

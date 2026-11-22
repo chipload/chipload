@@ -171,6 +171,7 @@ menu-preferences = Inställningar…
 menu-preferences-hover = Inställningar i Bläddraren, under Biblioteket: enheter, språk, färgtema, riggblad, uppdatera automatiskt
 menu-draw-spline = Spline
 menu-modify-mirror = Spegla kring en linje
+menu-modify-scale = Skala efter en längd
 menu-polyline-radius = Radie
 menu-polyline-radius-hover = Varje hörn i polylinjen som ritas rundas med den här radien (0: skarpt); ett hörn med för korta sidor får den största som får plats
 menu-polyline-line = Linje

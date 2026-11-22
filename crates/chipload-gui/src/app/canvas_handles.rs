@@ -155,6 +155,9 @@ impl ChiploadApp {
         if self.modify() == Some(super::modify::ModifyTool::Mirror) {
             return self.canvas_tools.mirror.from;
         }
+        if self.modify() == Some(super::modify::ModifyTool::Scale) {
+            return self.canvas_tools.scale.first;
+        }
         self.measure()
             .and_then(|m| m.start.filter(|_| m.end.is_none()))
     }

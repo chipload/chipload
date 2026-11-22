@@ -1205,5 +1205,7 @@ pub fn followed_point(p: [f64; 2], old: &Geometry, new: &Geometry) -> Option<[f6
     }
 }
 
+pub mod stretch;
+
 #[cfg(test)]
 mod tests;

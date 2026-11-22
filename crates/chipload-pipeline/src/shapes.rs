@@ -82,7 +82,7 @@ pub fn reshape(job: &Job, id: u64, geometry: Geometry) -> Result<Job, PipelineEr
 /// Every start point, corner choice and tab placed by hand whose nearest shape (among
 /// those its operation selects, in `before`) is one of `ids`, moved by `map` (None: it
 /// stays).
-fn follow_points(
+pub(crate) fn follow_points(
     out: &mut Job,
     before: &Job,
     ids: &[u64],
@@ -197,7 +197,7 @@ pub fn delete_shape(job: &Job, id: u64) -> Result<(Job, Vec<String>), PipelineEr
 
 /// The drawn shapes `ids`, in the drawing's order: each must exist and be drawn, and none may
 /// be named twice.
-fn drawn_shapes<'a>(job: &'a Job, ids: &[u64]) -> Result<Vec<&'a Shape>, PipelineError> {
+pub(crate) fn drawn_shapes<'a>(job: &'a Job, ids: &[u64]) -> Result<Vec<&'a Shape>, PipelineError> {
     if ids.is_empty() {
         return Err(refused(Message::new("pipeline-no-shapes-given")));
     }
@@ -707,7 +707,7 @@ fn drawn_mut(job: &mut Job, id: u64) -> Result<&mut Shape, PipelineError> {
 }
 
 /// The project's own rules (values, ids) must hold after every change.
-fn checked(job: Job) -> Result<Job, PipelineError> {
+pub(crate) fn checked(job: Job) -> Result<Job, PipelineError> {
     crate::refuse_problems(&job.drawing.validate())?;
     Ok(job)
 }

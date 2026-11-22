@@ -92,6 +92,7 @@ mod report;
 mod ribbon;
 mod rulers;
 mod saving;
+mod scale_tool;
 mod select_drag;
 mod selection;
 mod setups;

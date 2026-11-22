@@ -269,6 +269,8 @@ pub(crate) struct PlaceArgs {
     pub(crate) scale: Option<f64>,
     pub(crate) width: Option<f64>,
     pub(crate) height: Option<f64>,
+    pub(crate) reference: Option<String>,
+    pub(crate) length: Option<f64>,
     pub(crate) reset: bool,
     pub(crate) dxf: Option<u64>,
     pub(crate) image: Option<u64>,
@@ -364,6 +366,7 @@ pub(crate) fn place_image(
         || args.margin.is_some()
         || args.scale.is_some()
         || args.height.is_some()
+        || args.reference.is_some()
         || args.reset;
     if others {
         return out.fail("with --image, place takes --at, --rotate and --width (as `image set`)");
@@ -393,6 +396,7 @@ pub(crate) fn place_text(
         || args.margin.is_some()
         || args.scale.is_some()
         || args.width.is_some()
+        || args.reference.is_some()
         || args.reset;
     if others {
         return out.fail("with --text, place takes --at, --rotate and --height (as `text set`)");
@@ -429,6 +433,21 @@ pub(crate) fn place_moves(args: PlaceArgs) -> Result<Vec<PlaceMove>, String> {
     }
     if let Some(height) = args.height {
         steps.push(PlaceMove::Height(height));
+    }
+    if let (Some(text), Some(length)) = (args.reference.as_deref(), args.length) {
+        let [a, b] =
+            match crate::shapes::points_arg(text).map_err(|e| format!("--reference: {e}"))?[..] {
+                [a, b] => [a, b],
+                _ => return Err("--reference takes two points, \"X,Y X,Y\"".into()),
+            };
+        let scale = chipload_pipeline::scaling::reference_factor(a, b, length)
+            .map_err(|e| e.to_string())?;
+        steps.push(PlaceMove::About {
+            from: (a[0], a[1]),
+            to: (a[0], a[1]),
+            scale,
+            degrees: 0.0,
+        });
     }
     steps.extend(place_move(args.by, args.to, args.align, args.margin)?);
     if let Some(at) = args.at {

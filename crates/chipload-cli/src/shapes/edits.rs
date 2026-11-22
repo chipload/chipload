@@ -239,9 +239,38 @@ impl ShapeAction {
             }
             | ShapeAction::Scale {
                 project, output, ..
+            }
+            | ShapeAction::Stretch {
+                project, output, ..
             } => Some((project.clone(), output.clone())),
         }
     }
+}
+
+/// `shape scale --reference A B --length L`: scaled so A–B becomes L long, A staying.
+fn by_reference(
+    job: &Job,
+    ids: &[u64],
+    reference: Option<&str>,
+    length: Option<f64>,
+) -> Result<(Job, Vec<String>), PipelineError> {
+    let refused = |text: String| PipelineError::Job(foreign_text(text));
+    let (Some(text), Some(length)) = (reference, length) else {
+        return Err(refused("say --factor, or --reference with --length".into()));
+    };
+    let [a, b] = match points_arg(text).map_err(refused)?[..] {
+        [a, b] => [a, b],
+        _ => return Err(refused("--reference takes two points, \"X,Y X,Y\"".into())),
+    };
+    let factor = chipload_pipeline::scaling::reference_factor(a, b, length)?;
+    let job = chipload_pipeline::scaling::scale_by_reference(job, ids, a, b, length)?;
+    let text = format!(
+        "Scaled shapes {} ×{} so the reference is {} mm long.",
+        shape_names(ids),
+        chipload_pipeline::placement::factor_text(factor),
+        chipload_pipeline::placement::factor_text(length)
+    );
+    Ok((job, vec![text]))
 }
 
 /// The mirror line of `shape mirror`: two points, or a straight drawn shape's ends.
@@ -558,13 +587,58 @@ fn change_shapes(
             })
         }),
         ShapeAction::Scale {
-            ids, factor, about, ..
+            ids,
+            factor: Some(factor),
+            about,
+            ..
         } => about_point(job, &ids, about).and_then(|c| {
             transform_shapes(job, &ids, c, c, factor, 0.0).map(|job| {
                 let text = format!("Scaled shapes {} ×{factor}.", shape_names(&ids));
                 (job, vec![text])
             })
         }),
+        ShapeAction::Scale {
+            ids,
+            reference,
+            length,
+            ..
+        } => by_reference(job, &ids, reference.as_deref(), length),
+        ShapeAction::Stretch {
+            ids,
+            x,
+            y,
+            width,
+            height,
+            about,
+            ..
+        } => {
+            use chipload_pipeline::scaling::{Along, stretch_shapes};
+            let along = |factor: Option<f64>, size: Option<f64>| match size {
+                Some(size) => Along::Size(size),
+                None => Along::Factor(factor.unwrap_or(1.0)),
+            };
+            stretch_shapes(job, &ids, about, along(x, width), along(y, height)).map(|done| {
+                let (fx, fy) = done.factors;
+                let mut lines = vec![format!(
+                    "Stretched shapes {} ×{} along X, ×{} along Y.",
+                    shape_names(&ids),
+                    chipload_pipeline::placement::factor_text(fx),
+                    chipload_pipeline::placement::factor_text(fy)
+                )];
+                if !done.fitted.is_empty() {
+                    let what = if done.fitted.len() == 1 {
+                        "now a polyline"
+                    } else {
+                        "now polylines"
+                    };
+                    lines.push(format!(
+                        "{}: {what} of lines and arcs fitted to the stretched curve.",
+                        shape_names(&done.fitted)
+                    ));
+                }
+                (done.job, lines)
+            })
+        }
         ShapeAction::Join { ids, gap, .. } => join_shapes(job, &ids, gap).map(|(job, join)| {
             report.joined = Some((join.shapes, join.removed));
             (job, join.lines)

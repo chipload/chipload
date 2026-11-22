@@ -51,12 +51,15 @@ done is in git and in the releases' notes on GitHub, no longer listed here.
 1. **Drawing, step 2** (the review of the drawing tools, 2026-11-18; docs/specs/
    drawing-improvements.md), in this order:
    - ~~fillet and chamfer at line-arc corners and between two shapes~~ built 2026-11-21
-     (docs/specs/fillet-between-shapes.md, schema 43), not pushed, for the user to try;
+     (docs/specs/fillet-between-shapes.md, schema 43), pushed, for the user to try;
    - ~~arcs while drawing a polyline~~ built 2026-11-21 (docs/specs/polyline-tangent-arcs.md),
-     not pushed, for the user to try;
+     pushed, for the user to try;
    - ~~text on an arc~~ built 2026-11-21 (docs/specs/text-on-arc.md, the sign wizard's
-     round words too), not pushed, for the user to try;
-   - scale by reference (two points, a new length) and stretching in X and Y;
+     round words too), pushed, for the user to try;
+   - scale by reference and stretching in X and Y (docs/specs/scale-and-stretch.md,
+     approved 2026-11-22): step 1 built (Scale tool, `shape scale --reference`,
+     `place --reference`, `shape stretch`); left: step 2, the box's side handles and
+     *Keep proportions*;
    - spline to polyline (explode), joining open splines, their end tangents;
    - extending arc ends along their circle;
    - an arc's form by centre, radius and angles when a polyline is one arc;

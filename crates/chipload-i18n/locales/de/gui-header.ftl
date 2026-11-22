@@ -136,4 +136,6 @@ header-spline = Spline
 header-spline-hover = Einen Spline zeichnen: die Punkte anklicken, durch die eine glatte Kurve geht
 header-mirror = Spiegeln
 header-mirror-hover = Die gewählten gezeichneten Formen an einer Achse spiegeln: ihre zwei Punkte anklicken, oder eine gerade Linie wie eine Mittellinie anklicken
+header-scale = Skalieren
+header-scale-hover = Die Auswahl über eine Länge skalieren: zwei Punkte klicken, dann die Länge eingeben, die ihr Abstand haben soll, oder einen dritten Punkt in diesem Abstand klicken. Der erste Punkt bleibt
 header-slot-arc-hover = Ein Bogenlangloch zeichnen: den Mittelpunkt seines Bogens, Anfang und Ende seiner Mittellinie, dann die Breite

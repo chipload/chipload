@@ -33,6 +33,7 @@ pub enum Icon {
     SlotArc,
     /// Mirror: a shape and its image about a dashed line.
     Mirror,
+    Scale,
     /// A spline: a smooth curve through points.
     Spline,
     /// An arc drawn from its centre.
@@ -422,6 +423,14 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 let y = 0.08 + k as f32 * 0.2;
                 pen.line([(0.5, y), (0.5, y + 0.1)]);
             }
+        }
+        Icon::Scale => {
+            // A small square grown into a large one from their shared corner, with the
+            // line measured along the bottom.
+            pen.closed(&[(0.1, 0.9), (0.1, 0.55), (0.45, 0.55), (0.45, 0.9)]);
+            pen.closed(&[(0.1, 0.9), (0.1, 0.1), (0.9, 0.1), (0.9, 0.9)]);
+            pen.line([(0.45, 0.55), (0.8, 0.2)]);
+            pen.dot((0.1, 0.9), 0.06);
         }
         Icon::Spline => {
             // An S through three points, as a few short lines.

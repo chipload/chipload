@@ -136,4 +136,6 @@ header-spline = Spline
 header-spline-hover = Rita en spline: klicka på punkterna som en mjuk kurva går genom
 header-mirror = Spegla
 header-mirror-hover = Spegla de valda ritade formerna kring en linje: klicka dess två punkter, eller klicka en rak linje som en mittlinje
+header-scale = Skala
+header-scale-hover = Skala markeringen efter en längd: klicka två punkter och skriv sedan längden deras avstånd ska ha, eller klicka en tredje punkt på det avståndet. Den första punkten står kvar
 header-slot-arc-hover = Rita ett bågspår: bågens centrum, var mittlinjen börjar och slutar, sedan bredden

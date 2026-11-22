@@ -886,6 +886,7 @@ version = "0.39.0"
 dependencies = [
  "chipload-core",
  "chipload-i18n",
+ "proptest",
  "schemars",
  "serde",
  "serde_json",

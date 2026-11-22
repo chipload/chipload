@@ -37,6 +37,7 @@ and `--width`):
 | Align with the stock | `--align bottom-left --margin 10`, `--align center` |
 | Turn about its centre, on top of any turn | `--rotate 30` (any angle; negative: clockwise) |
 | Scale about its centre | `--scale 2`, `--width 100`, `--height 50` |
+| Scale so a length on it becomes another, the first point staying | `--reference "0,0 254,0" --length 100` |
 | Back to as drawn | `--reset` |
 
 - **Order:** a turn and a scale come before an alignment, so `--rotate 90 --align

@@ -136,4 +136,6 @@ header-spline = Spline
 header-spline-hover = Draw a spline: click the points a smooth curve passes through
 header-mirror = Mirror
 header-mirror-hover = Mirror the selected drawn shapes about a line: click its two points, or click a straight line such as a centre line
+header-scale = Scale
+header-scale-hover = Scale the selection by a length: click two points, then type the length their distance should have, or click a third point at that distance. The first point stays
 header-slot-arc-hover = Draw an arc slot: the centre of its arc, where its centre line starts and ends, then its width

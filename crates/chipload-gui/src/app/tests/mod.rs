@@ -52,6 +52,7 @@ mod properties_sources;
 mod quick_menu;
 mod recovery_copies;
 mod relief_wizard;
+mod scale_tool;
 mod screenshots;
 mod select_drag;
 mod setups;

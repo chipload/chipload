@@ -19,5 +19,9 @@ schemars = { version = "1.2.3", optional = true }
 [features]
 schema = ["dep:schemars"]
 
+[dev-dependencies]
+# MIT OR Apache-2.0, already in the tree for the other crates' property tests.
+proptest = "1"
+
 [lints]
 workspace = true

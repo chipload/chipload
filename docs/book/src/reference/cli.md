@@ -841,7 +841,7 @@ chipload shape turn <PROJECT> <IDS>... [OPTIONS]
 
 ### `chipload shape scale`
 
-Scale drawn shapes evenly about the middle of the box round them, or a point
+Scale drawn shapes evenly about the middle of the box round them, or a point; or by reference: two points and the length their distance should have, the first point staying (docs/specs/scale-and-stretch.md §2)
 
 ```text
 chipload shape scale <PROJECT> <IDS>... [OPTIONS]
@@ -851,8 +851,29 @@ chipload shape scale <PROJECT> <IDS>... [OPTIONS]
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
 | `<IDS>` | The shape ids (as `inspect` lists them, without the S) |
-| `--factor <FACTOR>` | The factor, greater than 0: 2 doubles them. Required. |
+| `--factor <FACTOR>` | The factor, greater than 0: 2 doubles them. |
 | `--about <ABOUT>` | Scale about this point "X,Y" instead. |
+| `--reference <REFERENCE>` | Two points "X1,Y1 X2,Y2", on any shape: scaled so their distance becomes --length, the first point staying. |
+| `--length <LENGTH>` | With --reference: the length the two points' distance becomes, mm (or with a unit) |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload shape stretch`
+
+Stretch drawn shapes along X and Y about the middle of the box round them, or a point (docs/specs/scale-and-stretch.md §3). Circles and arcs become polylines fitted to the stretched curve; corner radii stay. Prints the shapes that became polylines
+
+```text
+chipload shape stretch <PROJECT> <IDS>... [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<IDS>` | The shape ids (as `inspect` lists them, without the S) |
+| `--x <X>` | The factor along X, greater than 0 (default 1) |
+| `--y <Y>` | The factor along Y, greater than 0 (default 1) |
+| `--width <WIDTH>` | Stretch along X until the box round the shapes is this wide, mm (or with a unit) |
+| `--height <HEIGHT>` | Stretch along Y until the box round the shapes is this high, mm (or with a unit) |
+| `--about <ABOUT>` | The point that stays, "X,Y"; default: the middle of the box round the shapes. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload shape offset`
@@ -2875,6 +2896,8 @@ chipload place <PROJECT> [OPTIONS]
 | `--scale <SCALE>` | Scale it about its centre by this factor (> 0), on top of any scale it has. After --rotate, before --align. |
 | `--width <WIDTH>` | Scale it about its centre until it is this wide, mm (the height follows) |
 | `--height <HEIGHT>` | Scale it about its centre until it is this high, mm (the width follows) |
+| `--reference <REFERENCE>` | Two points "X1,Y1 X2,Y2": scale it so their distance becomes --length, the first point staying (docs/specs/scale-and-stretch.md §2). After --rotate, before --align. |
+| `--length <LENGTH>` | With --reference: the length the two points' distance becomes, mm (or with a unit) |
 | `--reset` | Back to where the DXF has it: no turn, no scale, no move. |
 | `--dxf <DXF>` | Which DXF of the project (as `dxf list` shows); needed when it has several. |
 | `--image <IMAGE>` | A picture of the project instead (as `image list` shows it): --at, --rotate and --width apply, as `image set`. |

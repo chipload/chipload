@@ -171,6 +171,7 @@ menu-preferences = Préférences…
 menu-preferences-hover = Préférences dans le Navigateur, sous la Bibliothèque : unités, langue, thème de couleurs, fiche de réglage, mise à jour automatique
 menu-draw-spline = Spline
 menu-modify-mirror = Symétrie par rapport à un axe
+menu-modify-scale = Mettre à l'échelle d'après une longueur
 menu-polyline-radius = Rayon
 menu-polyline-radius-hover = Chaque coin de la polyligne dessinée est arrondi de ce rayon (0 : vif) ; un coin aux côtés trop courts reçoit le plus grand qui tient
 menu-polyline-line = Ligne

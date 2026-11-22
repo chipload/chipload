@@ -694,6 +694,11 @@ impl ChiploadApp {
                 .then_some(self.canvas_tools.array.center);
         } else if self.modify() == Some(super::modify::ModifyTool::Frame) {
             self.scene.preview = self.frame_outlines();
+        } else if self.modify() == Some(super::modify::ModifyTool::Scale) {
+            // The length measured, the line to the cursor and the selection scaled by it.
+            let at = self.cursor.map(|c| self.scale_point(c, alt, shift));
+            self.scene.preview = self.scale_preview(at);
+            self.scene.snap_mark = at.filter(|_| self.canvas_tools.scale.second.is_none());
         } else if self.modify() == Some(super::modify::ModifyTool::Mirror) {
             // The line the cursor offers and the shapes mirrored about it.
             let hover = response.hover_pos();

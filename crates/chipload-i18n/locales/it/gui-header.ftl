@@ -136,4 +136,6 @@ header-spline = Spline
 header-spline-hover = Disegna una spline: fai clic sui punti per cui passa una curva liscia
 header-mirror = Specchia
 header-mirror-hover = Specchia le forme disegnate selezionate rispetto a un asse: clicca i suoi due punti, o una linea retta come un asse centrale
+header-scale = Scala
+header-scale-hover = Scala la selezione in base a una lunghezza: clicca due punti, poi scrivi la lunghezza che deve avere la loro distanza, o clicca un terzo punto a quella distanza. Il primo punto resta
 header-slot-arc-hover = Disegna un'asola ad arco: il centro del suo arco, inizio e fine della sua linea mediana, poi la larghezza

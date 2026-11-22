@@ -145,7 +145,9 @@ pub(crate) enum ShapeAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Scale drawn shapes evenly about the middle of the box round them, or a point.
+    /// Scale drawn shapes evenly about the middle of the box round them, or a point; or by
+    /// reference: two points and the length their distance should have, the first point
+    /// staying (docs/specs/scale-and-stretch.md §2).
     Scale {
         /// The project (.chipload).
         project: PathBuf,
@@ -153,9 +155,48 @@ pub(crate) enum ShapeAction {
         #[arg(required = true)]
         ids: Vec<u64>,
         /// The factor, greater than 0: 2 doubles them.
-        #[arg(long)]
-        factor: f64,
+        #[arg(
+            long,
+            required_unless_present = "reference",
+            conflicts_with = "reference"
+        )]
+        factor: Option<f64>,
         /// Scale about this point "X,Y" instead.
+        #[arg(long, value_parser = crate::lengths::point, allow_hyphen_values = true, conflicts_with = "reference")]
+        about: Option<[f64; 2]>,
+        /// Two points "X1,Y1 X2,Y2", on any shape: scaled so their distance becomes --length,
+        /// the first point staying.
+        #[arg(long, allow_hyphen_values = true, requires = "length")]
+        reference: Option<String>,
+        /// With --reference: the length the two points' distance becomes, mm (or with a unit).
+        #[arg(value_parser = crate::lengths::length, long, requires = "reference")]
+        length: Option<f64>,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Stretch drawn shapes along X and Y about the middle of the box round them, or a point
+    /// (docs/specs/scale-and-stretch.md §3). Circles and arcs become polylines fitted to the
+    /// stretched curve; corner radii stay. Prints the shapes that became polylines.
+    Stretch {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape ids (as `inspect` lists them, without the S).
+        #[arg(required = true)]
+        ids: Vec<u64>,
+        /// The factor along X, greater than 0 (default 1).
+        #[arg(long, conflicts_with = "width")]
+        x: Option<f64>,
+        /// The factor along Y, greater than 0 (default 1).
+        #[arg(long, conflicts_with = "height")]
+        y: Option<f64>,
+        /// Stretch along X until the box round the shapes is this wide, mm (or with a unit).
+        #[arg(value_parser = crate::lengths::length, long)]
+        width: Option<f64>,
+        /// Stretch along Y until the box round the shapes is this high, mm (or with a unit).
+        #[arg(value_parser = crate::lengths::length, long)]
+        height: Option<f64>,
+        /// The point that stays, "X,Y"; default: the middle of the box round the shapes.
         #[arg(long, value_parser = crate::lengths::point, allow_hyphen_values = true)]
         about: Option<[f64; 2]>,
         /// Where to write the result; default: the project itself.

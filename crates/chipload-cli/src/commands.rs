@@ -403,10 +403,17 @@ pub(crate) enum Command {
         /// Scale it about its centre until it is this high, mm (the width follows).
         #[arg(value_parser = crate::lengths::length, long, allow_hyphen_values = true, conflicts_with_all = ["by", "to"])]
         height: Option<f64>,
+        /// Two points "X1,Y1 X2,Y2": scale it so their distance becomes --length, the first
+        /// point staying (docs/specs/scale-and-stretch.md §2). After --rotate, before --align.
+        #[arg(long, allow_hyphen_values = true, requires = "length", conflicts_with_all = ["by", "to", "scale", "width", "height"])]
+        reference: Option<String>,
+        /// With --reference: the length the two points' distance becomes, mm (or with a unit).
+        #[arg(value_parser = crate::lengths::length, long, requires = "reference")]
+        length: Option<f64>,
         /// Back to where the DXF has it: no turn, no scale, no move.
         #[arg(
             long,
-            conflicts_with_all = ["by", "to", "at", "align", "margin", "rotate", "scale", "width", "height"]
+            conflicts_with_all = ["by", "to", "at", "align", "margin", "rotate", "scale", "width", "height", "reference"]
         )]
         reset: bool,
         /// Which DXF of the project (as `dxf list` shows); needed when it has several.

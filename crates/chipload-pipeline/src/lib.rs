@@ -37,6 +37,7 @@ pub mod recovery;
 pub mod relief_wizard;
 pub mod report;
 mod run;
+pub mod scaling;
 pub mod selection;
 pub mod setups;
 pub mod shape_library;

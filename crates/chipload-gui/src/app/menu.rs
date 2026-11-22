@@ -78,6 +78,8 @@ impl ChiploadApp {
                 // The instance goes back (docs/specs/instances.md §4).
             } else if self.close_compass_menu() {
                 // Nothing moved (docs/specs/compass.md §6).
+            } else if self.scale_back() {
+                // The tool stays, one step back (docs/specs/scale-and-stretch.md §2).
             } else if self.forget_between_pick() {
                 // The tool stays (docs/specs/fillet-between-shapes.md §5).
             } else if self.tool_active() {
@@ -771,6 +773,11 @@ impl ChiploadApp {
                 super::modify::ModifyTool::Mirror,
                 with_keys(&t!(ui, "menu-modify-mirror"), Action::Mirror),
                 t!(ui, "header-mirror-hover"),
+            ),
+            (
+                super::modify::ModifyTool::Scale,
+                t!(ui, "menu-modify-scale"),
+                t!(ui, "header-scale-hover"),
             ),
             (
                 super::modify::ModifyTool::Array,
