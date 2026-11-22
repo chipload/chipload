@@ -277,3 +277,27 @@ fn a_single_line_font_shows_the_engrave_depth_and_makes_a_follow_path() {
     };
     assert_eq!(letters.end_depth, 0.7);
 }
+
+#[test]
+fn signs_from_a_list_are_made_in_one_part_and_the_preview_counts_them() {
+    // docs/specs/batch-signs.md §2.
+    let mut harness = window();
+    harness.state_mut().start_sign();
+    harness.run_steps(2);
+    let Some(Prompt::Sign(mut settings)) = harness.state().dialogs.prompt.clone() else {
+        panic!("the dialog");
+    };
+    settings.from_list = true;
+    settings.fixed = true;
+    settings.size = (160.0, 50.0);
+    settings.list = "ANNA | ROOM 1\nBO\nCARL\n".into();
+    harness.state_mut().dialogs.prompt = Some(Prompt::Sign(settings));
+    harness.run_steps(3);
+    assert!(harness.get_all_by_label("3 signs, in a grid").count() > 0);
+    click(&mut harness, "Make sign");
+    let job = &harness.state().edit.as_ref().unwrap().job;
+    assert_eq!(job.drawing.frames.len(), 3);
+    assert_eq!(job.drawing.texts.len(), 3);
+    let names: Vec<&str> = job.operations.iter().map(|op| op.name()).collect();
+    assert_eq!(names, ["Letters", "Borders", "Cut out"]);
+}

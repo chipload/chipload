@@ -38,6 +38,9 @@ pub(super) struct SignSettings {
     pub double: bool,
     /// Round words with the oval frame (docs/specs/text-on-arc.md §6).
     pub round: bool,
+    /// Signs from a list, one per line, instead of the words (docs/specs/batch-signs.md).
+    pub from_list: bool,
+    pub list: String,
     pub border_width: f64,
     pub style: SignStyle,
     pub relief: f64,
@@ -91,6 +94,8 @@ impl SignSettings {
             border_corners: None,
             double: false,
             round: false,
+            from_list: false,
+            list: String::new(),
             border_width: DEFAULT_BORDER_WIDTH_MM,
             style: SignStyle::Engraved,
             relief: DEFAULT_RELIEF_MM,
@@ -151,6 +156,68 @@ impl SignSettings {
     }
 }
 
+/// What the dialog makes: one sign, or every sign of a list.
+struct Made {
+    job: chipload_job::Job,
+    operations: Vec<usize>,
+    fitted: Option<f64>,
+    /// How many signs.
+    count: usize,
+    /// The new shapes to select afterwards.
+    shapes: Vec<u64>,
+}
+
+impl SignSettings {
+    /// The sign, or the list's signs, in `job` with `request`.
+    fn make(
+        &self,
+        job: &chipload_job::Job,
+        request: SignRequest,
+        fonts: &dyn chipload_pipeline::fonts::FontSource,
+        library: Option<&ToolLibrary>,
+        lang: crate::i18n::Language,
+    ) -> Result<Made, chipload_pipeline::PipelineError> {
+        let before: std::collections::BTreeSet<u64> =
+            job.drawing.shapes.iter().map(|s| s.id).collect();
+        let new_shapes = |done: &chipload_job::Job| -> Vec<u64> {
+            done.drawing
+                .shapes
+                .iter()
+                .filter(|s| !before.contains(&s.id))
+                .map(|s| s.id)
+                .collect()
+        };
+        if self.from_list && self.around.is_empty() {
+            use chipload_pipeline::sign_batch::{
+                BatchRequest, DEFAULT_BATCH_GAP_MM, add_sign_batch,
+            };
+            let batch = BatchRequest {
+                sign: request,
+                list: self.list.lines().map(str::to_string).collect(),
+                gap: DEFAULT_BATCH_GAP_MM,
+            };
+            let (done, made) = add_sign_batch(job, &batch, fonts, library, lang)?;
+            return Ok(Made {
+                shapes: new_shapes(&done),
+                job: done,
+                operations: made.operations,
+                fitted: made.fitted,
+                count: made.outlines.len(),
+            });
+        }
+        let (done, made) = add_sign(job, &request, fonts, library, lang)?;
+        let mut shapes = new_shapes(&done);
+        shapes.extend(&self.around);
+        Ok(Made {
+            shapes,
+            job: done,
+            operations: made.operations,
+            fitted: made.fitted,
+            count: 1,
+        })
+    }
+}
+
 /// The sign the dialog shows, kept until its values or the project change.
 #[derive(Debug, Clone)]
 pub(super) struct SignPreview {
@@ -161,6 +228,8 @@ pub(super) struct SignPreview {
     adds: Result<Vec<String>, String>,
     /// The letters' height found for a sign of a fixed size, mm.
     fitted: Option<f64>,
+    /// How many signs it makes.
+    count: usize,
 }
 
 impl Default for SignPreview {
@@ -170,6 +239,7 @@ impl Default for SignPreview {
             lines: Vec::new(),
             adds: Ok(Vec::new()),
             fitted: None,
+            count: 0,
         }
     }
 }
@@ -238,35 +308,37 @@ impl ChiploadApp {
         let units = self.prefs.units.into();
         let library = self.library().map(|l| l.tools.clone());
         let fonts = self.font_source();
-        let before: std::collections::BTreeSet<u64> =
-            edit.job.drawing.shapes.iter().map(|s| s.id).collect();
         let made = match settings.request(&edit.job, library.as_ref()) {
             None => Err(t!(self, "sign-no-tools")),
-            Some((job, request)) => add_sign(&job, &request, &*fonts, library.as_ref(), lang)
+            Some((job, request)) => settings
+                .make(&job, request, &*fonts, library.as_ref(), lang)
                 .map_err(|e| e.message().render(lang, units)),
         };
         let preview = match made {
-            Ok((job, sign)) => SignPreview {
+            Ok(made) => SignPreview {
                 key,
-                lines: job
+                lines: made
+                    .job
                     .drawing
                     .shapes
                     .iter()
-                    .filter(|s| !before.contains(&s.id) || settings.around.contains(&s.id))
+                    .filter(|s| made.shapes.contains(&s.id))
                     .flat_map(|s| crate::draw::outline(&s.geometry))
                     .collect(),
-                adds: Ok(sign
+                adds: Ok(made
                     .operations
                     .iter()
-                    .map(|&i| job.operations[i].name().to_string())
+                    .map(|&i| made.job.operations[i].name().to_string())
                     .collect()),
-                fitted: sign.fitted,
+                fitted: made.fitted,
+                count: made.count,
             },
             Err(why) => SignPreview {
                 key,
                 lines: Vec::new(),
                 adds: Err(why),
                 fitted: None,
+                count: 0,
             },
         };
         self.canvas_tools.sign_preview = preview.clone();
@@ -288,29 +360,25 @@ impl ChiploadApp {
             self.error(vec![t!(self, "sign-no-tools")]);
             return false;
         };
-        match add_sign(&job, &request, &*fonts, library.as_ref(), lang) {
-            Ok((job, made)) => {
-                let mut ids: Vec<u64> = job
-                    .drawing
-                    .shapes
-                    .iter()
-                    .filter(|s| made.text.is_some() && s.text() == made.text)
-                    .map(|s| s.id)
-                    .collect();
-                ids.extend(&settings.around);
-                ids.push(made.outline);
-                ids.extend(&made.borders);
+        match settings.make(&job, request, &*fonts, library.as_ref(), lang) {
+            Ok(made) => {
                 if let Some(edit) = self.edit.as_mut() {
-                    edit.adopt(job);
+                    edit.adopt(made.job);
                 }
-                self.drawing_changed(&ids);
+                self.drawing_changed(&made.shapes);
                 self.fit_pending = true;
                 self.commit();
-                self.set_report(Report::info([t!(
-                    self,
-                    "sign-made",
-                    count = made.operations.len()
-                )]));
+                let text = if made.count > 1 {
+                    t!(
+                        self,
+                        "sign-list-made",
+                        count = made.count,
+                        operations = made.operations.len()
+                    )
+                } else {
+                    t!(self, "sign-made", count = made.operations.len())
+                };
+                self.set_report(Report::info([text]));
                 true
             }
             Err(err) => {
@@ -355,6 +423,9 @@ impl ChiploadApp {
             sign_picture(ui, &preview.lines);
             match &preview.adds {
                 Ok(names) => {
+                    if preview.count > 1 {
+                        ui.weak(t!(ui, "sign-list-count", count = preview.count));
+                    }
                     ui.weak(t!(ui, "sign-adds", operations = names.join(", ")));
                 }
                 Err(why) => {
@@ -421,13 +492,33 @@ fn word_fields(
     fonts: &super::text_fonts::TextFonts,
     fitted: Option<f64>,
 ) {
-    ui.label(crate::style::bold(ui, t!(ui, "sign-words")));
-    ui.add(
-        egui::TextEdit::multiline(&mut s.words)
-            .desired_rows(2)
-            .desired_width(f32::INFINITY)
-            .hint_text(t!(ui, "sign-words-hint")),
-    );
+    ui.horizontal(|ui| {
+        ui.label(crate::style::bold(ui, t!(ui, "sign-signs")));
+        ui.selectable_value(&mut s.from_list, false, t!(ui, "sign-signs-one"));
+        let was = s.from_list;
+        ui.selectable_value(&mut s.from_list, true, t!(ui, "sign-signs-list"))
+            .on_hover_text(t!(ui, "sign-signs-list-hover"));
+        // A list starts on a fixed size, so the signs match (docs/specs/batch-signs.md §5).
+        if s.from_list && !was {
+            s.fixed = true;
+        }
+    });
+    if s.from_list {
+        ui.add(
+            egui::TextEdit::multiline(&mut s.list)
+                .desired_rows(5)
+                .desired_width(f32::INFINITY)
+                .hint_text(t!(ui, "sign-list-hint")),
+        );
+    } else {
+        ui.label(crate::style::bold(ui, t!(ui, "sign-words")));
+        ui.add(
+            egui::TextEdit::multiline(&mut s.words)
+                .desired_rows(2)
+                .desired_width(f32::INFINITY)
+                .hint_text(t!(ui, "sign-words-hint")),
+        );
+    }
     egui::Grid::new("sign-words-grid")
         .num_columns(2)
         .spacing([12.0, 6.0])

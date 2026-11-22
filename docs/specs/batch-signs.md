@@ -97,3 +97,7 @@ exist. Nothing remembers that they were made as a batch.
   plug needs a setup of its own, which stays one sign at a time. The batch's layers are
   named after its part in the app's language. A list counts at most 500 signs. Golden
   `v43_name_plates`.
+- **Step 2:** the wizard's *Signs: One / From a list* (`SignSettings::from_list`, a list
+  box in place of the words); choosing a list turns *Size* to *Fixed*; the preview shows
+  "3 signs, in a grid" and the operations; *Make sign* makes the batch as one undo step.
+  The gap is the default 10 mm in the wizard (`--list-gap` on the command line).

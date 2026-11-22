@@ -76,8 +76,10 @@ operations afterwards.
 ## Signs from a list
 
 Name plates, door signs, place cards and drawer labels are the same sign with different
-words. Make them all at once from a list: one sign per line, and ` | ` in a line to start
-that sign's second line (`ANNA BERG | ROOM 12`).
+words. Make them all at once from a list: in *New sign…*, choose **Signs: From a list**
+and type or paste the list, one sign per line, with ` | ` in a line to start that sign's
+second line (`ANNA BERG | ROOM 12`). A list starts on *Size: Fixed*; the preview shows the
+grid and the count.
 
 - **Every sign the same:** the font, frame, borders, style, edge and tools are the ones
   set. With *Size: Fixed* every sign is that size and **every sign gets the same letter
