@@ -54,7 +54,8 @@ done is in git and in the releases' notes on GitHub, no longer listed here.
    - ~~more post-processors~~ built 2026-11-22 (docs/specs/more-posts.md): MASSO, Centroid
      Acorn, controllers named; UCCNC waits for a manual that says how it reads I and J and
      its units (§8);
-   - signs from a list (docs/specs/batch-signs.md).
+   - signs from a list (docs/specs/batch-signs.md): step 1 built (`sign add --list`); left:
+     step 2, the wizard's *Signs: One / From a list*.
 1. **Drawing, step 2** (the review of the drawing tools, 2026-11-18; docs/specs/
    drawing-improvements.md), in this order:
    - ~~fillet and chamfer at line-arc corners and between two shapes~~ built 2026-11-21

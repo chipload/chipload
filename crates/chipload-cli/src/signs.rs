@@ -34,6 +34,17 @@ pub struct AddSign {
     /// What it says; "\n" starts a new line. Leave it out to make the sign round shapes
     /// already drawn (--around, --around-text, --around-image).
     words: Option<String>,
+    /// A list of signs instead of the words: a text file, one sign per line, `|` (or
+    /// "\n") starting a sign's second line. Every sign gets the same frame and style, in one
+    /// part whose operations cut them all (docs/specs/batch-signs.md).
+    #[arg(long, conflicts_with_all = ["words", "list_words", "around", "around_text", "around_image"])]
+    list: Option<PathBuf>,
+    /// The list given here instead of a file: signs separated by "\n", lines by `|`.
+    #[arg(long, conflicts_with_all = ["words", "around", "around_text", "around_image"])]
+    list_words: Option<String>,
+    /// With a list: between two signs, and from a kept board's edge, mm (default 10).
+    #[arg(value_parser = crate::lengths::length, long)]
+    list_gap: Option<f64>,
     /// Round these shapes instead of new words (ids as `inspect` lists them).
     #[arg(long, num_args = 1.., value_delimiter = ',')]
     around: Vec<u64>,
@@ -193,7 +204,16 @@ fn add_one(out: &mut Out, add: AddSign) -> ExitCode {
         Ok(ids) => ids,
         Err(err) => return out.fail(err),
     };
+    let list: Option<Vec<String>> = match (&add.list, &add.list_words) {
+        (Some(file), _) => match std::fs::read_to_string(file) {
+            Ok(text) => Some(text.lines().map(str::to_string).collect()),
+            Err(err) => return out.fail(format!("can't read {}: {err}", file.display())),
+        },
+        (None, Some(words)) => Some(words.split("\\n").map(str::to_string).collect()),
+        (None, None) => None,
+    };
     let words = match (&add.words, around.is_empty()) {
+        _ if list.is_some() => String::new(),
         (Some(words), true) => crate::texts::lines(words),
         (None, false) => String::new(),
         _ => {
@@ -205,7 +225,7 @@ fn add_one(out: &mut Out, add: AddSign) -> ExitCode {
     };
     let mut request = SignRequest::new(&words, add.vbit, add.end_mill);
     request.around = around;
-    if let Some(font) = add.font {
+    if let Some(font) = add.font.clone() {
         request.font = font;
     }
     request.height = add.height;
@@ -235,6 +255,9 @@ fn add_one(out: &mut Out, add: AddSign) -> ExitCode {
     let library = settings_dir()
         .map(|dir| Library::load(&dir))
         .unwrap_or_default();
+    if let Some(list) = list {
+        return add_list(out, &add, job, request, list, &library);
+    }
     let (job, made) = match add_sign(
         &job,
         &request,
@@ -289,6 +312,69 @@ fn add_one(out: &mut Out, add: AddSign) -> ExitCode {
         json!(made.operations.iter().map(|i| i + 1).collect::<Vec<_>>()),
     );
     out.set("plug_setup", json!(made.plug_setup));
+    out.set("height", json!(made.fitted));
+    ExitCode::SUCCESS
+}
+
+/// `sign add --list`: every sign of the list in one part (docs/specs/batch-signs.md).
+fn add_list(
+    out: &mut Out,
+    add: &AddSign,
+    job: chipload_job::Job,
+    request: SignRequest,
+    list: Vec<String>,
+    library: &Library,
+) -> ExitCode {
+    use chipload_pipeline::sign_batch::{BatchRequest, DEFAULT_BATCH_GAP_MM, add_sign_batch};
+    let batch = BatchRequest {
+        sign: request,
+        list,
+        gap: add.list_gap.unwrap_or(DEFAULT_BATCH_GAP_MM),
+    };
+    let (job, made) = match add_sign_batch(
+        &job,
+        &batch,
+        &crate::texts::computer_fonts(),
+        Some(&library.tools),
+        chipload_i18n::Language::En,
+    ) {
+        Ok(done) => done,
+        Err(err) => return out.fail(err),
+    };
+    let target = add.output.as_deref().unwrap_or(&add.project);
+    if let Err(err) = crate::save_project(out, &job, target) {
+        return out.fail(err);
+    }
+    let part = job.part(made.part).map_or("", |p| p.name.as_str());
+    out.line(format!(
+        "Made {} signs in part {} \"{part}\", on layers \"{}\", \"{}\" and \"{}\":",
+        made.outlines.len(),
+        made.part,
+        made.layers[0],
+        made.layers[1],
+        made.layers[2]
+    ));
+    for &i in &made.operations {
+        out.line(format!(
+            "  operation {}: {}",
+            i + 1,
+            job.operations[i].name()
+        ));
+    }
+    if let Some(height) = made.fitted {
+        out.line(format!(
+            "The letters are {} mm high on every sign, the most that fit the longest.",
+            chipload_pipeline::placement::factor_text(height)
+        ));
+    }
+    out.wrote(target, "");
+    out.set("part", json!(made.part));
+    out.set("outlines", json!(made.outlines));
+    out.set("groups", json!(made.groups));
+    out.set(
+        "operations",
+        json!(made.operations.iter().map(|i| i + 1).collect::<Vec<_>>()),
+    );
     out.set("height", json!(made.fitted));
     ExitCode::SUCCESS
 }

@@ -14,7 +14,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 93] = [
+const GOLDEN: [(&str, &str); 94] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -346,6 +346,13 @@ const GOLDEN: [(&str, &str); 93] = [
     // `;` comments and .cnc, neither with G91.1 (both read I and J from the arc's start).
     ("v43_bracket_masso", "jobs/v43/bracket_masso.chipload"),
     ("v43_bracket_acorn", "jobs/v43/bracket_acorn.chipload"),
+    // Three name plates from a list (docs/specs/batch-signs.md), made with `new --thickness
+    // 12 --size 300x200` from an empty settings folder, `tool add "V 60" --type vbit
+    // --diameter 12.7 --angle 60 --tip 0.2 --rpm 18000`, `tool use "V 60"`, then `sign add
+    // … --list-words "ANNA BERG|ROOM 12\nBO LIND|ROOM 14\nCARL" --size 160x50 --borders 1
+    // --vbit 2 --end-mill 1 --thickness 12`: one part, letters, borders and cut-outs once,
+    // one tool change: two files, one per tool.
+    ("v43_name_plates", "jobs/v43/name_plates.chipload"),
 ];
 
 /// Projects nested before they are run (docs/specs/nesting.md §13): `chipload nest` with

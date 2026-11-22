@@ -119,3 +119,43 @@ fn a_single_line_sign_is_engraved_at_the_depth_asked() {
     assert_eq!(op["type"], "path", "{op}");
     assert_eq!(op["end_depth"], 0.6);
 }
+
+#[test]
+fn a_list_of_signs_is_made_from_a_file_or_the_command_line() {
+    // docs/specs/batch-signs.md §2.
+    let dir = temp_dir("list");
+    ok(&dir, &["new", "-o", "p.chipload"]);
+    ok(&dir, &["set", "p.chipload", TOOLS]);
+    std::fs::write(dir.join("names.txt"), "ANNA | ROOM 1\n\nBO\nCARL\n").unwrap();
+    let tools = ["--vbit", "2", "--end-mill", "1"];
+    let mut args = vec![
+        "sign",
+        "add",
+        "p.chipload",
+        "--list",
+        "names.txt",
+        "--size",
+        "150x50",
+    ];
+    args.extend(tools);
+    let made = ok(&dir, &args);
+    assert_eq!(made["outlines"].as_array().unwrap().len(), 3, "{made}");
+    assert_eq!(made["operations"], serde_json::json!([1, 2, 3]));
+    assert!(made["height"].as_f64().unwrap() > 5.0);
+    let mut args = vec![
+        "sign",
+        "add",
+        "p.chipload",
+        "--list-words",
+        "DORA\\nEMIL",
+        "--list-gap",
+        "20",
+    ];
+    args.extend(tools);
+    let made = ok(&dir, &args);
+    assert_eq!(made["outlines"].as_array().unwrap().len(), 2, "{made}");
+    // A list and words don't go together.
+    let mut both = vec!["sign", "add", "p.chipload", "X", "--list-words", "A\\nB"];
+    both.extend(tools);
+    assert_eq!(run(&dir, &both).status.code(), Some(2));
+}

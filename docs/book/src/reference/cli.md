@@ -1662,6 +1662,9 @@ chipload sign add <PROJECT> <WORDS> [OPTIONS]
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
 | `<WORDS>` | What it says; "\n" starts a new line. Leave it out to make the sign round shapes already drawn (--around, --around-text, --around-image) |
+| `--list <LIST>` | A list of signs instead of the words: a text file, one sign per line, `\|` (or "\n") starting a sign's second line. Every sign gets the same frame and style, in one part whose operations cut them all (docs/specs/batch-signs.md) |
+| `--list-words <LIST_WORDS>` | The list given here instead of a file: signs separated by "\n", lines by `\|`. |
+| `--list-gap <LIST_GAP>` | With a list: between two signs, and from a kept board's edge, mm (default 10) |
 | `--around <AROUND>` | Round these shapes instead of new words (ids as `inspect` lists them) Repeatable. |
 | `--around-text <AROUND_TEXT>` | Round these texts' letters. Repeatable. |
 | `--around-image <AROUND_IMAGE>` | Round these traced pictures (ids as `image list` shows them): carved as the picture, the frame following it when it is traced again. Repeatable. |

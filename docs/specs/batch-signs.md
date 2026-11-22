@@ -1,6 +1,7 @@
 # Spec: signs from a list
 
-Status: **draft for review, 2026-11-22.** From the review of capability gaps (the user:
+Status: **approved 2026-11-22** (the user: "Go ahead"; §5 as recommended; see *As built*,
+§8). From the review of capability gaps (the user:
 "Do 1, 2 and 4"). Builds on sign-maker.md, sign-size-and-start.md (a fixed size) and
 parts.md (the order of cutting).
 
@@ -85,3 +86,14 @@ exist. Nothing remembers that they were made as a batch.
 
 1. The pipeline, the command line, the golden, the guide.
 2. The wizard's *From a list*.
+
+## 8. As built
+
+- **Step 1:** `chipload_pipeline::sign_batch::{add_sign_batch, BatchRequest, list_words}`;
+  `sign add --list FILE`, `--list-words` and `--list-gap` (`--gap` already names the
+  frame's gap between borders). The operations are grouped by tool: letters, borders and
+  edge with the V-bit, then a raised list's backgrounds and the cut-outs with the end mill
+  (a raised single sign cuts its background first). **Inlaid lists are refused**: each
+  plug needs a setup of its own, which stays one sign at a time. The batch's layers are
+  named after its part in the app's language. A list counts at most 500 signs. Golden
+  `v43_name_plates`.

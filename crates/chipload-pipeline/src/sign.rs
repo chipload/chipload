@@ -145,14 +145,14 @@ impl SignRequest {
     }
 
     /// New words in a single-line font: engraved along their strokes.
-    fn single_line(&self) -> bool {
+    pub(crate) fn single_line(&self) -> bool {
         self.around.is_empty()
             && chipload_text::builtin(&self.font)
                 .is_some_and(chipload_text::BuiltinFont::single_line)
     }
 
     /// The frame as asked for, of `size`.
-    fn frame(&self, size: FrameSize) -> NewFrame {
+    pub(crate) fn frame(&self, size: FrameSize) -> NewFrame {
         let mut frame = NewFrame::new(self.kind, size);
         frame.r = self.corner;
         frame.borders = self.borders;
@@ -306,10 +306,11 @@ const ROUND_WORDS_SPAN_DEG: f64 = 150.0;
 /// circle round `center`, the second along its bottom, on one radius, the rest straight in
 /// the middle. The radius is the least that keeps each arc line within
 /// [`ROUND_WORDS_SPAN_DEG`] and the middle clear of the ring. Returns the texts' ids.
-fn round_words(
+pub(crate) fn round_words(
     job: &Job,
     request: &SignRequest,
     center: (f64, f64),
+    layer: &str,
     fonts: &dyn FontSource,
 ) -> Result<(Job, Vec<u64>), PipelineError> {
     let lines: Vec<&str> = request
@@ -348,6 +349,7 @@ fn round_words(
         new.anchor = TextAnchor::Center;
         new.align = TextAlign::Center;
         new.arc = arc;
+        new.layer = layer;
         let (with, report) = add_text(job, new, fonts)?;
         *job = with;
         texts.push(report.id);
@@ -373,7 +375,10 @@ const FIT_MIN_HEIGHT_MM: f64 = 1.0;
 const FIT_STEP_MM: f64 = 0.05;
 
 /// A fixed size that can be a sign's: positive, and round for round words.
-fn check_size(request: &SignRequest, (width, height): (f64, f64)) -> Result<(), PipelineError> {
+pub(crate) fn check_size(
+    request: &SignRequest,
+    (width, height): (f64, f64),
+) -> Result<(), PipelineError> {
     if !(width.is_finite() && width > 0.0 && height.is_finite() && height > 0.0) {
         return Err(refused(
             Message::new("pipeline-sign-size")
@@ -391,7 +396,7 @@ fn check_size(request: &SignRequest, (width, height): (f64, f64)) -> Result<(), 
 /// between [`FIT_MIN_HEIGHT_MM`] and the size, each try a sign of its own in an empty
 /// project with its frame round the words, compared with the size. A sign grows with its
 /// letters, so the search needs no formula for each frame.
-fn fitted_height(
+pub(crate) fn fitted_height(
     request: &SignRequest,
     size: (f64, f64),
     fonts: &dyn FontSource,
@@ -430,7 +435,7 @@ fn fitted_height(
 }
 
 /// The outer size of the frame round `request`'s words at letters `height`, mm.
-fn framed_size(
+pub(crate) fn framed_size(
     request: &SignRequest,
     height: f64,
     fonts: &dyn FontSource,
@@ -441,7 +446,13 @@ fn framed_size(
     };
     let scratch = crate::empty_project();
     let (job, ids) = if tried.round {
-        let (job, texts) = round_words(&scratch, &tried, (0.0, 0.0), fonts)?;
+        let (job, texts) = round_words(
+            &scratch,
+            &tried,
+            (0.0, 0.0),
+            crate::texts::DEFAULT_LAYER,
+            fonts,
+        )?;
         let ids: Vec<u64> = job
             .drawing
             .shapes
@@ -499,22 +510,22 @@ pub struct SignMade {
     pub fitted: Option<f64>,
 }
 
-fn refused(message: Message) -> PipelineError {
+pub(crate) fn refused(message: Message) -> PipelineError {
     PipelineError::Job(message)
 }
 
-fn length(mm: f64) -> Value {
+pub(crate) fn length(mm: f64) -> Value {
     Value::Length(mm, Digits::Shortest)
 }
 
 /// The sign's name: its first line, at most [`NAME_LENGTH`] characters.
-fn sign_name(words: &str) -> String {
+pub(crate) fn sign_name(words: &str) -> String {
     let line = words.lines().find(|l| !l.trim().is_empty()).unwrap_or("");
     line.trim().chars().take(NAME_LENGTH).collect()
 }
 
 /// The tools a sign needs, or why they won't do.
-fn check_tools(job: &Job, request: &SignRequest) -> Result<(), PipelineError> {
+pub(crate) fn check_tools(job: &Job, request: &SignRequest) -> Result<(), PipelineError> {
     let vbit = job
         .tool(request.vbit)
         .ok_or_else(|| refused(Message::new("pipeline-no-tool").arg("tool", request.vbit)))?;
@@ -535,7 +546,7 @@ fn check_tools(job: &Job, request: &SignRequest) -> Result<(), PipelineError> {
 }
 
 /// What else must hold before anything is made.
-fn check_values(request: &SignRequest) -> Result<(), PipelineError> {
+pub(crate) fn check_values(request: &SignRequest) -> Result<(), PipelineError> {
     if request.around.is_empty() && sign_name(&request.words).is_empty() {
         return Err(refused(Message::new("pipeline-sign-words")));
     }
@@ -661,7 +672,8 @@ pub fn add_sign(
     let (job, text, mut art) = match art {
         Some(art) => (job, None, art),
         None if request.round => {
-            let (job, texts) = round_words(&job, request, center, fonts)?;
+            let (job, texts) =
+                round_words(&job, request, center, crate::texts::DEFAULT_LAYER, fonts)?;
             let art = Artwork::of_texts(&job, &texts, &name);
             (job, texts.first().copied(), art)
         }
@@ -855,17 +867,17 @@ pub fn add_sign(
 }
 
 /// What every new operation of the sign is made with.
-struct Ctx<'a> {
-    contours: &'a [Contour],
-    library: Option<&'a ToolLibrary>,
-    lang: Language,
-    part: u64,
+pub(crate) struct Ctx<'a> {
+    pub(crate) contours: &'a [Contour],
+    pub(crate) library: Option<&'a ToolLibrary>,
+    pub(crate) lang: Language,
+    pub(crate) part: u64,
 }
 
 impl Ctx<'_> {
     /// A new operation of `kind` on `select` with `tool`, the app's defaults and the
     /// library's feeds, in the sign's part.
-    fn make(
+    pub(crate) fn make(
         &self,
         job: &Job,
         kind: OpKind,
@@ -889,7 +901,7 @@ impl Ctx<'_> {
     }
 
     /// `op` after the sign's other operations; its index.
-    fn append(&self, job: &mut Job, op: Operation) -> usize {
+    pub(crate) fn append(&self, job: &mut Job, op: Operation) -> usize {
         let at = job.insert_index(self.part);
         job.operations.insert(at, op);
         at
@@ -897,7 +909,7 @@ impl Ctx<'_> {
 }
 
 /// A follow path's depth: from the top to `depth`, in its passes.
-fn set_depth(op: &mut Operation, depth: f64) {
+pub(crate) fn set_depth(op: &mut Operation, depth: f64) {
     if let Operation::Path(p) = op {
         p.start_depth = 0.0;
         p.end_depth = depth;

@@ -1768,6 +1768,32 @@ Chip load (at the cutting feed):
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v43/name_plates.chipload
+exit 0
+--- stdout
+note: Operation 2 (Borders): the V-groove is 2 mm wide at the top
+note: Operation 3 (Cut out): cuts through, 0.500 mm into the spoilboard
+Operation 3: a ring starts at (-160.000, -58.000) (default)
+Operation 3: a ring starts at (-160.000, 2.000) (default)
+Operation 3: a ring starts at (10.000, 2.000) (default)
+Estimated time: 12 min 49 s (cutting 12 min 24 s, rapids 18 s, spindle 6 s), plus 1 tool change
+Cut outline: 342.000 × 122.000 mm (X -171.000 … 171.000, Y -61.000 … 61.000, the tool included): the smallest stock that holds the job.
+  Operation 1 (Letters): 32 s; cutting 725 mm, plunging 51 mm, rapids 926 mm, 48 lifts
+  Operation 2 (Borders): 50 s; cutting 2.3 m, plunging 8 mm, rapids 357 mm, 3 lifts
+  Operation 3 (Cut out): 11 min 20 s; cutting 16.9 m, plunging 3 mm, rapids 255 mm, 3 lifts
+  File 1: 1 min 26 s
+  File 2: 11 min 23 s
+  In all: cutting 19.9 m, plunging 61 mm, rapids 1.5 m, 54 lifts.
+  At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Letters): set the tool's flutes to see the chip load
+  Operation 2 (Borders): set the tool's flutes to see the chip load
+  Operation 3 (Cut out): set the tool's flutes to see the chip load
+Tool group 1: tool 2, operations 1, 2
+Tool group 2: tool 1, operations 3
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v43/nameplate.chipload
 exit 0
 --- stdout

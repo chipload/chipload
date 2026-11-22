@@ -73,6 +73,34 @@ tools' cutting data. The words and the frame are one group: a click selects the 
 moves it. All of it is one undo step, and every part of it is ordinary shapes and
 operations afterwards.
 
+## Signs from a list
+
+Name plates, door signs, place cards and drawer labels are the same sign with different
+words. Make them all at once from a list: one sign per line, and ` | ` in a line to start
+that sign's second line (`ANNA BERG | ROOM 12`).
+
+- **Every sign the same:** the font, frame, borders, style, edge and tools are the ones
+  set. With *Size: Fixed* every sign is that size and **every sign gets the same letter
+  height**, the largest that fits the longest line of the list, so the signs match. With
+  *Fit the words*, each frame follows its own words.
+- **One part, cut at once:** the signs go in one part named after the first and the count
+  ("ANNA BERG +19"). Its operations cut every sign together: all the letters, then all
+  the borders and edges with the V-bit, then every cut-out with the end mill, so the tool
+  changes once, not twice for every sign. The operations select the batch's layers
+  (*ANNA BERG +19 letters*, *… borders*, *… outline*), so a name corrected later is
+  still cut.
+- **Each sign stays a sign:** its words and frame are grouped, and the frame follows its
+  words.
+- **Laid out in a grid** 10 mm apart: as near square as the count allows when the board is
+  fitted round the signs; on a board you keep, as many to a row as fit, from its top left,
+  and a list that doesn't fit is refused with the board size it needs.
+- **Styles:** engraved (single-line fonts too) and raised (one background pocket per sign,
+  all with the end mill). Inlaid signs are made one at a time: each plug needs a board of
+  its own.
+- **On the command line:** `chipload sign add P --list names.txt --size 200x60 --vbit 2
+  --end-mill 1`, or `--list-words "ANNA BERG|ROOM 12\nBO LIND|ROOM 14"`; `--list-gap`
+  sets the space between signs.
+
 ![A text selected, Draw > Frame… open under Selection, a rounded frame with one border previewed round the text](../images/frame.png)
 
 ## A frame round a text
