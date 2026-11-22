@@ -1,6 +1,7 @@
 # Spec: a sign of a fixed size, and New sign… on the start page
 
-Status: **draft for review, 2026-11-22.** Two leftovers of the sign wizard (TODO, *Next* 8,
+Status: **approved 2026-11-22** (the user: "go ahead"; §6 as recommended; see *As
+built*, §7). Two leftovers of the sign wizard (TODO, *Next* 8,
 signs), done before 0.40.0 at the user's request.
 
 Builds on sign-maker.md (the wizard, frames that follow their text) and text-on-arc.md §6
@@ -94,3 +95,12 @@ languages).
 3. **New sign… on the start page skips the New project dialog** and takes the defaults,
    since the wizard sets the board. *Alternative:* the New project dialog first, then the
    wizard (one more step, and the board it sets is replaced by the sign's).
+
+## 7. As built
+
+- **Fixed size:** `SignRequest::size`, `SignMade::fitted`; `sign add --size WxH` (it
+  prints the height found, `height` in `--json`). The search stops within 0.05 mm, then
+  rounds down to 0.1 mm. A sign round shapes already drawn with a size gets a frame of
+  that size round them, the shapes as they are. In *New sign…*: *Size: Fit the words /
+  Fixed*, *Outer size* (W, H) or *Diameter* for round words, and *Letters* showing the
+  height found by the preview.

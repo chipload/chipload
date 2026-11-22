@@ -48,8 +48,13 @@ pub struct AddSign {
     #[arg(long)]
     font: Option<String>,
     /// The capital height, mm.
-    #[arg(value_parser = crate::lengths::length, long, default_value = "30")]
+    #[arg(value_parser = crate::lengths::length, long, default_value = "30", conflicts_with = "size")]
     height: f64,
+    /// The sign's outer size "W×H", such as 300x100 (any length unit; plain numbers are
+    /// mm): the frame is that size and the letters as high as fit, instead of --height
+    /// (docs/specs/sign-size-and-start.md §1).
+    #[arg(long, value_parser = crate::commands::board_size)]
+    size: Option<(f64, f64)>,
     /// The frame (`frame kinds`).
     #[arg(long, value_enum, default_value = "rounded")]
     frame: KindArg,
@@ -200,6 +205,7 @@ fn add_one(out: &mut Out, add: AddSign) -> ExitCode {
         request.font = font;
     }
     request.height = add.height;
+    request.size = add.size;
     request.kind = kind;
     request.corner = add.corner;
     request.margin = add.margin;
@@ -256,6 +262,15 @@ fn add_one(out: &mut Out, add: AddSign) -> ExitCode {
             "The inlay's plug is in setup {setup}, a board of its own."
         ));
     }
+    if let (Some(height), Some((w, h))) = (made.fitted, request.size) {
+        let mm = chipload_pipeline::placement::factor_text;
+        out.line(format!(
+            "The letters are {} mm high, the most that fit {} × {} mm.",
+            mm(height),
+            mm(w),
+            mm(h)
+        ));
+    }
     out.wrote(target, "");
     out.set("part", json!(made.part));
     out.set("text", json!(made.text));
@@ -267,5 +282,6 @@ fn add_one(out: &mut Out, add: AddSign) -> ExitCode {
         json!(made.operations.iter().map(|i| i + 1).collect::<Vec<_>>()),
     );
     out.set("plug_setup", json!(made.plug_setup));
+    out.set("height", json!(made.fitted));
     ExitCode::SUCCESS
 }

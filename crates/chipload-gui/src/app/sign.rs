@@ -24,6 +24,10 @@ pub(super) struct SignSettings {
     pub words: String,
     pub font: String,
     pub height: f64,
+    /// A sign of a fixed size: the frame `size` (width, height; a round frame's diameter
+    /// is its width), the letters as high as fit (docs/specs/sign-size-and-start.md §1).
+    pub fixed: bool,
+    pub size: (f64, f64),
     pub kind: FrameKind,
     pub corner_set: bool,
     pub corner: f64,
@@ -74,6 +78,8 @@ impl SignSettings {
             words: String::new(),
             font: chipload_pipeline::texts::DEFAULT_FONT.to_string(),
             height: 30.0,
+            fixed: false,
+            size: (300.0, 100.0),
             kind: FrameKind::Rounded,
             corner_set: false,
             corner: 8.0,
@@ -124,6 +130,11 @@ impl SignSettings {
             .filter(|_| self.kind.corner_style().is_some());
         request.double = self.double;
         request.round = self.round && self.kind == FrameKind::Oval && self.around.is_empty();
+        let size = match request.round {
+            true => (self.size.0, self.size.0),
+            false => self.size,
+        };
+        request.size = self.fixed.then_some(size);
         request.border_width = self.border_width;
         request.style = self.style;
         request.relief = self.relief;
@@ -144,6 +155,8 @@ pub(super) struct SignPreview {
     lines: Vec<Vec<Point>>,
     /// The operations it adds, by name; or why it can't be made.
     adds: Result<Vec<String>, String>,
+    /// The letters' height found for a sign of a fixed size, mm.
+    fitted: Option<f64>,
 }
 
 impl Default for SignPreview {
@@ -152,6 +165,7 @@ impl Default for SignPreview {
             key: String::new(),
             lines: Vec::new(),
             adds: Ok(Vec::new()),
+            fitted: None,
         }
     }
 }
@@ -226,11 +240,13 @@ impl ChiploadApp {
                     .iter()
                     .map(|&i| job.operations[i].name().to_string())
                     .collect()),
+                fitted: sign.fitted,
             },
             Err(why) => SignPreview {
                 key,
                 lines: Vec::new(),
                 adds: Err(why),
+                fitted: None,
             },
         };
         self.canvas_tools.sign_preview = preview.clone();
@@ -313,7 +329,7 @@ impl ChiploadApp {
                         library: library.as_ref(),
                         units,
                     };
-                    sign_fields(ui, &mut settings, &offer, &self.text_fonts);
+                    sign_fields(ui, &mut settings, &offer, &self.text_fonts, preview.fitted);
                 });
             ui.add_space(6.0);
             sign_picture(ui, &preview.lines);
@@ -359,9 +375,10 @@ fn sign_fields(
     s: &mut SignSettings,
     offer: &ToolOffer<'_>,
     fonts: &super::text_fonts::TextFonts,
+    fitted: Option<f64>,
 ) {
     if s.around.is_empty() {
-        word_fields(ui, s, fonts);
+        word_fields(ui, s, fonts, fitted);
     } else {
         ui.label(crate::style::bold(ui, t!(ui, "sign-around")));
         ui.label(t!(ui, "sign-around-body", count = s.around.len()));
@@ -377,8 +394,13 @@ fn sign_fields(
 }
 
 /// The words, their font (the text tool's font list: recently used, built-in, the
-/// computer's) and height.
-fn word_fields(ui: &mut egui::Ui, s: &mut SignSettings, fonts: &super::text_fonts::TextFonts) {
+/// computer's), and their height or the sign's fixed size (with the height found).
+fn word_fields(
+    ui: &mut egui::Ui,
+    s: &mut SignSettings,
+    fonts: &super::text_fonts::TextFonts,
+    fitted: Option<f64>,
+) {
     ui.label(crate::style::bold(ui, t!(ui, "sign-words")));
     ui.add(
         egui::TextEdit::multiline(&mut s.words)
@@ -406,8 +428,43 @@ fn word_fields(ui: &mut egui::Ui, s: &mut SignSettings, fonts: &super::text_font
                 .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
                 .show_ui(ui, |ui| super::forms::font_list(ui, &mut s.font, fonts));
             ui.end_row();
-            ui.label(t!(ui, "sign-height"));
-            ui.add(crate::units::length(&mut s.height).range(1.0..=1000.0));
+            ui.label(t!(ui, "sign-size"))
+                .on_hover_text(t!(ui, "sign-size-hover"));
+            ui.horizontal(|ui| {
+                ui.selectable_value(&mut s.fixed, false, t!(ui, "sign-size-fit"));
+                ui.selectable_value(&mut s.fixed, true, t!(ui, "sign-size-fixed"));
+            });
+            ui.end_row();
+            if !s.fixed {
+                ui.label(t!(ui, "sign-height"));
+                ui.add(crate::units::length(&mut s.height).range(1.0..=1000.0));
+                ui.end_row();
+                return;
+            }
+            if s.round && s.kind == FrameKind::Oval {
+                ui.label(t!(ui, "sign-diameter"));
+                ui.add(crate::units::length(&mut s.size.0).range(10.0..=5000.0));
+            } else {
+                ui.label(t!(ui, "sign-outer-size"));
+                ui.horizontal(|ui| {
+                    ui.add(
+                        crate::units::length(&mut s.size.0)
+                            .range(10.0..=5000.0)
+                            .prefix("W "),
+                    );
+                    ui.add(
+                        crate::units::length(&mut s.size.1)
+                            .range(10.0..=5000.0)
+                            .prefix("H "),
+                    );
+                });
+            }
+            ui.end_row();
+            ui.label(t!(ui, "sign-letters"));
+            match fitted {
+                Some(h) => ui.weak(crate::units::text(ui.ctx(), h)),
+                None => ui.weak("–"),
+            };
             ui.end_row();
         });
 }

@@ -209,3 +209,30 @@ fn a_library_tool_is_copied_in_only_when_the_sign_is_made() {
     harness.state_mut().undo();
     assert!(harness.state().edit.as_ref().unwrap().job.tools.is_empty());
 }
+
+#[test]
+fn a_sign_of_a_fixed_size_shows_its_letters_height_and_is_that_size() {
+    // docs/specs/sign-size-and-start.md §1.
+    let mut harness = window();
+    harness.state_mut().start_sign();
+    harness.run_steps(2);
+    let Some(Prompt::Sign(mut settings)) = harness.state().dialogs.prompt.clone() else {
+        panic!("the dialog");
+    };
+    settings.words = "SMITH".into();
+    settings.fixed = true;
+    settings.size = (300.0, 100.0);
+    harness.state_mut().dialogs.prompt = Some(Prompt::Sign(settings));
+    harness.run_steps(3);
+    // The letters' height found shows instead of the height field.
+    assert!(harness.get_all_by_label("Letters").count() > 0);
+    assert!(harness.get_all_by_label("Outer size").count() > 0);
+    click(&mut harness, "Make sign");
+    let job = &harness.state().edit.as_ref().unwrap().job;
+    let outline = job.drawing.frames[0].outline;
+    let ((x0, y0), (x1, y1)) = chipload_pipeline::shapes::drawn_box(job, &[outline]).unwrap();
+    assert!(((x1 - x0) - 300.0).abs() < 1e-6 && ((y1 - y0) - 100.0).abs() < 1e-6);
+    let height = job.drawing.texts[0].height;
+    // One word: the height limits it, 100 less the margin, gap and border each side.
+    assert!(height > 40.0 && height < 80.0, "{height}");
+}

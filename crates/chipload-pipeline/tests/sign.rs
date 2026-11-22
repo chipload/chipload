@@ -378,3 +378,107 @@ fn a_round_sign_puts_its_words_round_the_ring_and_its_frame_round_them() {
     let err = add_sign(&project(), &square, &BuiltinOnly, None, Language::En).unwrap_err();
     assert!(err.message().english().contains("oval"));
 }
+
+fn outline_size(job: &Job, id: u64) -> (f64, f64) {
+    let ((x0, y0), (x1, y1)) = chipload_pipeline::shapes::drawn_box(job, &[id]).unwrap();
+    (x1 - x0, y1 - y0)
+}
+
+/// docs/specs/sign-size-and-start.md §1: a sign of a fixed size, its letters as high as fit.
+#[test]
+fn a_fixed_size_sign_has_that_frame_and_the_largest_letters_that_fit() {
+    let mut request = SignRequest::new("SMITH", 2, 1);
+    request.size = Some((300.0, 100.0));
+    let (job, sign) = made(&request);
+    let (w, h) = outline_size(&job, sign.outline);
+    assert!(
+        (w - 300.0).abs() < 1e-6 && (h - 100.0).abs() < 1e-6,
+        "{w} × {h}"
+    );
+    let height = sign.fitted.unwrap();
+    assert_eq!(job.drawing.texts[0].height, height);
+    assert_eq!(
+        (height * 10.0).round() / 10.0,
+        height,
+        "to 0.1 mm: {height}"
+    );
+    // At that height the frame round the words fits; 0.1 mm higher it doesn't.
+    let around = |letters: f64| {
+        let mut free = SignRequest::new("SMITH", 2, 1);
+        free.height = letters;
+        let (job, sign) = made(&free);
+        outline_size(&job, sign.outline)
+    };
+    let (fw, fh) = around(height);
+    assert!(fw <= 300.0 + 1e-3 && fh <= 100.0 + 1e-3, "{fw} × {fh}");
+    let (gw, gh) = around(height + 0.1);
+    assert!(gw > 300.0 || gh > 100.0, "{gw} × {gh}");
+    // Two lines in the same size: smaller letters.
+    let mut two = request.clone();
+    two.words = "SMITH\n12".into();
+    let (_, sign_two) = made(&two);
+    assert!(sign_two.fitted.unwrap() < height);
+    run_setups(&job, None).unwrap();
+}
+
+#[test]
+fn a_fixed_size_frame_keeps_its_size_when_the_words_change() {
+    let mut request = SignRequest::new("OAK", 2, 1);
+    request.size = Some((200.0, 80.0));
+    let (job, sign) = made(&request);
+    let mut changed = job.clone();
+    changed.drawing.texts[0].text = "OAK AND ASH".into();
+    let (changed, _) = chipload_pipeline::texts::remake(&job, &changed, 1, &BuiltinOnly).unwrap();
+    let (changed, _) = follow_frames(changed);
+    let (w, h) = outline_size(&changed, sign.outline);
+    assert!(
+        (w - 200.0).abs() < 1e-6 && (h - 80.0).abs() < 1e-6,
+        "{w} × {h}"
+    );
+}
+
+#[test]
+fn a_round_sign_of_a_fixed_size_is_that_circle() {
+    let mut request = SignRequest::new("MAKER SPACE\nEST. 2026", 2, 1);
+    request.kind = chipload_pipeline::frames::FrameKind::Oval;
+    request.round = true;
+    request.size = Some((200.0, 200.0));
+    let (job, sign) = made(&request);
+    let outline = job
+        .drawing
+        .shapes
+        .iter()
+        .find(|s| s.id == sign.outline)
+        .unwrap();
+    let chipload_job::Geometry::Circle { radius, .. } = outline.geometry else {
+        panic!("a circle: {:?}", outline.geometry);
+    };
+    assert!((radius - 100.0).abs() < 1e-6, "{radius}");
+    assert!(sign.fitted.unwrap() > 5.0);
+    assert!(job.drawing.texts[0].arc.is_some());
+}
+
+#[test]
+fn a_fixed_size_is_refused_when_nothing_fits_or_it_isnt_round_for_round_words() {
+    let refused = |request: &SignRequest| {
+        add_sign(&project(), request, &BuiltinOnly, None, Language::En)
+            .unwrap_err()
+            .message()
+            .english()
+    };
+    let mut request = SignRequest::new("SMITH", 2, 1);
+    request.size = Some((0.0, 100.0));
+    assert!(refused(&request).contains("greater than 0"));
+    request.size = Some((40.0, 30.0));
+    request.words = "A VERY LONG NAME FOR SO SMALL A SIGN".into();
+    assert!(
+        refused(&request).contains("don't fit"),
+        "{}",
+        refused(&request)
+    );
+    let mut round = SignRequest::new("TOP\nBOTTOM", 2, 1);
+    round.kind = chipload_pipeline::frames::FrameKind::Oval;
+    round.round = true;
+    round.size = Some((200.0, 150.0));
+    assert!(refused(&round).contains("same width and height"));
+}

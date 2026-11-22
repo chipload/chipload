@@ -32,6 +32,15 @@ it). The dialog draws the sign as it will be and lists the operations it adds. (
   The radius is the least that keeps the longer line within 150° of the circle and the
   middle clear; the frame is the circle round their ring, the margin out from the
   letters, and it follows them when you change the texts' radius, words or size.
+- **Size**: *Fit the words* (the sign grows round letters of the **Height** given) or
+  *Fixed*, for a sign that has to fit a place: a door plate of 300 × 100 mm, a round
+  plaque of 200 mm. *Fixed* asks for the **Outer size** (for round words on the round
+  frame, a **Diameter**) instead of the height: that is the outline that is cut out, and
+  the letters get the largest height that fits inside the borders, gap and margin, to
+  0.1 mm, shown as **Letters** while you type. The frame keeps that size afterwards:
+  changing the words later doesn't grow it or refit the letters, so change the text's
+  height yourself if they no longer fit. Round shapes already drawn, the frame is that
+  size round them.
 - **Style**:
   - *Engraved*: the letters V-carved;
   - *Raised*: the background inside the innermost border cut down round the letters with
@@ -183,6 +192,7 @@ chipload sign add sign.chipload "THE NÄSLUNDS" --font FreeSerif --frame rectang
     --borders 1 --double --style engraved --edge chamfer:3 --vbit 2 --end-mill 1 --thickness 18
 chipload sign add plaque.chipload "MAKER SPACE\nEST. 2026" --frame oval --round --height 12 \
     --borders 1 --vbit 2 --end-mill 1 --thickness 12
+chipload sign add door.chipload "SMITH\n12" --size 300x100 --vbit 2 --end-mill 1   # letters as high as fit
 chipload frame kinds
 chipload frame list sign.chipload                              # the frames that follow, with their values
 chipload frame set sign.chipload 7 --margin 15 --borders 2     # change them: drawn again

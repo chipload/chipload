@@ -100,6 +100,11 @@ pub struct SignRequest {
     /// second along its bottom, the rest straight in the middle
     /// (docs/specs/text-on-arc.md §6).
     pub round: bool,
+    /// The frame's outer size, width and height (mm), instead of following the words: the
+    /// letters are then as high as fit, and `height` is ignored
+    /// (docs/specs/sign-size-and-start.md §1). Round shapes, the frame is that size round
+    /// them.
+    pub size: Option<(f64, f64)>,
 }
 
 impl SignRequest {
@@ -129,7 +134,20 @@ impl SignRequest {
                 margin: DEFAULT_BOARD_MARGIN_MM,
             }),
             round: false,
+            size: None,
         }
+    }
+
+    /// The frame as asked for, of `size`.
+    fn frame(&self, size: FrameSize) -> NewFrame {
+        let mut frame = NewFrame::new(self.kind, size);
+        frame.r = self.corner;
+        frame.borders = self.borders;
+        frame.gap = self.gap;
+        frame.border_corners = self.border_corners;
+        frame.double = self.double;
+        frame.border_width = self.border_width;
+        frame
     }
 }
 
@@ -336,6 +354,111 @@ fn round_words(
     Ok((job, texts))
 }
 
+/// The lowest letters' height tried for a sign of a fixed size, mm.
+const FIT_MIN_HEIGHT_MM: f64 = 1.0;
+/// How close the search for the letters' height gets before rounding down, mm.
+const FIT_STEP_MM: f64 = 0.05;
+
+/// A fixed size that can be a sign's: positive, and round for round words.
+fn check_size(request: &SignRequest, (width, height): (f64, f64)) -> Result<(), PipelineError> {
+    if !(width.is_finite() && width > 0.0 && height.is_finite() && height > 0.0) {
+        return Err(refused(
+            Message::new("pipeline-sign-size")
+                .arg("width", length(width))
+                .arg("height", length(height)),
+        ));
+    }
+    if request.round && (width - height).abs() > chipload_core::tolerances::CHAIN_TOL_MM {
+        return Err(refused(Message::new("pipeline-sign-round-size")));
+    }
+    Ok(())
+}
+
+/// The largest letters' height, to 0.1 mm, whose sign fits `size` (spec §1): halving
+/// between [`FIT_MIN_HEIGHT_MM`] and the size, each try a sign of its own in an empty
+/// project with its frame round the words, compared with the size. A sign grows with its
+/// letters, so the search needs no formula for each frame.
+fn fitted_height(
+    request: &SignRequest,
+    size: (f64, f64),
+    fonts: &dyn FontSource,
+) -> Result<f64, PipelineError> {
+    check_size(request, size)?;
+    let slack = chipload_core::tolerances::CHAIN_TOL_MM;
+    let fits = |height: f64| -> Result<bool, PipelineError> {
+        let (w, h) = framed_size(request, height, fonts)?;
+        Ok(w <= size.0 + slack && h <= size.1 + slack)
+    };
+    let too_small = || {
+        refused(
+            Message::new("pipeline-sign-size-small")
+                .arg("width", length(size.0))
+                .arg("height", length(size.1)),
+        )
+    };
+    if !fits(FIT_MIN_HEIGHT_MM).map_err(|_| too_small())? {
+        return Err(too_small());
+    }
+    let mut low = FIT_MIN_HEIGHT_MM;
+    let mut high = size.0.max(size.1).min(chipload_job::TEXT_MAX_HEIGHT_MM);
+    if fits(high).unwrap_or(false) {
+        return Ok(high);
+    }
+    while high - low > FIT_STEP_MM {
+        let middle = (low + high) / 2.0;
+        if fits(middle).unwrap_or(false) {
+            low = middle;
+        } else {
+            high = middle;
+        }
+    }
+    let rounded = ((low * 10.0).floor() / 10.0).max(FIT_MIN_HEIGHT_MM);
+    Ok(rounded)
+}
+
+/// The outer size of the frame round `request`'s words at letters `height`, mm.
+fn framed_size(
+    request: &SignRequest,
+    height: f64,
+    fonts: &dyn FontSource,
+) -> Result<(f64, f64), PipelineError> {
+    let tried = SignRequest {
+        height,
+        ..request.clone()
+    };
+    let scratch = crate::empty_project();
+    let (job, ids) = if tried.round {
+        let (job, texts) = round_words(&scratch, &tried, (0.0, 0.0), fonts)?;
+        let ids: Vec<u64> = job
+            .drawing
+            .shapes
+            .iter()
+            .filter(|s| s.text().is_some_and(|t| texts.contains(&t)))
+            .map(|s| s.id)
+            .collect();
+        (job, ids)
+    } else {
+        let mut new = NewText::new(&tried.words, height);
+        new.font = &tried.font;
+        new.anchor = TextAnchor::Center;
+        new.align = TextAlign::Center;
+        let (job, _) = add_text(&scratch, new, fonts)?;
+        let ids = job.drawing.shapes.iter().map(|s| s.id).collect();
+        (job, ids)
+    };
+    let framed = add_frame(
+        &job,
+        &tried.frame(FrameSize::Around {
+            ids,
+            margin: tried.margin,
+        }),
+    )?;
+    let outline = framed.new_ids.first().copied().unwrap_or(0);
+    let ((x0, y0), (x1, y1)) = crate::shapes::drawn_box(&framed.job, &[outline])
+        .ok_or_else(|| refused(Message::new("pipeline-shapes-no-extent")))?;
+    Ok((x1 - x0, y1 - y0))
+}
+
 /// A file's name without its folders and extension.
 fn file_stem(file: &str) -> String {
     std::path::Path::new(file)
@@ -359,6 +482,8 @@ pub struct SignMade {
     pub operations: Vec<usize>,
     /// The inlay's plug setup.
     pub plug_setup: Option<u64>,
+    /// The letters' height found for a sign of a fixed size, mm.
+    pub fitted: Option<f64>,
 }
 
 fn refused(message: Message) -> PipelineError {
@@ -453,6 +578,26 @@ pub fn add_sign(
     if request.round && (request.kind != FrameKind::Oval || !request.around.is_empty()) {
         return Err(refused(Message::new("pipeline-sign-round-oval")));
     }
+    // A fixed size: the letters as high as fit (docs/specs/sign-size-and-start.md §1).
+    let fitted = match request.size {
+        Some(size) if request.around.is_empty() => Some(fitted_height(request, size, fonts)?),
+        Some(size) => {
+            check_size(request, size)?;
+            None
+        }
+        None => None,
+    };
+    let sized;
+    let request = match fitted {
+        Some(height) => {
+            sized = SignRequest {
+                height,
+                ..request.clone()
+            };
+            &sized
+        }
+        None => request,
+    };
     let art = match request.around.is_empty() {
         true => None,
         false => Some(Artwork::of(job, &request.around, lang)?),
@@ -508,20 +653,24 @@ pub fn add_sign(
             (job, Some(text), art)
         }
     };
-    let mut frame = NewFrame::new(
-        request.kind,
-        FrameSize::Around {
+    let size = match request.size {
+        // Centred on the round words' ring, or on the letters' (or shapes') box.
+        Some((width, height)) => FrameSize::Fixed {
+            width,
+            height,
+            center: if request.round {
+                Some(center)
+            } else {
+                crate::shapes::drawn_box(&job, &art.ids)
+                    .map(|((x0, y0), (x1, y1))| ((x0 + x1) / 2.0, (y0 + y1) / 2.0))
+            },
+        },
+        None => FrameSize::Around {
             ids: art.ids.clone(),
             margin: request.margin,
         },
-    );
-    frame.r = request.corner;
-    frame.borders = request.borders;
-    frame.gap = request.gap;
-    frame.border_corners = request.border_corners;
-    frame.double = request.double;
-    frame.border_width = request.border_width;
-    let framed = add_frame(&job, &frame)?;
+    };
+    let framed = add_frame(&job, &request.frame(size))?;
     let outline = framed.new_ids[0];
     let borders = framed.new_ids[1..].to_vec();
     let mut members = art.members.clone();
@@ -669,6 +818,7 @@ pub fn add_sign(
             group: group_id,
             operations,
             plug_setup,
+            fitted,
         },
     ))
 }

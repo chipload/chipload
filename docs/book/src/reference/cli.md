@@ -1667,6 +1667,7 @@ chipload sign add <PROJECT> <WORDS> [OPTIONS]
 | `--around-image <AROUND_IMAGE>` | Round these traced pictures (ids as `image list` shows them): carved as the picture, the frame following it when it is traced again. Repeatable. |
 | `--font <FONT>` | The font (`chipload text fonts`) |
 | `--height <HEIGHT>` | The capital height, mm. Default: `30`. |
+| `--size <SIZE>` | The sign's outer size "W×H", such as 300x100 (any length unit; plain numbers are mm): the frame is that size and the letters as high as fit, instead of --height (docs/specs/sign-size-and-start.md §1) |
 | `--frame <FRAME>` | The frame (`frame kinds`) One of: `rectangle`, `rounded`, `notched`, `chamfered`, `stepped`, `oval`, `arched`, `double-arch`, `gable`, `shield`, `plaque`, `banner`, `octagon`. Default: `rounded`. |
 | `--corners <CORNERS>` | A rectangular frame's corners: sharp, round, notch, chamfer or step. One of: `sharp`, `round`, `notch`, `chamfer`, `step`. |
 | `--corner <CORNER>` | The frame's corner size, mm (default: a tenth of its shorter side) |
