@@ -45,7 +45,7 @@ The easiest start is a copy of a built-in post, from the `crates/chipload-post/p
 - **The checker still decides.** Whatever your template writes, the [checker](first-part.md#the-checker)
   reads it back as a controller would. It accepts only the codes it knows: G0–G3, G4, G17,
   G20, G21, G90, G91.1, G94, the setup codes G40, G49, G80, G54, G61 and G64 P (at most
-  0.05 mm), M3–M6, M7–M9 and M30, and `%` lines. Anything else, such as G41/G42 cutter
+  0.05 mm; P is in the program's units, so at most 0.002 under G20), M3–M6, M7–M9 and M30, and `%` lines. Anything else, such as G41/G42 cutter
   compensation, G43 tool lengths, G28 or G53 machine moves, or G91 relative moves, makes the
   check fail, and nothing is exported.
 

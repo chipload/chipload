@@ -4,7 +4,7 @@
 (Tool 1: 0.2362 inch)
 (Work zero: drawing origin = drawing X0.000 Y0.000, Z0 = stock top, drawing in mm)
 G20 G90 G17 G94 G40 G49 G80 G54 G91.1
-G64 P0.01
+G64 P0.0004
 M3 S18000
 G4 P3.000
 G0 Z0.1969

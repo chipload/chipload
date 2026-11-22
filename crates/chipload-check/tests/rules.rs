@@ -510,6 +510,22 @@ fn good_in_inches() -> String {
 }
 
 #[test]
+fn g64_p_is_a_length_in_the_programs_units() {
+    // P0.01 is 0.254 mm under G20: too far. P0.0004 is 0.01 mm.
+    let with = |p: &str| good_in_inches().replace("G94\n", &format!("G94\nG64 P{p}\n"));
+    let report = check_gcode(&with("0.0004"), &inch_limits());
+    assert!(report.ok(), "{:?}", report.errors);
+    let report = check_gcode(&with("0.01"), &inch_limits());
+    assert!(
+        report.errors.iter().any(|e| e
+            .message
+            .contains("G64 P0.01 lets the controller leave the path")),
+        "{:?}",
+        report.errors
+    );
+}
+
+#[test]
 fn an_inch_program_is_checked_in_mm() {
     let report = check_gcode(&good_in_inches(), &inch_limits());
     assert!(report.ok(), "{:?}", report.errors);

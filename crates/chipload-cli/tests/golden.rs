@@ -752,6 +752,19 @@ fn words(line: &str) -> Vec<(char, f64)> {
         .collect()
 }
 
+/// G64's P is a length too: written in mm to 0.01 mm, so the inch program's P0.0004
+/// (0.0102 mm) reads as the mm program's P0.01. Other lines as they are.
+fn blend_in_mm(line: &str, scale: f64) -> String {
+    let p = words(line)
+        .contains(&('G', 64.0))
+        .then(|| words(line).into_iter().find(|(l, _)| *l == 'P'))
+        .flatten();
+    match p {
+        Some((_, p)) => format!("G64 P{:.2}", p * scale),
+        None => line.to_string(),
+    }
+}
+
 /// One motion as a controller sees it: its G code, where it ends, its feed, and for an arc
 /// its centre (all in mm).
 #[derive(Debug, Clone, Copy)]
@@ -772,7 +785,7 @@ fn motions(gcode: &str, scale: f64) -> (Vec<Motion>, Vec<String>) {
         let ws = words(line);
         let moving = ws.iter().any(|(l, _)| "XYZ".contains(*l));
         if !moving {
-            other.push(line.replace("G20", "G21"));
+            other.push(blend_in_mm(&line.replace("G20", "G21"), scale));
             continue;
         }
         let start = at;

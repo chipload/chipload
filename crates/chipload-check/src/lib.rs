@@ -681,8 +681,9 @@ fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Ve
             _ if g_codes.contains(&4) => {
                 problems.push(Message::new("check-blend-and-dwell"));
             }
-            Some(&p) if (0.0..=MAX_BLEND_MM).contains(&p) => {}
-            // P is the program's own number, unconverted, as the check compares it.
+            // P is a length in the program's units: P0.01 under G20 is 0.254 mm.
+            Some(&p) if (0.0..=MAX_BLEND_MM).contains(&(p * blend_mm_per_unit(state, limits))) => {}
+            // The message names the program's own number, as written.
             Some(&p) => problems.push(
                 Message::new("check-blend-too-far")
                     .arg("p", Value::Number(p, Digits::Shortest))
@@ -721,6 +722,12 @@ fn execute(words: &[(char, f64)], state: &mut State, limits: &CheckLimits) -> Ve
 
 /// M6: a known tool, the spindle stopped, the tool at safe height. From here on the stock
 /// margin is the new tool's radius.
+/// Millimetres per unit of G64's P: the program's units once G20 or G21 has been read,
+/// else the machine's, which the program must use anyway.
+fn blend_mm_per_unit(state: &State, limits: &CheckLimits) -> f64 {
+    state.units.unwrap_or(limits.units).mm_per_unit()
+}
+
 fn tool_change(state: &mut State, limits: &CheckLimits) -> Vec<Message> {
     let mut problems = Vec::new();
     match state.tool {

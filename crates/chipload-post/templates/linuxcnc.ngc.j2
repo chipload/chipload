@@ -11,7 +11,7 @@
 (Work zero: {{ work_zero }})
 {% endif %}
 {{ units_word }} G90 G17 G94 G40 G49 G80 G54 G91.1
-G64 P0.01
+G64 P{{ "0.0004" if unit == "inch" else "0.01" }}
 {{ "M3" if spindle == "cw" else "M4" }} S{{ rpm }}
 {% if dwell is not none %}
 G4 P{{ dwell }}
