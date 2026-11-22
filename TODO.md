@@ -82,12 +82,27 @@ done is in git and in the releases' notes on GitHub, no longer listed here.
 3. **The walk again:** drive the usual jobs headless (a DXF part with tabs and pockets, a
    V-carved sign, a sheet of instances; now also one drawn from scratch) and count the
    edits and clicks; each that remains becomes an item here.
-4. **Review V-carve** (safety), the last operation not reviewed: boundaries (zero depth,
-   depth equal to the stock, a bit wider or narrower than the strokes, the cone's depth,
-   passes, flat bottom), the checker's view, proptest invariants (the cut inside the
-   outline; nothing deeper than the cone allows).
+4. **V-carve: reviewed 2026-11-22** (safety). Sound: every centre-line move and wall is
+   verified against the real outline before use; validation holds at every boundary tried
+   (zero depth, start at or below end, passes 0/100+, step down, tip >= diameter, angle 0 and
+   near 180, depth past the overcut); the cone caps the depth; the floor pass is a checked
+   pocket; rapids sideways only at safe Z. New: a property test of the moves as written
+   (joined through grooves, in passes, flat tips, small bits, plugs), not only the planned
+   paths: no gouge in 1,000 random cases. Findings, not yet fixed (the user decides):
+   1. **Passes are split to the end depth, not to how deep the carve goes.** The end depth
+      is a limit; set generously (10 mm for strokes that need 4.4), 3 passes become one
+      full-depth pass. Suggested: levels from the lesser of the end depth and the plan's
+      deepest. Changes G-code where that differs.
+   2. **The end depth is checked as if it were cut:** a false "cuts 0.5 mm below the stock"
+      warning at end depth 10.5 in 10 mm stock (the carve goes to 4.04), and a generous
+      limit past the overcut refused. Suggested: as for prisms, check the planned deepest.
+   3. **A new V-carve's default depth is 1 mm** (`op add`, *New operation*): on 30 mm letters
+      only the walls are cut, the floor left. Suggested: the bit's cone depth, at most the
+      stock's thickness (safe once 1 and 2 are done).
+   4. **A looped centre line (O, the bowl of a, rings) starts with a straight plunge** to
+      the first pass's depth mid-stroke. Suggested: start a loop at its shallowest point.
 5. **V-carve, Ignore kinks by segment length too** (the user, 2026-11-02): a corner whose
-   adjoining segments are short ignored at any angle. Spec first, after the review.
+   adjoining segments are short ignored at any angle. Spec first (the review is done).
 6. **First-run setup:** on the first start, ask for the machine's travel and the first tool.
    A new project without a library now has a travel and a centre-cutting tool (2026-11-20),
    so this is about the user's own values, not the warnings.

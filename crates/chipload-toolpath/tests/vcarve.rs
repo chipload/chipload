@@ -946,3 +946,130 @@ fn a_stroke_ending_in_kinks_keeps_its_centre_line() {
     }
     assert!(worst_miss(&shape, &plan, &bit, 0.2) < 0.2);
 }
+
+// -- the moves as written (the review of 2026-11-22): what goes into the G-code, joined
+// through grooves already cut and split into passes, not the planned paths
+
+/// Rule 1 of spec §1 on the moves `vcarve_moves` writes: rapids sideways only at safe Z, no
+/// feed below the last level or past the cone, and the cone's circle at the outline inside
+/// the shape (an outline `below` the surface: an inlay's plug).
+fn assert_moves_ok(contours: &[Contour], plan: &VcarvePlan, bit: &VBit, levels: &[f64]) {
+    assert_moves_ok_below(contours, plan, bit, levels, 0.0)
+}
+
+fn assert_moves_ok_below(
+    contours: &[Contour],
+    plan: &VcarvePlan,
+    bit: &VBit,
+    levels: &[f64],
+    below: f64,
+) {
+    use chipload_toolpath::model::MoveKind;
+    let (surface, safe) = (-0.5, 5.0);
+    let moves = chipload_toolpath::vcarve::vcarve_moves(
+        &plan.area_walks(),
+        levels,
+        surface,
+        safe,
+        1000.0,
+        300.0,
+    );
+    let deepest = *levels.last().unwrap();
+    let mut at = (f64::NAN, f64::NAN, safe);
+    for m in &moves {
+        let to = (
+            m.x.unwrap_or(at.0),
+            m.y.unwrap_or(at.1),
+            m.z.unwrap_or(at.2),
+        );
+        match m.kind {
+            MoveKind::Rapid => {
+                if m.x.is_some() || m.y.is_some() {
+                    assert!((at.2 - safe).abs() < 1e-9, "rapid XY at z {}", at.2);
+                }
+            }
+            _ => {
+                if at.0.is_nan() {
+                    at = to;
+                    continue;
+                }
+                let len = ((to.0 - at.0).powi(2) + (to.1 - at.1).powi(2)).sqrt();
+                let n = (len / 0.05).ceil().max(1.0) as usize;
+                for i in 0..=n {
+                    let t = i as f64 / n as f64;
+                    let p = (at.0 + (to.0 - at.0) * t, at.1 + (to.1 - at.1) * t);
+                    let depth = surface - (at.2 + (to.2 - at.2) * t);
+                    assert!(depth <= deepest + 1e-6, "depth {depth} below {deepest}");
+                    assert!(depth <= bit.deepest() + 1e-6, "past the cone");
+                    if depth <= 1e-6 {
+                        continue;
+                    }
+                    let r = bit.radius_at(depth - below);
+                    let room = dist_to_outline(contours, p);
+                    assert!(inside(contours, p) || room <= TOL, "outside at {p:?}");
+                    assert!(
+                        r <= room + TOL,
+                        "move gouges at {p:?}: cut {r:.4} room {room:.4} depth {depth:.4}"
+                    );
+                }
+            }
+        }
+        at = to;
+    }
+}
+
+proptest! {
+    #![proptest_config(common::proptest_config(48))]
+
+    #[test]
+    fn the_written_moves_never_gouge(
+        points in 3usize..8,
+        outer in 6.0f64..16.0,
+        ratio in 0.3f64..0.8,
+        turn in 0.0f64..1.0,
+        angle in 30.0f64..120.0,
+        tip in prop_oneof![Just(0.0), 0.05f64..0.8],
+        cap in 0.3f64..20.0,
+        passes in 1u32..5,
+        step in prop_oneof![Just(None), (0.2f64..3.0).prop_map(Some)],
+        dia in prop_oneof![Just(50.0), 1.0f64..8.0],
+    ) {
+        let shape = [star(points, outer, outer * ratio, turn)];
+        let mut bit = bit(angle, tip);
+        bit.diameter = dia.max(tip + 0.1);
+        let plan = carve(&shape, &bit, cap);
+        let levels = chipload_toolpath::vcarve::carve_levels(cap, passes, step);
+        assert_moves_ok(&shape, &plan, &bit, &levels);
+    }
+}
+
+proptest! {
+    #![proptest_config(common::proptest_config(32))]
+
+    #[test]
+    fn the_written_moves_of_rounded_shapes_and_plugs_never_gouge(
+        w in 4.0f64..20.0,
+        h in 4.0f64..20.0,
+        bulge in -0.6f64..0.6,
+        hole in proptest::bool::ANY,
+        angle in 30.0f64..120.0,
+        tip in prop_oneof![Just(0.0), 0.05f64..0.8],
+        cap in 0.3f64..20.0,
+        passes in 1u32..5,
+        below in prop_oneof![Just(0.0), 0.2f64..3.0],
+    ) {
+        let bulge = bulge.max(-0.6 * h / w);
+        let mut shape = vec![common::bulged(
+            1,
+            &[(0.0, 0.0, bulge), (w, 0.0, 0.0), (w, h, bulge), (0.0, h, 0.0)],
+        )];
+        if hole {
+            shape.push(common::circle_id(2, (w / 2.0, h / 2.0), w.min(h) / 5.0));
+        }
+        let bit = bit(angle, tip);
+        let refs: Vec<&Contour> = shape.iter().collect();
+        let plan = chipload_toolpath::vcarve::plan_vcarve_at(&refs, &bit, cap, (0.0, 0.0), None, 0.0, below).unwrap();
+        let levels = chipload_toolpath::vcarve::carve_levels(cap + below, passes, None);
+        assert_moves_ok_below(&shape, &plan, &bit, &levels, below);
+    }
+}
