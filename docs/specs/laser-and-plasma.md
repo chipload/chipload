@@ -1,6 +1,9 @@
 # Spec: laser and plasma
 
-Status: **draft 2026-11-22**, for review. The user: "I'd like laser and plasma, basically it
+Status: **parked 2026-11-22** (the user: "we drop the laser claim for now"; CLAUDE.md now
+says routers and mills). Kept as the starting point if laser or plasma comes back; a
+laser-only first step was the suggested split (laser profile and follow path, the GRBL
+laser post, the checker's beam-off rule; plasma and lead-ins after). The user: "I'd like laser and plasma, basically it
 is profile cutting and possibly marking." Settles TODO item 7 (CLAUDE.md promises G-code
 for "CNC routers, mills, plasma, laser"; the posts are spindle-only). Builds on
 tool-per-operation.md, tool-library-and-machines.md, follow-path.md, fill-pattern.md and

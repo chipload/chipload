@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Project: **Chipload**, a cross-platform 2.5D CAM application, written in Rust.
-Input: DXF. Output: G-code for CNC routers, mills, plasma, laser.
+Input: DXF. Output: G-code for CNC routers and mills (laser and plasma parked 2026-11-22: docs/specs/laser-and-plasma.md).
 This is open-source software (**GPL-3.0-or-later**, copyright Gustav Näslund) that drives physical machines. Correctness and safety outrank speed and cleverness.
 
 The original Python implementation was the reference during the port and has been removed (ADR 0009). It is preserved at the git tag `python-final`.
