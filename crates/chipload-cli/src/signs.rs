@@ -55,6 +55,10 @@ pub struct AddSign {
     /// (docs/specs/sign-size-and-start.md §1).
     #[arg(long, value_parser = crate::commands::board_size)]
     size: Option<(f64, f64)>,
+    /// With a single-line font (`text fonts`): how deep the follow path engraves the words,
+    /// mm (default 1).
+    #[arg(value_parser = crate::lengths::length, long)]
+    engrave_depth: Option<f64>,
     /// The frame (`frame kinds`).
     #[arg(long, value_enum, default_value = "rounded")]
     frame: KindArg,
@@ -206,6 +210,9 @@ fn add_one(out: &mut Out, add: AddSign) -> ExitCode {
     }
     request.height = add.height;
     request.size = add.size;
+    if let Some(depth) = add.engrave_depth {
+        request.engrave_depth = depth;
+    }
     request.kind = kind;
     request.corner = add.corner;
     request.margin = add.margin;

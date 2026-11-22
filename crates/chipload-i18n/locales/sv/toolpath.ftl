@@ -267,7 +267,7 @@ toolpath-error-contour-invalid = kontur #{ $contour } är ogiltig: { $reason }
 # $selector is what the operation selects, built from the toolpath-error-selector texts.
 toolpath-error-selects-nothing = urvalet { $selector } träffar ingenting
 # $contours are contour numbers ("#3, #4").
-toolpath-error-selects-open = urvalet { $selector } träffar bara öppna konturer ({ $contours }); den här operationen behöver slutna
+toolpath-error-selects-open = urvalet { $selector } träffar bara öppna konturer ({ $contours }); den här operationen behöver slutna; en Följ bana skär öppna former, även enkellinjetext
 toolpath-error-selector-layer = lager '{ $layer }'
 toolpath-error-selector-shapes = formerna { $shapes }
 toolpath-error-selector-and = { $first } och { $second }

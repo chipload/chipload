@@ -116,3 +116,9 @@ which of them are missing (Cyrillic for Russian is unlikely; see §6).
   out. Single-line letters are not merged (`chipload_pipeline::texts::lettering`). The
   font list's *Single-line* group came in this step too, its name drawn in Inter (egui
   can't draw an SVG font). Golden `v43_nameplate`.
+- **Step 2:** `SignRequest::engrave_depth` (`sign add --engrave-depth`, the wizard's
+  *Engrave depth* with a single-line font); raised and inlaid single-line signs refused.
+  *New operation* keeps its order: rather than putting Follow path first, a profile,
+  pocket or V-carve on open strokes is refused with a reason that now names Follow path
+  (`toolpath-error-selects-open`), the same for any open shapes. Single-line letters
+  already draw as thin lines on the canvas (open paths have no inside to shade).

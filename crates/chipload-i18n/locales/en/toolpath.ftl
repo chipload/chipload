@@ -268,7 +268,7 @@ toolpath-error-contour-invalid = contour #{ $contour } is invalid: { $reason }
 # $selector is what the operation selects, built from the toolpath-error-selector texts.
 toolpath-error-selects-nothing = selector { $selector } matches nothing
 # $contours are contour numbers ("#3, #4").
-toolpath-error-selects-open = selector { $selector } matches only open contours ({ $contours }); this operation needs closed ones
+toolpath-error-selects-open = selector { $selector } matches only open contours ({ $contours }); this operation needs closed ones; a Follow path cuts open shapes, single-line text too
 toolpath-error-selector-layer = layer '{ $layer }'
 toolpath-error-selector-shapes = shapes { $shapes }
 toolpath-error-selector-and = { $first } and { $second }

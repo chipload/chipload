@@ -45,7 +45,10 @@ the empty project stays. (Design: `docs/specs/sign-maker.md`, `sign-size-and-sta
   height yourself if they no longer fit. Round shapes already drawn, the frame is that
   size round them.
 - **Style**:
-  - *Engraved*: the letters V-carved;
+  - *Engraved*: the letters V-carved; in a [single-line font](text.md#single-line-text),
+    a Follow path of the V-bit down each stroke instead, at the **Engrave depth** (1 mm
+    by default; `--engrave-depth` on the command line). *Raised* and *Inlay* need an
+    outline font;
   - *Raised*: the background inside the innermost border cut down round the letters with
     the end mill (**Background depth**, 3 mm by default), the letters and the border left
     standing; it needs a border. Inside corners round the letters keep the end mill's

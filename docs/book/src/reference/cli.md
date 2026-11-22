@@ -1668,6 +1668,7 @@ chipload sign add <PROJECT> <WORDS> [OPTIONS]
 | `--font <FONT>` | The font (`chipload text fonts`) |
 | `--height <HEIGHT>` | The capital height, mm. Default: `30`. |
 | `--size <SIZE>` | The sign's outer size "W×H", such as 300x100 (any length unit; plain numbers are mm): the frame is that size and the letters as high as fit, instead of --height (docs/specs/sign-size-and-start.md §1) |
+| `--engrave-depth <ENGRAVE_DEPTH>` | With a single-line font (`text fonts`): how deep the follow path engraves the words, mm (default 1) |
 | `--frame <FRAME>` | The frame (`frame kinds`) One of: `rectangle`, `rounded`, `notched`, `chamfered`, `stepped`, `oval`, `arched`, `double-arch`, `gable`, `shield`, `plaque`, `banner`, `octagon`. Default: `rounded`. |
 | `--corners <CORNERS>` | A rectangular frame's corners: sharp, round, notch, chamfer or step. One of: `sharp`, `round`, `notch`, `chamfer`, `step`. |
 | `--corner <CORNER>` | The frame's corner size, mm (default: a tenth of its shorter side) |

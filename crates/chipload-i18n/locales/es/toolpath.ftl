@@ -267,7 +267,7 @@ toolpath-error-contour-invalid = el contorno #{ $contour } no es válido: { $rea
 # $selector is what the operation selects, built from the toolpath-error-selector texts.
 toolpath-error-selects-nothing = el selector { $selector } no coincide con nada
 # $contours are contour numbers ("#3, #4").
-toolpath-error-selects-open = el selector { $selector } solo coincide con contornos abiertos ({ $contours }); esta operación necesita contornos cerrados
+toolpath-error-selects-open = el selector { $selector } solo coincide con contornos abiertos ({ $contours }); esta operación necesita contornos cerrados; un Seguir trayectoria corta las formas abiertas, también el texto de un solo trazo
 toolpath-error-selector-layer = capa '{ $layer }'
 toolpath-error-selector-shapes = formas { $shapes }
 toolpath-error-selector-and = { $first } y { $second }

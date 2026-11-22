@@ -267,7 +267,7 @@ toolpath-error-contour-invalid = le contour #{ $contour } n'est pas valide : { $
 # $selector is what the operation selects, built from the toolpath-error-selector texts.
 toolpath-error-selects-nothing = la sélection { $selector } ne correspond à rien
 # $contours are contour numbers ("#3, #4").
-toolpath-error-selects-open = la sélection { $selector } ne correspond qu'à des contours ouverts ({ $contours }) ; cette opération a besoin de contours fermés
+toolpath-error-selects-open = la sélection { $selector } ne correspond qu'à des contours ouverts ({ $contours }) ; cette opération a besoin de contours fermés ; un Suivi de tracé taille les formes ouvertes, le texte monotrait aussi
 toolpath-error-selector-layer = calque '{ $layer }'
 toolpath-error-selector-shapes = formes { $shapes }
 toolpath-error-selector-and = { $first } et { $second }

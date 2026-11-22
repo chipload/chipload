@@ -41,6 +41,8 @@ pub(super) struct SignSettings {
     pub border_width: f64,
     pub style: SignStyle,
     pub relief: f64,
+    /// How deep single-line words are engraved (docs/specs/single-line-text.md §2).
+    pub engrave_depth: f64,
     pub edge: bool,
     pub edge_width: f64,
     pub vbit: Option<WizardTool>,
@@ -92,6 +94,7 @@ impl SignSettings {
             border_width: DEFAULT_BORDER_WIDTH_MM,
             style: SignStyle::Engraved,
             relief: DEFAULT_RELIEF_MM,
+            engrave_depth: chipload_pipeline::sign::DEFAULT_ENGRAVE_DEPTH_MM,
             edge: false,
             edge_width: 2.0,
             vbit,
@@ -138,6 +141,7 @@ impl SignSettings {
         request.border_width = self.border_width;
         request.style = self.style;
         request.relief = self.relief;
+        request.engrave_depth = self.engrave_depth;
         request.edge = self.edge.then_some(self.edge_width);
         request.board = self.fit_board.then_some(SignBoard {
             thickness: self.thickness,
@@ -550,6 +554,15 @@ fn frame_and_cut_fields(ui: &mut egui::Ui, s: &mut SignSettings, offer: &ToolOff
             .response
             .on_hover_text(t!(ui, "sign-style-hover"));
             ui.end_row();
+            let single_line = s.around.is_empty()
+                && chipload_text::builtin(&s.font)
+                    .is_some_and(chipload_text::BuiltinFont::single_line);
+            if single_line && s.style == SignStyle::Engraved {
+                ui.label(t!(ui, "sign-engrave-depth"));
+                ui.add(crate::units::length(&mut s.engrave_depth).range(0.05..=20.0))
+                    .on_hover_text(t!(ui, "sign-engrave-depth-hover"));
+                ui.end_row();
+            }
             if s.style == SignStyle::Raised {
                 ui.label(t!(ui, "sign-relief"));
                 ui.add(crate::units::length(&mut s.relief).range(0.1..=100.0))

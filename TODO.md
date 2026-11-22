@@ -49,9 +49,8 @@ done is in git and in the releases' notes on GitHub, no longer listed here.
 ## Next, in order
 
 0. **From the capability review** (2026-11-22, the user: "Do 1, 2 and 4"), specs approved:
-   - single-line text (docs/specs/single-line-text.md): step 1 built (the font, texts in
-     it, the font list group); left: step 2, the window's thin strokes and Follow path
-     offered, the sign wizard's engrave depth;
+   - ~~single-line text~~ built 2026-11-22 (docs/specs/single-line-text.md), not pushed,
+     for the user to try;
    - more post-processors (docs/specs/more-posts.md): MASSO, Centroid Acorn, UCCNC, the
      GRBL post named for grblHAL and FluidNC;
    - signs from a list (docs/specs/batch-signs.md).

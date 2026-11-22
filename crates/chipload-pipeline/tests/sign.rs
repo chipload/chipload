@@ -482,3 +482,33 @@ fn a_fixed_size_is_refused_when_nothing_fits_or_it_isnt_round_for_round_words() 
     round.size = Some((200.0, 150.0));
     assert!(refused(&round).contains("same width and height"));
 }
+
+/// docs/specs/single-line-text.md §2: a sign in a single-line font is engraved along its
+/// strokes; raised and inlaid ones need outlines.
+#[test]
+fn a_single_line_sign_engraves_its_words_with_a_follow_path() {
+    let mut request = SignRequest::new("WORKSHOP", 2, 1);
+    request.font = "Relief SingleLine".into();
+    request.height = 12.0;
+    request.engrave_depth = 0.8;
+    let (job, sign) = made(&request);
+    let Operation::Path(letters) = &job.operations[sign.operations[0]] else {
+        panic!(
+            "a follow path first: {:?}",
+            job.operations[sign.operations[0]].name()
+        );
+    };
+    assert_eq!(letters.tool, 2);
+    assert_eq!(letters.end_depth, 0.8);
+    assert_eq!(letters.name, "Letters");
+    run_setups(&job, None).unwrap();
+    for style in [SignStyle::Raised, SignStyle::Inlay] {
+        let mut other = request.clone();
+        other.style = style;
+        let err = add_sign(&project(), &other, &BuiltinOnly, None, Language::En).unwrap_err();
+        assert!(err.message().english().contains("single-line"), "{style:?}");
+    }
+    let mut flat = request.clone();
+    flat.engrave_depth = 0.0;
+    assert!(add_sign(&project(), &flat, &BuiltinOnly, None, Language::En).is_err());
+}

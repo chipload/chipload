@@ -29,6 +29,8 @@ pub const DEFAULT_BORDER_WIDTH_MM: f64 = 2.0;
 pub const DEFAULT_BOARD_MARGIN_MM: f64 = 15.0;
 /// The board's thickness when not given, mm.
 pub const DEFAULT_BOARD_THICKNESS_MM: f64 = 18.0;
+/// How deep single-line words are engraved by default, mm.
+pub const DEFAULT_ENGRAVE_DEPTH_MM: f64 = 1.0;
 /// The longest a sign's part and group name is, in characters.
 const NAME_LENGTH: usize = 40;
 
@@ -105,6 +107,9 @@ pub struct SignRequest {
     /// (docs/specs/sign-size-and-start.md §1). Round shapes, the frame is that size round
     /// them.
     pub size: Option<(f64, f64)>,
+    /// With a single-line font, how deep the follow path engraves the words, mm
+    /// (docs/specs/single-line-text.md §2).
+    pub engrave_depth: f64,
 }
 
 impl SignRequest {
@@ -135,7 +140,15 @@ impl SignRequest {
             }),
             round: false,
             size: None,
+            engrave_depth: DEFAULT_ENGRAVE_DEPTH_MM,
         }
+    }
+
+    /// New words in a single-line font: engraved along their strokes.
+    fn single_line(&self) -> bool {
+        self.around.is_empty()
+            && chipload_text::builtin(&self.font)
+                .is_some_and(chipload_text::BuiltinFont::single_line)
     }
 
     /// The frame as asked for, of `size`.
@@ -541,6 +554,17 @@ fn check_values(request: &SignRequest) -> Result<(), PipelineError> {
             ));
         }
     }
+    if request.single_line() {
+        if request.style != SignStyle::Engraved {
+            return Err(refused(Message::new("pipeline-sign-single-line-style")));
+        }
+        if !(request.engrave_depth.is_finite() && request.engrave_depth > 0.0) {
+            return Err(refused(
+                Message::new("pipeline-sign-engrave-depth")
+                    .arg("got", length(request.engrave_depth)),
+            ));
+        }
+    }
     if let Some(edge) = request.edge
         && !(edge.is_finite() && edge > 0.0)
     {
@@ -695,6 +719,13 @@ pub fn add_sign(
         part,
     };
     match request.style {
+        // Single-line words: one pass of the V-bit down each stroke.
+        SignStyle::Engraved if request.single_line() => {
+            let mut op = ctx.make(&job, OpKind::Path, art.select.clone(), request.vbit)?;
+            set_depth(&mut op, request.engrave_depth);
+            *op.name_mut() = op_name("pipeline-name-sign-letters");
+            operations.push(ctx.append(&mut job, op));
+        }
         SignStyle::Engraved => {
             let mut op = ctx.make(&job, OpKind::Vcarve, art.select.clone(), request.vbit)?;
             *op.name_mut() = op_name(if text.is_some() {

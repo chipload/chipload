@@ -254,3 +254,26 @@ fn new_sign_on_the_start_page_makes_a_project_and_opens_the_dialog() {
     );
     assert!(app.edit.as_ref().unwrap().job.drawing.shapes.is_empty());
 }
+
+#[test]
+fn a_single_line_font_shows_the_engrave_depth_and_makes_a_follow_path() {
+    // docs/specs/single-line-text.md §2.
+    let mut harness = window();
+    harness.state_mut().start_sign();
+    harness.run_steps(2);
+    let Some(Prompt::Sign(mut settings)) = harness.state().dialogs.prompt.clone() else {
+        panic!("the dialog");
+    };
+    settings.words = "SHED".into();
+    settings.font = "Relief SingleLine".into();
+    settings.engrave_depth = 0.7;
+    harness.state_mut().dialogs.prompt = Some(Prompt::Sign(settings));
+    harness.run_steps(3);
+    assert!(harness.get_all_by_label("Engrave depth").count() > 0);
+    click(&mut harness, "Make sign");
+    let job = &harness.state().edit.as_ref().unwrap().job;
+    let Operation::Path(letters) = &job.operations[0] else {
+        panic!("a follow path");
+    };
+    assert_eq!(letters.end_depth, 0.7);
+}

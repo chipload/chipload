@@ -92,3 +92,30 @@ fn a_sign_of_a_fixed_size_fits_its_letters() {
     both.extend(tools);
     assert_eq!(run(&dir, &both).status.code(), Some(2));
 }
+
+#[test]
+fn a_single_line_sign_is_engraved_at_the_depth_asked() {
+    let dir = temp_dir("single-line");
+    ok(&dir, &["new", "-o", "p.chipload"]);
+    ok(&dir, &["set", "p.chipload", TOOLS]);
+    ok(
+        &dir,
+        &[
+            "sign",
+            "add",
+            "p.chipload",
+            "SHED",
+            "--font",
+            "Relief SingleLine",
+            "--engrave-depth",
+            "0.6",
+            "--vbit",
+            "2",
+            "--end-mill",
+            "1",
+        ],
+    );
+    let op = ok(&dir, &["get", "p.chipload", "operations.0"])["value"].clone();
+    assert_eq!(op["type"], "path", "{op}");
+    assert_eq!(op["end_depth"], 0.6);
+}

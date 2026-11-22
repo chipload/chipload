@@ -267,7 +267,7 @@ toolpath-error-contour-invalid = Kontur #{ $contour } ist ungültig: { $reason }
 # $selector is what the operation selects, built from the toolpath-error-selector texts.
 toolpath-error-selects-nothing = Auswahl { $selector } trifft nichts
 # $contours are contour numbers ("#3, #4").
-toolpath-error-selects-open = Auswahl { $selector } trifft nur offene Konturen ({ $contours }); diese Bearbeitung braucht geschlossene
+toolpath-error-selects-open = Auswahl { $selector } trifft nur offene Konturen ({ $contours }); diese Bearbeitung braucht geschlossene; ein Pfad folgen schneidet offene Formen, auch einlinigen Text
 toolpath-error-selector-layer = Layer '{ $layer }'
 toolpath-error-selector-shapes = Formen { $shapes }
 toolpath-error-selector-and = { $first } und { $second }
