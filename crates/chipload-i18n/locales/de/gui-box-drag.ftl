@@ -3,3 +3,7 @@
 # In the status bar when the box can't be dragged to that size; $error says why.
 box-drag-not-that-size = Nicht in dieser Größe: { $error }
 box-drag-cannot-move-shapes = Die Formen konnten nicht verschoben werden:
+box-drag-stretched-fitted = { $count ->
+    [one] { $shapes } ist jetzt eine Polylinie
+   *[other] { $shapes } sind jetzt Polylinien
+} aus Linien und Bögen, die der gestreckten Kurve folgen.

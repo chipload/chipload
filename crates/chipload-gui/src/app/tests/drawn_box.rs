@@ -14,15 +14,15 @@ fn polyline_points(app: &ChiploadApp, id: u64) -> Vec<[f64; 2]> {
 #[test]
 fn a_polyline_and_several_shapes_get_a_box_but_one_circle_does_not() {
     let mut app = drawn_part();
-    // S3, the triangle: a box with move, turn and four corners.
+    // S3, the triangle: a box with move, turn, four corners and four sides.
     app.click(Some(contour_of(&app, 3)), false);
-    assert_eq!(app.box_handle_points().len(), 6);
+    assert_eq!(app.box_handle_points().len(), 10);
     // The circle alone has its own handles.
     app.click(Some(contour_of(&app, 2)), false);
     assert!(app.box_handle_points().is_empty());
     // The circle and the triangle together: a box.
     app.click(Some(contour_of(&app, 3)), true);
-    assert_eq!(app.box_handle_points().len(), 6);
+    assert_eq!(app.box_handle_points().len(), 10);
 }
 
 #[test]
@@ -147,4 +147,64 @@ fn drawn_groups_list_their_shapes_by_layer_with_names() {
         super::super::sources::GroupKind::Dxf(_) => g.members.is_empty(),
         _ => true,
     }));
+}
+
+#[test]
+fn a_side_handle_stretches_the_shapes_one_way() {
+    // docs/specs/scale-and-stretch.md §3. S2 the circle at (75, 80) r 12 and S3 the
+    // triangle (110, 65) (140, 65) (125, 95): their box runs from x 63 to 140.
+    let mut app = drawn_part();
+    app.commit();
+    app.click(Some(contour_of(&app, 3)), false);
+    app.click(Some(contour_of(&app, 2)), true);
+    let handles = app.box_handle_points();
+    let (handle, right) = handles[7];
+    assert_eq!(handle, BoxHandle::Side(1));
+    app.start_box_drag(BoxHandle::Side(1));
+    app.drag_box_to((right.0 + 77.0, right.1 + 30.0), false);
+    // The preview shows the shapes stretched; nothing changes until the drag ends.
+    assert!(app.box_outline().len() > 2);
+    app.end_box_drag();
+    // Twice as wide, the left side staying; no taller.
+    let points = polyline_points(&app, 3);
+    let expected = [[157.0, 65.0], [217.0, 65.0], [187.0, 95.0]];
+    for (p, e) in points.iter().zip(expected) {
+        assert!(
+            (p[0] - e[0]).abs() < 1e-6 && (p[1] - e[1]).abs() < 1e-9,
+            "{points:?}"
+        );
+    }
+    // The circle became a polyline, said on the status bar, and keeps its id.
+    assert!(matches!(
+        app.shape(2).unwrap().geometry,
+        Geometry::Polyline { closed: true, .. }
+    ));
+    assert!(app.status.as_ref().unwrap().0.contains("S2"));
+    app.commit();
+    app.undo();
+    assert!(matches!(
+        app.shape(2).unwrap().geometry,
+        Geometry::Circle { .. }
+    ));
+}
+
+#[test]
+fn the_size_row_scales_evenly_or_stretches() {
+    use crate::shape_form::PlaceEdit;
+    let bounds = ((0.0, 0.0), (40.0, 20.0));
+    // Keep proportions: an even scale about the middle.
+    assert_eq!(
+        PlaceEdit::ScaleBy(2.0).transform(bounds),
+        ((20.0, 10.0), (20.0, 10.0), 2.0, 0.0)
+    );
+    assert_eq!(PlaceEdit::ScaleBy(2.0).stretch(bounds), None);
+    // Without: a stretch about the middle, one factor per axis.
+    assert_eq!(
+        PlaceEdit::Size(80.0, 20.0).stretch(bounds),
+        Some(((20.0, 10.0), 2.0, 1.0))
+    );
+    // A flat line has no proportion to keep: its length scales it evenly.
+    let flat = ((0.0, 5.0), (40.0, 5.0));
+    assert_eq!(PlaceEdit::Size(80.0, 0.0).stretch(flat), None);
+    assert_eq!(PlaceEdit::Size(80.0, 0.0).transform(flat).2, 2.0);
 }

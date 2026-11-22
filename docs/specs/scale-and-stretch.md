@@ -179,3 +179,11 @@ new length, a spline with moved points).
   value goes. Stretch's geometry (`chipload_job::edit::stretch`, with a property test),
   `chipload_pipeline::scaling::stretch_shapes` and `shape stretch` came in the same
   commit; the window's side handles and *Keep proportions* follow in step 2.
+- **Step 2:** `BoxHandle::Side` and `side_handles` (`chipload_pipeline::box_handles`): the
+  box round drawn shapes (never turned) gets four side handles; texts, pictures, groups and
+  DXFs keep their eight. *Size* in the polyline's and spline's form and the Selection
+  section, with *Keep proportions* (a checkbox, not a chain: clearer in seven languages).
+  Ticked gives `PlaceEdit::ScaleBy`, an even scale, so a height worked out from a width
+  never stretches a circle by a rounding error. A shape alone that has no box and no Size
+  row (one circle, rectangle or polygon) stretches with another shape selected, or from
+  the command line.

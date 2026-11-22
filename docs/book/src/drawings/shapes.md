@@ -228,7 +228,9 @@ DXF first, [Explode](several.md)).
   stretched curve within 0.01 mm; it keeps its number, so the operations that cut it
   follow. Corner radii stay the radii you typed. Equal factors scale evenly, and a circle
   stays a circle. Only drawn shapes stretch: explode a DXF (`chipload dxf explode`) or
-  turn a text's letters into shapes first. On the command line: `chipload shape stretch P
+  turn a text's letters into shapes first. In the window: drag the middle of a side of the
+  box round the selected shapes, or untick *Keep proportions* and type a width or height
+  (both below). The status bar names the shapes that became polylines. On the command line: `chipload shape stretch P
   3 4 --x 1.25` (about the middle of their box), `--width 500 --about 0,0`, `--y 0.8`.
 - **Arrays** add copies of drawn shapes in a grid or round a centre; the originals stay
   and the copies go on their layers with new numbers. A grid counts the originals in its
@@ -321,16 +323,20 @@ holes on, a guide at 45°) and are **never cut**.
 - **Move, turn and size:** select a polyline, or several drawn shapes (Ctrl+click), and a
   dashed box shows round them: drag the square in the middle to move them, the round handle
   beyond the right side to turn them (in steps of 15°; hold Alt for 0.1°), a corner to
-  scale them evenly, the opposite corner staying put. One circle or rectangle keeps its own
-  handles instead. The shapes keep their ids, so the operations that cut them follow, and so
+  scale them evenly, the opposite corner staying put, or the middle of a side to
+  [stretch](#editing-operations) them one way, the opposite side staying put. One circle or
+  rectangle keeps its own handles instead. The shapes keep their ids, so the operations that cut them follow, and so
   do the operations' start points, [corner choices](../operations/profile.md#corner-by-corner)
   and tabs placed by hand on them (also with `shape move`, `turn` and `scale`, and when you
   change one shape through its own handles or form: a corner's choice stays with that
   corner of a rectangle you move or resize).
-- **Position and Turn:** a selected polyline's form, and the *Selection* section when several
-  drawn shapes are selected, have *Position* (the lower-left corner of the box round them:
-  type a value to move them there) and *Turn*: ⟲ 90, ⟳ 90, or type an angle and press
-  Enter. A polyline keeps no angle of its own; turning moves its points.
+- **Position, Size and Turn:** a selected polyline's or spline's form, and the *Selection*
+  section when several drawn shapes are selected, have *Position* (the lower-left corner of
+  the box round them: type a value to move them there), *Size* (the box's width and height)
+  and *Turn*: ⟲ 90, ⟳ 90, or type an angle and press Enter. With *Keep proportions* ticked
+  (as it starts), a new width or height scales them evenly about the middle of their box;
+  unticked, it stretches them one way. A polyline keeps no angle of its own; turning moves
+  its points.
 - **In the Browser:** under *Drawing*, the *Circles*, *Rectangles*, *Polylines*,
   *Polygons* and *Splines* groups list their shapes in a folder per layer. Click a row to select the
   shape (Ctrl+click adds or removes); right-click to rename, copy or delete it. A group

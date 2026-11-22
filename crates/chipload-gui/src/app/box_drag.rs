@@ -8,8 +8,8 @@ use chipload_core::Point;
 use chipload_core::chain::ShapeFrom;
 use chipload_job::Text;
 use chipload_pipeline::box_handles::{
-    BoxHandle, PlacedBox, box_handles, drag_box, image_box, image_in_box, model_box, text_box,
-    text_in_box,
+    BoxHandle, PlacedBox, box_handles, drag_box, image_box, image_in_box, model_box, side_handles,
+    text_box, text_in_box,
 };
 
 use super::*;
@@ -204,13 +204,22 @@ impl ChiploadApp {
     }
 
     /// The handles to show: of the box being dragged, else of the selected one.
+    /// Drawn shapes' box also has a handle in the middle of each side, which stretches
+    /// them one way (docs/specs/scale-and-stretch.md §3).
     pub(super) fn box_handle_points(&mut self) -> Vec<(BoxHandle, Point)> {
         let reach = TURN_HANDLE_PX / self.view.scale;
+        let with_sides = |of: &BoxOf, b: &PlacedBox| {
+            let mut handles = box_handles(b, reach);
+            if matches!(of, BoxOf::Shapes(_)) {
+                handles.extend(side_handles(b));
+            }
+            handles
+        };
         if let Some(drag) = &self.drag.boxed {
-            return box_handles(&drag.now, reach);
+            return with_sides(&drag.of, &drag.now);
         }
         self.selected_box()
-            .map(|(_, b)| box_handles(&b, reach))
+            .map(|(of, b)| with_sides(&of, &b))
             .unwrap_or_default()
     }
 
@@ -256,6 +265,37 @@ impl ChiploadApp {
         {
             let (from, to, scale, degrees) = box_transform(start, now, *pad);
             lines.extend(self.moved_outlines(&self.dxf_shapes(*id), from, to, scale, degrees));
+        }
+        // Drawn shapes stretched by a side handle.
+        if let Some(BoxDrag {
+            of: BoxOf::Shapes(ids),
+            handle: BoxHandle::Side(_),
+            start,
+            now,
+            pad,
+            ..
+        }) = &self.drag.boxed
+            && now != start
+            && let Some(edit) = self.edit.as_ref()
+        {
+            let (about, fx, fy) = side_stretch(start, now, *pad);
+            for shape in edit
+                .job
+                .drawing
+                .shapes
+                .iter()
+                .filter(|s| ids.contains(&s.id))
+            {
+                if let Some(done) = chipload_job::edit::stretch::stretched(
+                    &shape.geometry,
+                    [about.0, about.1],
+                    fx,
+                    fy,
+                ) {
+                    lines.push(outline(&done.geometry));
+                }
+            }
+            return lines;
         }
         // Drawn shapes follow the box while it is dragged.
         if let Some(BoxDrag {
@@ -355,6 +395,8 @@ impl ChiploadApp {
             handle => drag_box(&drag.start, handle, to, free),
         };
         match dragged {
+            // A side dragged across the shapes' own box leaves them nothing to stretch to.
+            Ok(b) if b.size.0.min(b.size.1) <= 2.0 * drag.pad => {}
             Ok(b) => drag.now = b,
             Err(why) => {
                 let text = t!(self, "box-drag-not-that-size", error = self.say(&why));
@@ -370,6 +412,11 @@ impl ChiploadApp {
         };
         self.scene.snap_mark = None;
         if drag.now == drag.start {
+            return;
+        }
+        if let (BoxOf::Shapes(ids), BoxHandle::Side(_)) = (&drag.of, drag.handle) {
+            let (about, fx, fy) = side_stretch(&drag.start, &drag.now, drag.pad);
+            self.stretch_shapes(ids, about, fx, fy);
             return;
         }
         if let BoxOf::Shapes(ids) = &drag.of {
@@ -477,6 +524,43 @@ impl ChiploadApp {
         }
     }
 
+    /// Drawn shapes `ids` stretched by `fx` along X and `fy` along Y about `about`, as one
+    /// undo step; they stay selected. The status bar names shapes that became polylines.
+    pub fn stretch_shapes(&mut self, ids: &[u64], about: Point, fx: f64, fy: f64) -> bool {
+        use chipload_pipeline::scaling::{Along, stretch_shapes};
+        let Some(edit) = self.edit.as_mut() else {
+            return false;
+        };
+        let job = edit.job.clone();
+        let about = Some([about.0, about.1]);
+        match stretch_shapes(&job, ids, about, Along::Factor(fx), Along::Factor(fy)) {
+            Ok(done) => {
+                edit.adopt(done.job);
+                self.shape_draft = None;
+                self.drawing_changed(ids);
+                if !done.fitted.is_empty() {
+                    let names: Vec<String> =
+                        done.fitted.iter().map(|id| format!("S{id}")).collect();
+                    let text = t!(
+                        self,
+                        "box-drag-stretched-fitted",
+                        count = done.fitted.len(),
+                        shapes = names.join(", ")
+                    );
+                    self.set_status(text, STATUS_SECONDS);
+                }
+                true
+            }
+            Err(err) => {
+                self.error_report(super::report::Report::failed(
+                    t!(self, "box-drag-cannot-move-shapes"),
+                    err.message(),
+                ));
+                false
+            }
+        }
+    }
+
     /// A box handle is being dragged.
     pub(super) fn dragging_box(&self) -> bool {
         self.drag.boxed.is_some()
@@ -540,6 +624,41 @@ fn box_transform(start: &PlacedBox, now: &PlacedBox, pad: f64) -> (Point, Point,
         scale,
         now.rotation - start.rotation,
     )
+}
+
+/// What a side handle's drag does to the shapes in the box: the point that stays (the
+/// middle of the opposite side of the shapes' own box, inside the pad) and the factors
+/// along X and Y. The shapes' box is never turned.
+fn side_stretch(start: &PlacedBox, now: &PlacedBox, pad: f64) -> (Point, f64, f64) {
+    let inner = |b: &PlacedBox| (b.size.0 - 2.0 * pad, b.size.1 - 2.0 * pad);
+    let (was, is) = (inner(start), inner(now));
+    let factor = |is: f64, was: f64| if was > 0.0 { is / was } else { 1.0 };
+    let (fx, fy) = (factor(is.0, was.0), factor(is.1, was.1));
+    // The side that stayed: where the start's and the new box's edges agree.
+    let (s0, s1) = (
+        start.corner,
+        (start.corner.0 + start.size.0, start.corner.1 + start.size.1),
+    );
+    let (n0, n1) = (
+        now.corner,
+        (now.corner.0 + now.size.0, now.corner.1 + now.size.1),
+    );
+    let same = |a: f64, b: f64| (a - b).abs() <= chipload_core::tolerances::CHAIN_TOL_MM;
+    let x = if same(s0.0, n0.0) {
+        s0.0 + pad
+    } else if same(s1.0, n1.0) {
+        s1.0 - pad
+    } else {
+        start.center().0
+    };
+    let y = if same(s0.1, n0.1) {
+        s0.1 + pad
+    } else if same(s1.1, n1.1) {
+        s1.1 - pad
+    } else {
+        start.center().1
+    };
+    ((x, y), fx, fy)
 }
 
 /// [`size_shapes_box`] for a box turned as a group's or a DXF's is: the handle's point taken

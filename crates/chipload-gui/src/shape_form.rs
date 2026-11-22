@@ -265,6 +265,11 @@ pub enum PlaceEdit {
     CornerTo(f64, f64),
     /// Turn about the middle of the box, degrees counter-clockwise.
     TurnBy(f64),
+    /// Scale evenly about the middle of the box by this factor (*Keep proportions*).
+    ScaleBy(f64),
+    /// Make the box this wide and high, mm, about its middle: a stretch, one way more than
+    /// the other.
+    Size(f64, f64),
 }
 
 impl PlaceEdit {
@@ -277,11 +282,54 @@ impl PlaceEdit {
                 let middle = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
                 (middle, middle, 1.0, degrees)
             }
+            PlaceEdit::ScaleBy(factor) => {
+                let middle = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
+                (middle, middle, factor, 0.0)
+            }
+            PlaceEdit::Size(..) => {
+                let middle = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
+                let (fx, fy) = self.factors(bounds).unwrap_or((1.0, 1.0));
+                (middle, middle, if fx == 1.0 { fy } else { fx }, 0.0)
+            }
         }
+    }
+
+    /// A size's factors along X and Y (1 along a flat side), when it stretches unevenly;
+    /// None for anything else.
+    pub fn factors(self, bounds: ((f64, f64), (f64, f64))) -> Option<(f64, f64)> {
+        let PlaceEdit::Size(w, h) = self else {
+            return None;
+        };
+        let ((x0, y0), (x1, y1)) = bounds;
+        let factor = |new: f64, now: f64| {
+            if now > chipload_core::tolerances::CHAIN_TOL_MM {
+                new / now
+            } else {
+                1.0
+            }
+        };
+        Some((factor(w, x1 - x0), factor(h, y1 - y0)))
+    }
+
+    /// A size that stretches one way more than the other: the middle that stays and the
+    /// factors.
+    pub fn stretch(self, bounds: ((f64, f64), (f64, f64))) -> Option<((f64, f64), f64, f64)> {
+        let (fx, fy) = self.factors(bounds)?;
+        let ((x0, y0), (x1, y1)) = bounds;
+        let flat_x = x1 - x0 <= chipload_core::tolerances::CHAIN_TOL_MM;
+        let flat_y = y1 - y0 <= chipload_core::tolerances::CHAIN_TOL_MM;
+        // A flat side has no proportion to keep: a line along X scales evenly with its
+        // length.
+        let even = fx == fy || flat_x || flat_y;
+        (!even).then_some((((x0 + x1) / 2.0, (y0 + y1) / 2.0), fx, fy))
     }
 
     /// `geometry`, in box `bounds`, changed by it.
     fn apply(self, geometry: &Geometry, bounds: ((f64, f64), (f64, f64))) -> Option<Geometry> {
+        if let Some((middle, fx, fy)) = self.stretch(bounds) {
+            return chipload_job::edit::stretch::stretched(geometry, [middle.0, middle.1], fx, fy)
+                .map(|done| done.geometry);
+        }
         let (from, to, scale, degrees) = self.transform(bounds);
         chipload_job::edit::transformed(geometry, [from.0, from.1], [to.0, to.1], scale, degrees)
     }
@@ -308,15 +356,17 @@ pub fn geometry_box(geometry: &Geometry) -> Option<((f64, f64), (f64, f64))> {
         })
 }
 
-/// Two grid rows: *Position* (the lower-left corner of box `bounds`) and *Turn* (⟲ 90,
-/// ⟳ 90 and a field that turns by its value when the edit is finished, then shows 0 again).
+/// Three grid rows: *Position* (the lower-left corner of box `bounds`), *Size* (its width
+/// and height, with *Keep proportions*: on, a new width scales evenly; off, it stretches one
+/// way; docs/specs/scale-and-stretch.md §3) and *Turn* (⟲ 90, ⟳ 90 and a field that turns
+/// by its value when the edit is finished, then shows 0 again).
 pub fn place_rows(
     ui: &mut egui::Ui,
     id: egui::Id,
     bounds: ((f64, f64), (f64, f64)),
 ) -> Option<PlaceEdit> {
     let mut edit = None;
-    let ((x0, y0), _) = bounds;
+    let ((x0, y0), (x1, y1)) = bounds;
     ui.label(t!(ui, "shape-form-position"))
         .on_hover_text(t!(ui, "shape-form-position-hover"));
     ui.horizontal(|ui| {
@@ -326,6 +376,28 @@ pub fn place_rows(
         if moved_x || moved_y {
             edit = Some(PlaceEdit::CornerTo(x, y));
         }
+    });
+    ui.end_row();
+    ui.label(t!(ui, "shape-form-size"))
+        .on_hover_text(t!(ui, "shape-form-size-hover"));
+    ui.horizontal(|ui| {
+        let key = id.with("keep-proportions");
+        let mut keep: bool = ui.data(|d| d.get_temp(key)).unwrap_or(true);
+        let (w0, h0) = (x1 - x0, y1 - y0);
+        let (mut w, mut h) = (w0, h0);
+        let flat = |v: f64| v <= chipload_core::tolerances::CHAIN_TOL_MM;
+        let new_w = ui.add_enabled(!flat(w0), mm(&mut w).prefix("W ")).changed();
+        let new_h = ui.add_enabled(!flat(h0), mm(&mut h).prefix("H ")).changed();
+        if (new_w && w > 0.0) || (new_h && h > 0.0) {
+            edit = Some(match (keep, new_w) {
+                (true, true) => PlaceEdit::ScaleBy(w / w0),
+                (true, false) => PlaceEdit::ScaleBy(h / h0),
+                (false, _) => PlaceEdit::Size(w, h),
+            });
+        }
+        ui.checkbox(&mut keep, t!(ui, "shape-form-keep-proportions"))
+            .on_hover_text(t!(ui, "shape-form-keep-proportions-hover"));
+        ui.data_mut(|d| d.insert_temp(key, keep));
     });
     ui.end_row();
     ui.label(t!(ui, "shape-form-turn"));

@@ -77,8 +77,12 @@ impl ChiploadApp {
                 .inner
         });
         if let Some(edit) = edit {
-            let (from, to, scale, degrees) = edit.transform(bounds);
-            self.transform_shapes(&ids, from, to, scale, degrees);
+            if let Some((middle, fx, fy)) = edit.stretch(bounds) {
+                self.stretch_shapes(&ids, middle, fx, fy);
+            } else {
+                let (from, to, scale, degrees) = edit.transform(bounds);
+                self.transform_shapes(&ids, from, to, scale, degrees);
+            }
         }
     }
 

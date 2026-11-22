@@ -11,8 +11,9 @@ fn dragging_a_handle_edits_the_shape_in_one_undo_step() {
     assert_eq!(app.shape_handles().len(), 3 + 3, "3 points, 3 middles");
     // The middles are drawn apart, and the status bar says how to use them.
     draw_canvas(&mut app);
-    // 3 points, and the box round it: move, turn, 4 corners (drawn-shapes-box.md §2).
-    assert_eq!(app.scene.handles.len(), 3 + 6);
+    // 3 points, and the box round it: move, turn, 4 corners (drawn-shapes-box.md §2) and
+    // 4 sides (scale-and-stretch.md §3).
+    assert_eq!(app.scene.handles.len(), 3 + 10);
     assert_eq!(app.scene.middle_handles.len(), 3);
     assert!(app.polyline_selected());
     app.start_handle_drag(Handle::Point(2));

@@ -36,6 +36,10 @@ pub enum BoxHandle {
     /// Corner k, counter-clockwise from the lower-left before the turn: scales the box
     /// evenly, the opposite corner staying put.
     Size(usize),
+    /// The middle of side k, counter-clockwise from the bottom before the turn (bottom,
+    /// right, top, left): stretches the box one way, the opposite side staying put
+    /// (docs/specs/scale-and-stretch.md §3). Only drawn shapes have them.
+    Side(usize),
 }
 
 impl PlacedBox {
@@ -114,6 +118,16 @@ pub fn box_handles(b: &PlacedBox, turn_reach: f64) -> Vec<(BoxHandle, Point)> {
     out
 }
 
+/// The handles in the middle of `b`'s sides, for a stretch: bottom, right, top, left.
+pub fn side_handles(b: &PlacedBox) -> Vec<(BoxHandle, Point)> {
+    let (hw, hh) = (b.size.0 / 2.0, b.size.1 / 2.0);
+    [[0.0, -hh], [hw, 0.0], [0.0, hh], [-hw, 0.0]]
+        .into_iter()
+        .enumerate()
+        .map(|(k, p)| (BoxHandle::Side(k), b.at(p)))
+        .collect()
+}
+
 /// The box after dragging `handle` of `start` to `to`. `free`: no steps (Alt). `Err` says
 /// why the drag gives no box.
 pub fn drag_box(
@@ -171,7 +185,35 @@ pub fn drag_box(
             })
         }
         BoxHandle::Size(k) => Err(Message::new("pipeline-box-no-corner").arg("corner", k)),
+        BoxHandle::Side(k) => side_dragged(start, k, to),
     }
+}
+
+/// `start` with side `k` dragged to `to`: that side moves along the box's own axis, the
+/// opposite side stays.
+fn side_dragged(start: &PlacedBox, k: usize, to: Point) -> Result<PlacedBox, Message> {
+    let (cx, cy) = start.center();
+    let local = rotated([to.0 - cx, to.1 - cy], -start.rotation);
+    let (hw, hh) = (start.size.0 / 2.0, start.size.1 / 2.0);
+    // The new size and the centre's move, in the box's own axes.
+    let (size, shift) = match k {
+        0 => ((start.size.0, hh - local[1]), [0.0, (local[1] + hh) / 2.0]),
+        1 => ((local[0] + hw, start.size.1), [(local[0] - hw) / 2.0, 0.0]),
+        2 => ((start.size.0, local[1] + hh), [0.0, (local[1] - hh) / 2.0]),
+        3 => ((hw - local[0], start.size.1), [(local[0] + hw) / 2.0, 0.0]),
+        _ => return Err(Message::new("pipeline-box-no-corner").arg("corner", k)),
+    };
+    if size.0.min(size.1) < MIN_SIZE_MM {
+        return Err(Message::new("pipeline-box-too-small")
+            .arg("min", Value::Length(MIN_SIZE_MM, Digits::Shortest)));
+    }
+    let moved = rotated(shift, start.rotation);
+    let center = (cx + moved[0], cy + moved[1]);
+    Ok(PlacedBox {
+        corner: (center.0 - size.0 / 2.0, center.1 - size.1 / 2.0),
+        size,
+        rotation: start.rotation,
+    })
 }
 
 /// Degrees in 0 to <360.
@@ -349,6 +391,36 @@ mod tests {
             size: (40.0, 10.0),
             rotation: 30.0,
         }
+    }
+
+    #[test]
+    fn a_side_stretches_one_way_its_opposite_side_staying() {
+        // docs/specs/scale-and-stretch.md §3: the right side of a box turned 30°, dragged
+        // 10 further out along the box's own X axis.
+        let b = sample();
+        let handles = side_handles(&b);
+        let corners = b.corners();
+        let (_, right) = handles[1];
+        assert!(close(
+            right,
+            (
+                (corners[1].0 + corners[2].0) / 2.0,
+                (corners[1].1 + corners[2].1) / 2.0
+            )
+        ));
+        let a = 30f64.to_radians();
+        let to = (right.0 + 10.0 * math::cos(a), right.1 + 10.0 * math::sin(a));
+        let wider = drag_box(&b, BoxHandle::Side(1), to, false).unwrap();
+        assert!((wider.size.0 - 50.0).abs() < 1e-9 && wider.size.1 == 10.0);
+        let after = wider.corners();
+        assert!(close(after[0], corners[0]) && close(after[3], corners[3]));
+        // The bottom dragged up past the top: too small.
+        let (_, bottom) = handles[0];
+        let up = (
+            bottom.0 - 20.0 * math::sin(a),
+            bottom.1 + 20.0 * math::cos(a),
+        );
+        assert!(drag_box(&b, BoxHandle::Side(0), up, false).is_err());
     }
 
     #[test]
