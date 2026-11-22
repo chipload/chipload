@@ -319,6 +319,9 @@ pipeline-no-tool-use = projektet har inget verktyg { $tool }; kopiera in ett fr�
 pipeline-no-tool = projektet har inget verktyg { $tool }
 # $number is the operation's number as listed, $count how many the project has.
 pipeline-no-operation = det finns ingen operation { $number }; projektet har { $count }
+pipeline-name-copy = { $name } (kopia)
+pipeline-op-move-same = operation { $number } är redan där
+pipeline-op-board-surface = planfräsning av hela skivan hör till uppspänningen och ligger kvar först i den
 pipeline-tab-no-ring = operation { $number } har ingen kontur inom en verktygsdiameter från { $at }; `chipload op tabs` listar dess bryggor
 pipeline-tab-none-there = operation { $number } har ingen brygga inom en verktygsdiameter från { $at }; `chipload op tabs` listar dess bryggor
 pipeline-tab-no-tabs = operation { $number } har inga bryggor: bara en konturfräsning med bryggor har några att placera

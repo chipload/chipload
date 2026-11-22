@@ -324,6 +324,9 @@ pipeline-no-tool-use = il progetto non ha l'utensile { $tool }; copiane uno dall
 pipeline-no-tool = il progetto non ha l'utensile { $tool }
 # $number is the operation's number as listed, $count how many the project has.
 pipeline-no-operation = non esiste la lavorazione { $number }; il progetto ne ha { $count }
+pipeline-name-copy = { $name } (copia)
+pipeline-op-move-same = la lavorazione { $number } è già lì
+pipeline-op-board-surface = la spianatura di tutta la tavola appartiene al piazzamento e vi resta per prima
 pipeline-tab-no-ring = la lavorazione { $number } non ha contorni entro un diametro utensile da { $at }; `chipload op tabs` elenca i suoi ponticelli
 pipeline-tab-none-there = la lavorazione { $number } non ha ponticelli entro un diametro utensile da { $at }; `chipload op tabs` elenca i suoi ponticelli
 pipeline-tab-no-tabs = la lavorazione { $number } non ha ponticelli: solo una contornatura con ponticelli ne ha da posizionare

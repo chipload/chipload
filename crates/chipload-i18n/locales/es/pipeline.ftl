@@ -327,6 +327,9 @@ pipeline-no-tool-use = el proyecto no tiene la herramienta { $tool }; copia una 
 pipeline-no-tool = el proyecto no tiene la herramienta { $tool }
 # $number is the operation's number as listed, $count how many the project has.
 pipeline-no-operation = no hay operación { $number }; el proyecto tiene { $count }
+pipeline-name-copy = { $name } (copia)
+pipeline-op-move-same = la operación { $number } ya está ahí
+pipeline-op-board-surface = el planeado de todo el tablero es de la sujeción y queda el primero en ella
 pipeline-tab-no-ring = la operación { $number } no tiene ningún contorno a menos de un diámetro de herramienta de { $at }; `chipload op tabs` lista sus puentes
 pipeline-tab-none-there = la operación { $number } no tiene ningún puente a menos de un diámetro de herramienta de { $at }; `chipload op tabs` lista sus puentes
 pipeline-tab-no-tabs = la operación { $number } no tiene puentes: solo un contorneado con puentes tiene puentes que colocar

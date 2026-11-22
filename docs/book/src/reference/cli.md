@@ -250,6 +250,49 @@ chipload op tool <PROJECT> [OPTIONS]
 | `--tool <TOOL>` | The tool's id in the project. Required. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload op remove`
+
+Remove an operation, as Delete in the app does
+
+```text
+chipload op remove <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--op <OP>` | The operation's number as the app lists it (1 = first; `get` and `set` paths count from 0) Required. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload op duplicate`
+
+Copy an operation right after itself, in the same part, named "… (copy)"
+
+```text
+chipload op duplicate <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--op <OP>` | The operation's number as the app lists it (1 = first; `get` and `set` paths count from 0) Required. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload op move`
+
+Move an operation to another place in the cutting order (it joins the part of the operation that was there). A surface of the whole board stays first in its setup
+
+```text
+chipload op move <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--op <OP>` | The operation's number as the app lists it (1 = first) Required. |
+| `--to <TO>` | The place it goes to, numbered the same way; it joins that operation's part. Required. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ### `chipload op add-rest`
 
 Add a rest pass to a pocket (docs/specs/rest-passes.md): a smaller endmill that clears what the pocket's tool (or its last pass's) leaves, in the pocket's shapes and depths. It is cut after the run of pockets with the pocket's tool

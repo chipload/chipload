@@ -322,6 +322,9 @@ pipeline-no-tool-use = das Projekt hat kein Werkzeug { $tool }; kopieren Sie ein
 pipeline-no-tool = das Projekt hat kein Werkzeug { $tool }
 # $number is the operation's number as listed, $count how many the project has.
 pipeline-no-operation = es gibt keine Bearbeitung { $number }; das Projekt hat { $count }
+pipeline-name-copy = { $name } (Kopie)
+pipeline-op-move-same = Operation { $number } ist schon dort
+pipeline-op-board-surface = das Planen des ganzen Bretts gehört zur Aufspannung und bleibt darin zuerst
 pipeline-tab-no-ring = Bearbeitung { $number } hat keine Kontur innerhalb eines Werkzeugdurchmessers von { $at }; `chipload op tabs` listet ihre Haltestege
 pipeline-tab-none-there = Bearbeitung { $number } hat keinen Haltesteg innerhalb eines Werkzeugdurchmessers von { $at }; `chipload op tabs` listet ihre Haltestege
 pipeline-tab-no-tabs = Bearbeitung { $number } hat keine Haltestege: nur Konturfräsen mit Haltestegen haben welche zu setzen

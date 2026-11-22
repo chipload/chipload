@@ -52,6 +52,9 @@ boxes.
 chipload part list part.chipload                        # id, name, instances, operations
 chipload part add part.chipload --name box              # an empty part, now active
 chipload op part part.chipload --op 4 --part 2          # move operation 4 into part 2
+chipload op move part.chipload --op 4 --to 2            # operation 4 cut second (joins that part)
+chipload op duplicate part.chipload --op 2              # a copy right after it, "… (copy)"
+chipload op remove part.chipload --op 3                 # as Delete in the app
 chipload part instance add part.chipload --part 2   # part 2 placed again (see Instances)
 chipload part set part.chipload 2 --name lid --off      # rename, turn off (--on)
 chipload part activate part.chipload 1

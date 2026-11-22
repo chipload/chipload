@@ -31,6 +31,13 @@ pub(crate) enum OpAction {
     /// Set the tool an operation cuts with (docs/specs/tool-per-operation.md §7). The tool
     /// must be in the project: copy one in from your library with `tool use`.
     Tool(ToolArgs),
+    /// Remove an operation, as Delete in the app does.
+    Remove(edit::OneOpArgs),
+    /// Copy an operation right after itself, in the same part, named "… (copy)".
+    Duplicate(edit::OneOpArgs),
+    /// Move an operation to another place in the cutting order (it joins the part of the
+    /// operation that was there). A surface of the whole board stays first in its setup.
+    Move(edit::MoveOpArgs),
     /// Add a rest pass to a pocket (docs/specs/rest-passes.md): a smaller endmill that clears
     /// what the pocket's tool (or its last pass's) leaves, in the pocket's shapes and depths.
     /// It is cut after the run of pockets with the pocket's tool.
@@ -526,6 +533,9 @@ pub(crate) enum WallArg {
 pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
     match action {
         OpAction::Tool(args) => args.run(out),
+        OpAction::Remove(args) => args.remove(out),
+        OpAction::Duplicate(args) => args.duplicate(out),
+        OpAction::Move(args) => args.run(out),
         OpAction::RestPass(args) => args.run(out),
         OpAction::MakeRestPass(args) => args.run(out),
         OpAction::Add(args) => args.run(out),

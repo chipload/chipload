@@ -49,13 +49,15 @@ done is in git and in the releases' notes on GitHub, no longer listed here.
 ## Next, in order
 
 0. **From the capability review** (2026-11-22, the user: "Do 1, 2 and 4"), specs approved:
-   - ~~single-line text~~ built 2026-11-22 (docs/specs/single-line-text.md), not pushed,
-     for the user to try;
+   - ~~single-line text~~ built 2026-11-22 (docs/specs/single-line-text.md), pushed, for
+     the user to try;
    - ~~more post-processors~~ built 2026-11-22 (docs/specs/more-posts.md): MASSO, Centroid
      Acorn, controllers named; UCCNC waits for a manual that says how it reads I and J and
      its units (§8);
-   - ~~signs from a list~~ built 2026-11-22 (docs/specs/batch-signs.md), not pushed, for
-     the user to try.
+   - ~~signs from a list~~ built 2026-11-22 (docs/specs/batch-signs.md), pushed, for the
+     user to try;
+   - ~~`op remove`, `op duplicate`, `op move`~~ on the command line (found missing while
+     building; the window had them), 2026-11-22, the rules in `chipload_pipeline::operations`.
 1. **Drawing, step 2** (the review of the drawing tools, 2026-11-18; docs/specs/
    drawing-improvements.md), in this order:
    - ~~fillet and chamfer at line-arc corners and between two shapes~~ built 2026-11-21

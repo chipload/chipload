@@ -378,11 +378,8 @@ impl EditJob {
     /// surface stays where it is, first in its setup, and nothing moves onto its place
     /// (docs/specs/surface-levels.md §2): false then, and nothing changes.
     pub fn move_op(&mut self, from: usize, to: usize) -> bool {
-        let len = self.job.operations.len();
-        if from >= len || to >= len || from == to {
-            return false;
-        }
-        if self.is_board_surface(from) || self.is_board_surface(to) {
+        // The pipeline's rule, as `op move` uses it.
+        if chipload_pipeline::operations::can_move(&self.job, from, to).is_err() {
             return false;
         }
         let part = self.job.operations[to].part();

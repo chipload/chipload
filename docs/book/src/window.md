@@ -94,7 +94,8 @@ operations; the first DXF's placement window is open](images/drawing.png)
     [rest pass](operations/rest.md) shows under it), for a relief *Add roughing pass ▸*
     ([roughing](drawings/models.md#roughing-first)) and *Add smoothing pass*
     ([smoothing](drawings/models.md#smoothing-the-steps), greyed out until it has a roughing
-    pass), and *Delete*.
+    pass), and *Delete*. On the command line: `chipload op move P --op 4 --to 2`, `op
+    duplicate P --op 2`, `op remove P --op 3`.
   - **A style:** *Apply to the selection* and *Delete*.
   - **A rest pass, floor pass, roughing or smoothing pass:** *Remove* (or Delete with it
     selected); a roughing pass also *Add smoothing pass*.

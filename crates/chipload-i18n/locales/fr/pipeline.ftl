@@ -327,6 +327,9 @@ pipeline-no-tool-use = le projet n'a pas d'outil { $tool } ; copiez-en un depuis
 pipeline-no-tool = le projet n'a pas d'outil { $tool }
 # $number is the operation's number as listed, $count how many the project has.
 pipeline-no-operation = il n'y a pas d'opération { $number } ; le projet en a { $count }
+pipeline-name-copy = { $name } (copie)
+pipeline-op-move-same = l'opération { $number } y est déjà
+pipeline-op-board-surface = le surfaçage de toute la planche appartient au montage et y reste en premier
 pipeline-tab-no-ring = l'opération { $number } n'a pas de contour à moins d'un diamètre d'outil de { $at } ; `chipload op tabs` liste ses attaches
 pipeline-tab-none-there = l'opération { $number } n'a pas d'attache à moins d'un diamètre d'outil de { $at } ; `chipload op tabs` liste ses attaches
 pipeline-tab-no-tabs = l'opération { $number } n'a pas d'attaches : seul un contour avec attaches en a à placer

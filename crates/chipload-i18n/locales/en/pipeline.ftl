@@ -316,6 +316,9 @@ pipeline-no-tool-use = the project has no tool { $tool }; copy one in from your 
 pipeline-no-tool = the project has no tool { $tool }
 # $number is the operation's number as listed, $count how many the project has.
 pipeline-no-operation = there is no operation { $number }; the project has { $count }
+pipeline-name-copy = { $name } (copy)
+pipeline-op-move-same = operation { $number } is already there
+pipeline-op-board-surface = a surface of the whole board belongs to its setup and stays first in it
 pipeline-tab-no-ring = operation { $number } has no contour within a tool diameter of { $at }; `chipload op tabs` lists its tabs
 pipeline-tab-none-there = operation { $number } has no tab within a tool diameter of { $at }; `chipload op tabs` lists its tabs
 pipeline-tab-no-tabs = operation { $number } has no tabs: only a profile with tabs has them to place

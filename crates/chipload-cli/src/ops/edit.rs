@@ -423,3 +423,127 @@ impl TabArgs {
         ExitCode::SUCCESS
     }
 }
+
+/// `op remove`, `op duplicate`: an operation by its number.
+#[derive(clap::Args)]
+pub(crate) struct OneOpArgs {
+    /// The project (.chipload).
+    project: PathBuf,
+    /// The operation's number as the app lists it (1 = first; `get` and `set` paths
+    /// count from 0).
+    #[arg(long)]
+    op: usize,
+    /// Where to write the result; default: the project itself.
+    #[arg(short, long)]
+    output: Option<PathBuf>,
+}
+
+/// `op move`: an operation to another place in the cutting order.
+#[derive(clap::Args)]
+pub(crate) struct MoveOpArgs {
+    /// The project (.chipload).
+    project: PathBuf,
+    /// The operation's number as the app lists it (1 = first).
+    #[arg(long)]
+    op: usize,
+    /// The place it goes to, numbered the same way; it joins that operation's part.
+    #[arg(long)]
+    to: usize,
+    /// Where to write the result; default: the project itself.
+    #[arg(short, long)]
+    output: Option<PathBuf>,
+}
+
+/// An operation's number from 1 as an index, or the refusal.
+fn index_of(out: &mut Out, number: usize) -> Result<usize, ExitCode> {
+    number
+        .checked_sub(1)
+        .ok_or_else(|| out.fail("operations are numbered from 1"))
+}
+
+/// The changed project written, with what changed.
+fn written(
+    out: &mut Out,
+    job: &chipload_job::Job,
+    project: &Path,
+    output: Option<&Path>,
+    line: String,
+) -> ExitCode {
+    let target = output.unwrap_or(project);
+    if let Err(err) = crate::save_project(out, job, target) {
+        return out.fail(err);
+    }
+    out.line(line);
+    out.wrote(target, "");
+    ExitCode::SUCCESS
+}
+
+impl OneOpArgs {
+    /// `op remove`.
+    pub(crate) fn remove(self, out: &mut Out) -> ExitCode {
+        let job = match load(out, &self.project) {
+            Ok(job) => job,
+            Err(code) => return code,
+        };
+        let index = match index_of(out, self.op) {
+            Ok(i) => i,
+            Err(code) => return code,
+        };
+        match chipload_pipeline::operations::remove_operation(&job, index) {
+            Ok((job, removed)) => {
+                let line = format!("Removed operation {} \"{}\".", self.op, removed.name());
+                written(out, &job, &self.project, self.output.as_deref(), line)
+            }
+            Err(err) => out.fail(err),
+        }
+    }
+
+    /// `op duplicate`.
+    pub(crate) fn duplicate(self, out: &mut Out) -> ExitCode {
+        let job = match load(out, &self.project) {
+            Ok(job) => job,
+            Err(code) => return code,
+        };
+        let index = match index_of(out, self.op) {
+            Ok(i) => i,
+            Err(code) => return code,
+        };
+        match chipload_pipeline::operations::duplicate_operation(
+            &job,
+            index,
+            chipload_i18n::Language::En,
+        ) {
+            Ok((job, at)) => {
+                let line = format!(
+                    "Copied operation {} as operation {} \"{}\".",
+                    self.op,
+                    at + 1,
+                    job.operations[at].name()
+                );
+                out.set("op", serde_json::json!(at + 1));
+                written(out, &job, &self.project, self.output.as_deref(), line)
+            }
+            Err(err) => out.fail(err),
+        }
+    }
+}
+
+impl MoveOpArgs {
+    pub(crate) fn run(self, out: &mut Out) -> ExitCode {
+        let job = match load(out, &self.project) {
+            Ok(job) => job,
+            Err(code) => return code,
+        };
+        let (from, to) = match (index_of(out, self.op), index_of(out, self.to)) {
+            (Ok(a), Ok(b)) => (a, b),
+            (Err(code), _) | (_, Err(code)) => return code,
+        };
+        match chipload_pipeline::operations::move_operation(&job, from, to) {
+            Ok(job) => {
+                let line = format!("Operation {} is now operation {}.", self.op, self.to);
+                written(out, &job, &self.project, self.output.as_deref(), line)
+            }
+            Err(err) => out.fail(err),
+        }
+    }
+}
