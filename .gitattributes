@@ -5,3 +5,7 @@
 
 # Drawings are real-world input and must reach the tests exactly as received.
 *.dxf -text
+
+# Golden G-code (*.nc) is test data, not source. GitHub's language statistics took the
+# extension for nesC: name it G-code and leave it out of the statistics.
+*.nc linguist-language=G-code linguist-detectable=false
