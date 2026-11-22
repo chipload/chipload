@@ -693,6 +693,7 @@ pub(in crate::app) fn font_list(
         (Style::Plain, t!(ui, "forms-font-plain")),
         (Style::Script, t!(ui, "forms-font-script")),
         (Style::Display, t!(ui, "forms-font-display")),
+        (Style::SingleLine, t!(ui, "forms-font-single-line")),
     ] {
         let mut builtin = FONTS
             .iter()

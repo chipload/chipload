@@ -49,7 +49,7 @@ fn area2(points: &[Point]) -> f64 {
 #[test]
 fn every_built_in_font_writes_the_alphabet() {
     let text = "ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz\n0123456789 ÅÄÖ åäö Ø ⌀ €";
-    assert_eq!(FONTS.len(), 17);
+    assert_eq!(FONTS.len(), 18);
     for font in font_names() {
         let l = letters(&Layout {
             font,
@@ -202,7 +202,9 @@ fn what_cant_be_written_is_said() {
 
 #[test]
 fn each_font_carries_its_licence_in_its_name_table() {
-    for font in chipload_text::FONTS {
+    // The single-line font is an SVG font: its copyright is in its metadata, its
+    // licence shipped beside it (docs/specs/single-line-text.md §3).
+    for font in chipload_text::FONTS.iter().filter(|f| !f.single_line()) {
         let face = ttf_parser::Face::parse(font.data(), 0).unwrap();
         let has = |id: u16| {
             face.names()
@@ -257,7 +259,8 @@ fn a_font_files_bytes_give_the_same_letters_as_its_name() {
 #[test]
 fn faces_are_named_by_their_full_name() {
     use chipload_text::face_name;
-    for font in FONTS {
+    // TrueType faces; the single-line font is an SVG font, named by Chipload.
+    for font in FONTS.iter().filter(|f| !f.single_line()) {
         let name = face_name(font.data(), 0);
         assert!(
             name.as_deref().is_some_and(|n| !n.is_empty()),

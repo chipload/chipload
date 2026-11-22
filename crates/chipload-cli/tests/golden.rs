@@ -14,7 +14,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 90] = [
+const GOLDEN: [(&str, &str); 91] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -334,6 +334,13 @@ const GOLDEN: [(&str, &str); 90] = [
     // SPACE\nEST. 2026" --height 12 --frame oval --round --borders 1 --vbit 2 --end-mill 1
     // --thickness 12`: the words on arcs, V-carved, the circle round their ring.
     ("v43_round_plaque", "jobs/v43/round_plaque.chipload"),
+    // A single-line nameplate (docs/specs/single-line-text.md §7), made with `new
+    // --thickness 6 --size 120x40` from an empty settings folder, `tool add "V 60" --type
+    // vbit --diameter 12.7 --angle 60 --tip 0.2 --rpm 18000`, `tool use "V 60"`, `text add …
+    // "PART 42-A\nCHIPLOAD" --font "Relief SingleLine" --height 8 --at 10,8`, then `op add
+    // path --layer text --depth 0.5` and `op tool --op 1 --tool 2`: open strokes, one pass
+    // of the V-bit each, with arcs.
+    ("v43_nameplate", "jobs/v43/nameplate.chipload"),
 ];
 
 /// Projects nested before they are run (docs/specs/nesting.md §13): `chipload nest` with

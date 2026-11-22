@@ -15,6 +15,8 @@ use chipload_i18n::{Digits, Message, Value};
 use ttf_parser::gpos::{PairAdjustment, PositioningSubtable};
 use ttf_parser::{Face, GlyphId, OutlineBuilder, Tag};
 
+mod single_line;
+
 /// A built-in font: its name, as a project names it, its style and the font file.
 pub struct BuiltinFont {
     pub name: &'static str,
@@ -23,9 +25,15 @@ pub struct BuiltinFont {
 }
 
 impl BuiltinFont {
-    /// The font file (TrueType), for showing its name in its own face.
+    /// The font file: TrueType for an outline font (for showing its name in its own face),
+    /// an SVG font for a single-line one.
     pub fn data(&self) -> &'static [u8] {
         self.data
+    }
+
+    /// Whether its letters are open strokes (docs/specs/single-line-text.md).
+    pub fn single_line(&self) -> bool {
+        self.style == Style::SingleLine
     }
 }
 
@@ -38,6 +46,8 @@ pub enum Style {
     Script,
     /// Bold and decorative, for headings.
     Display,
+    /// Open strokes, one pass of a small bit down each (docs/specs/single-line-text.md).
+    SingleLine,
 }
 
 impl Style {
@@ -46,6 +56,7 @@ impl Style {
             Style::Plain => "plain",
             Style::Script => "script",
             Style::Display => "display",
+            Style::SingleLine => "single-line",
         }
     }
 }
@@ -139,6 +150,13 @@ pub const FONTS: &[BuiltinFont] = &[
         style: Style::Display,
         data: include_bytes!("../fonts/PermanentMarker.ttf"),
     },
+    // Relief SingleLine, as its project publishes it (SIL OFL 1.1,
+    // fonts/LICENSE-OFL-ReliefSingleLine.txt; docs/specs/single-line-text.md §3).
+    BuiltinFont {
+        name: "Relief SingleLine",
+        style: Style::SingleLine,
+        data: include_bytes!("../fonts/ReliefSingleLine.svg"),
+    },
 ];
 
 /// The font a new text gets.
@@ -224,9 +242,12 @@ pub struct Layout<'a> {
 /// A text's letters.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Lettering {
-    /// Closed outlines, lines and arcs end to end, each ending where it starts. The box
+    /// Outlines, lines and arcs end to end: closed ones end where they start. The box
     /// round all of them has its lower-left corner at (0, 0).
     pub outlines: Vec<Vec<Primitive>>,
+    /// For each outline, whether it closes: always for an outline font; a single-line
+    /// font's strokes are open, unless one draws a loop (an O).
+    pub closed: Vec<bool>,
     /// For each outline, the letter it belongs to (its index in the text's letters), so a
     /// hole can be told from the letter round it when letters overlap
     /// (docs/specs/more-fonts.md §4).
@@ -299,7 +320,7 @@ impl std::fmt::Display for TextError {
 
 impl std::error::Error for TextError {}
 
-/// The text's letters as closed outlines (spec §4).
+/// The text's letters as closed outlines (spec §4), or open strokes in a single-line font.
 /// In a built-in font, named by `layout.font`.
 pub fn letters(layout: &Layout) -> Result<Lettering, TextError> {
     let font = builtin(layout.font).ok_or_else(|| {
@@ -308,6 +329,10 @@ pub fn letters(layout: &Layout) -> Result<Lettering, TextError> {
             font_names().collect::<Vec<_>>().join(", "),
         )
     })?;
+    if font.single_line() {
+        check(layout)?;
+        return single_line::letters(layout, font.data, font.name);
+    }
     letters_in(
         layout,
         FontFile {
@@ -396,6 +421,7 @@ pub fn letters_in(layout: &Layout, font: FontFile) -> Result<Lettering, TextErro
         .map(|o| o.iter().map(|p| p.translated((-lo.0, -lo.1))).collect())
         .collect();
     Ok(Lettering {
+        closed: vec![true; outlines.len()],
         outlines,
         letter: letters_of,
         width: hi.0 - lo.0,
@@ -674,7 +700,7 @@ fn cleaned(points: Vec<Point>) -> Option<Vec<Point>> {
     (out.len() >= 3 && area > CHAIN_TOL_MM * CHAIN_TOL_MM).then_some(out)
 }
 
-fn bounds(points: impl Iterator<Item = Point>) -> (Point, Point) {
+pub(crate) fn bounds(points: impl Iterator<Item = Point>) -> (Point, Point) {
     points.fold(
         (
             (f64::INFINITY, f64::INFINITY),

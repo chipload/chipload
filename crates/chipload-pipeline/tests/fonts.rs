@@ -38,6 +38,11 @@ fn written(text: &str, font: &str, line_spacing: f64) -> Job {
     job
 }
 
+/// The built-in fonts whose letters are closed outlines.
+fn outline_fonts() -> impl Iterator<Item = &'static chipload_text::BuiltinFont> {
+    FONTS.iter().filter(|f| !f.single_line())
+}
+
 fn text_select() -> Selector {
     Selector::of(chipload_job::Source::Text(1))
 }
@@ -64,12 +69,13 @@ fn vcarve() -> Operation {
 
 #[test]
 fn every_font_v_carves_a_sentence_also_on_lines_that_overlap() {
-    assert_eq!(FONTS.len(), 17);
+    // The outline fonts (a single-line font's open strokes are cut with a follow path).
+    assert_eq!(outline_fonts().count(), 17);
     // Also on lines 0.7 capital heights apart, where letters of different lines overlap and
     // are merged, and strokes narrow fast beside wide ones (docs/specs/more-fonts.md §6).
     let mut failed = Vec::new();
     for spacing in [1.4, 0.7] {
-        for font in FONTS {
+        for font in outline_fonts() {
             let mut job = written("Maker Space Oak\nIron & Ash 1926", font.name, spacing);
             job.operations.push(vcarve());
             if let Err(e) = run_job(&job) {
@@ -85,7 +91,7 @@ fn every_font_pockets_a_sentence_on_lines_that_overlap() {
     // Lines 0.7 capital heights apart: descenders reach into the line below, so letters of
     // different lines overlap too, and are merged. A pocket refuses outlines that cross.
     let mut failed = Vec::new();
-    for font in FONTS {
+    for font in outline_fonts() {
         let mut job = written("Maker Space Oak\nIron & Ash 1926", font.name, 0.7);
         job.operations.push(pocket());
         if let Err(e) = run_job(&job) {

@@ -1732,6 +1732,20 @@ Chip load (at the cutting feed):
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v43/nameplate.chipload
+exit 0
+--- stdout
+note: Operation 1 (Follow path 1): the V-groove is 0.777 mm wide at the top
+Estimated time: 37 s (cutting 29 s, rapids 5 s, spindle 3 s)
+Cut outline: 67.214 × 33.499 mm (X 3.652 … 70.865, Y 1.655 … 35.155, the tool included): the smallest stock that holds the job.
+  Operation 1 (Follow path 1): 34 s; cutting 665 mm, plunging 24 mm, rapids 381 mm, 24 lifts
+  In all: cutting 665 mm, plunging 24 mm, rapids 381 mm, 24 lifts.
+  At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Follow path 1): set the tool's flutes to see the chip load
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v43/round_plaque.chipload
 exit 0
 --- stdout

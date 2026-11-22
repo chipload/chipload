@@ -32,8 +32,10 @@ text follows with the crates that use it:
   DBA Astigmatic (AOETI).
 
 The window's typeface is Inter 4.1, Regular and SemiBold, unchanged
-(https://github.com/rsms/inter). Copyright (c) 2016 The Inter Project Authors. It is under
-the SIL Open Font License, Version 1.1:
+(https://github.com/rsms/inter). Copyright (c) 2016 The Inter Project Authors. The
+single-line text font Relief SingleLine (its SVG font, unchanged,
+https://github.com/isdat-type/Relief-SingleLine) is Copyright 2022 The Relief SingleLine
+Project Authors. Both are under the SIL Open Font License, Version 1.1:
 
     -----------------------------------------------------------
     SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007

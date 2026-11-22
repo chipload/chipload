@@ -1,6 +1,7 @@
 # Spec: single-line text
 
-Status: **draft for review, 2026-11-22.** From the review of capability gaps (the user:
+Status: **approved 2026-11-22** (the user: "Go ahead"; §6 as recommended; see *As built*,
+§9). From the review of capability gaps (the user:
 "Do 1, 2 and 4"). Builds on text.md (texts, their fonts), more-fonts.md (bundled fonts,
 ADR 0020/0021), text-on-arc.md and follow-path.md.
 
@@ -105,3 +106,13 @@ which of them are missing (Cyrillic for Russian is unlikely; see §6).
 1. The reader, the font bundled, texts in it, the CLI, the golden, the guide, licences.
 2. The window: the font list group, thin strokes, Follow path offered; the sign wizard's
    engrave depth.
+
+## 9. As built
+
+- **Step 1:** `chipload_text::single_line` reads the SVG font (`roxmltree`, `svgtypes`;
+  ADR 0033); `BuiltinFont::single_line`, `Style::SingleLine`, `Lettering::closed`. The font
+  as published (`fonts/ReliefSingleLine.svg`, 423 characters, kerning pairs, no Cyrillic)
+  with its licence beside it. Glyphs named by several characters (ligatures) are left
+  out. Single-line letters are not merged (`chipload_pipeline::texts::lettering`). The
+  font list's *Single-line* group came in this step too, its name drawn in Inter (egui
+  can't draw an SVG font). Golden `v43_nameplate`.

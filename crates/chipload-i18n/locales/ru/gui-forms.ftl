@@ -507,6 +507,7 @@ forms-floor-hint-library = В вашей библиотеке: { $tools }
 forms-font-plain = Обычные
 forms-font-script = Рукописные
 forms-font-display = Декоративные
+forms-font-single-line = Однолинейные
 forms-explode-dxf = Разбить…
 forms-explode-dxf-hover = Преобразовать геометрию DXF в редактируемые начерченные объекты; связь с файлом DXF будет удалена
 

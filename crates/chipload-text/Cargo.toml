@@ -12,6 +12,10 @@ chipload-i18n = { version = "0.39.0", path = "../chipload-i18n" }
 # Reads the built-in fonts' outlines and kerning. MIT OR Apache-2.0, already in the tree
 # through egui (docs/specs/text.md §4).
 ttf-parser = { version = "0.25.1", default-features = false, features = ["std", "opentype-layout"] }
+# The single-line font is an SVG font: its XML and its path data. Both MIT OR Apache-2.0,
+# already in the tree through usvg (docs/specs/single-line-text.md §4).
+roxmltree = { version = "0.21.2", default-features = false, features = ["std"] }
+svgtypes = "0.16.1"
 
 [lints]
 workspace = true

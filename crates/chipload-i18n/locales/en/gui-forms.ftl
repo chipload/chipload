@@ -575,6 +575,7 @@ forms-floor-hint-library = In your library: { $tools }
 forms-font-plain = Plain
 forms-font-script = Script
 forms-font-display = Display
+forms-font-single-line = Single-line
 forms-explode-dxf = Explode…
 forms-explode-dxf-hover = Turn this DXF's shapes into drawn shapes you can edit; the link to the DXF file goes
 

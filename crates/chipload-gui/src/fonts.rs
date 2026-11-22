@@ -97,6 +97,14 @@ pub fn text_font_family(name: &str) -> FontFamily {
 /// anything it lacks), for the font list.
 pub fn add_text_fonts(fonts: &mut FontDefinitions) {
     for font in chipload_text::FONTS {
+        // A single-line font is an SVG font, which egui can't draw: its name shows in
+        // Inter (docs/specs/single-line-text.md §2).
+        if font.single_line() {
+            fonts
+                .families
+                .insert(text_font_family(font.name), vec!["inter".into()]);
+            continue;
+        }
         let key = format!("text:{}", font.name);
         fonts
             .font_data

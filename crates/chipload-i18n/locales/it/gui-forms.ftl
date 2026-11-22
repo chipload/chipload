@@ -574,6 +574,7 @@ forms-floor-hint-library = Nella tua libreria: { $tools }
 forms-font-plain = Normali
 forms-font-script = Corsivi
 forms-font-display = Decorativi
+forms-font-single-line = A tratto singolo
 forms-explode-dxf = Esplodi…
 forms-explode-dxf-hover = Trasforma le forme di questo DXF in forme disegnate modificabili; il legame con il file DXF si perde
 

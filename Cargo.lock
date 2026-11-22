@@ -956,6 +956,8 @@ version = "0.39.0"
 dependencies = [
  "chipload-core",
  "chipload-i18n",
+ "roxmltree 0.21.2",
+ "svgtypes",
  "ttf-parser",
 ]
 

@@ -135,15 +135,21 @@ pub fn lettering(text: &Text, fonts: &dyn FontSource) -> Result<Lettering, Pipel
     if let Some(arc) = &text.arc {
         (lettering.outlines, lettering.letter) = crate::texts_arc::on_arc(text, arc, &lettering)?;
     }
-    let merged = chipload_toolpath::merge::merge_overlaps(&lettering.outlines, &lettering.letter)
-        .map_err(|err| {
-        PipelineError::Job(
-            Message::new("pipeline-text-join-failed")
-                .arg("text", text_label(text))
-                .arg("error", err.message()),
-        )
-    })?;
-    (lettering.outlines, lettering.letter) = merged.into_iter().unzip();
+    // A single-line font's strokes stay as they are: strokes that cross are each cut
+    // (docs/specs/single-line-text.md §5).
+    if lettering.closed.iter().all(|c| *c) {
+        let merged =
+            chipload_toolpath::merge::merge_overlaps(&lettering.outlines, &lettering.letter)
+                .map_err(|err| {
+                    PipelineError::Job(
+                        Message::new("pipeline-text-join-failed")
+                            .arg("text", text_label(text))
+                            .arg("error", err.message()),
+                    )
+                })?;
+        (lettering.outlines, lettering.letter) = merged.into_iter().unzip();
+        lettering.closed = vec![true; lettering.outlines.len()];
+    }
     if text.arc.is_some() {
         let (lo, hi) = letters_box(&lettering.outlines);
         (lettering.width, lettering.height) = (hi.0 - lo.0, hi.1 - lo.1);
@@ -214,7 +220,7 @@ pub fn remake(
         .collect();
     out.drawing.shapes.retain(|s| s.text() != Some(id));
     let mut ids = Vec::with_capacity(lettering.outlines.len());
-    for outline in &lettering.outlines {
+    for (k, outline) in lettering.outlines.iter().enumerate() {
         let shape_id = out.drawing.next_shape_id;
         out.drawing.next_shape_id += 1;
         ids.push(shape_id);
@@ -224,7 +230,7 @@ pub fn remake(
             layer: text.layer.clone(),
             name: None,
             geometry: Geometry::Path {
-                closed: true,
+                closed: lettering.closed.get(k).copied().unwrap_or(true),
                 // On an arc the letters are already in place.
                 segments: if text.arc.is_some() {
                     segments_of(outline)

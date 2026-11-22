@@ -575,6 +575,7 @@ forms-floor-hint-library = In Ihrer Bibliothek: { $tools }
 forms-font-plain = Schlicht
 forms-font-script = Schreibschrift
 forms-font-display = Zierschrift
+forms-font-single-line = Einlinig
 forms-explode-dxf = Auflösen…
 forms-explode-dxf-hover = Die Formen dieser DXF in gezeichnete Formen umwandeln, die Sie bearbeiten können; die Verknüpfung zur DXF-Datei geht verloren
 

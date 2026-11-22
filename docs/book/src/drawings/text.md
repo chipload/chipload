@@ -82,7 +82,7 @@ letters together.
 
 ## Fonts
 
-Chipload has 17 fonts built in, so a project writes the same letters on every computer. The
+Chipload has 18 fonts built in, so a project writes the same letters on every computer. The
 *Font* list groups them and shows each name in its own face; `chipload text fonts` lists
 them with their style.
 
@@ -93,6 +93,7 @@ them with their style.
 - **Script:** Satisfy, Yellowtail and Rochester, handwriting with joined letters.
 - **Display:** Luckiest Guy, Ultra, Chewy, Smokum, Cherry Cream Soda and Permanent Marker,
   bold and decorative, for headings and signs.
+- **Single-line:** Relief SingleLine, made for CNC engraving (below).
 
 They all have the Latin letters with accents (Å, Ä, Ö, É, Ñ, Ø, …), digits and the common
 symbols (€, °, ±; ⌀ only in some of the FreeFont faces). A character a font lacks is left
@@ -108,9 +109,29 @@ the thick ones deep. The scripts V-carve well too. For a pocket or a profile, a 
 even, sturdy strokes works best (FreeSans Bold, Roboto Slab, Ultra, Luckiest Guy, Chewy);
 Smokum's pointed serifs need a pocketing tool of 2 mm or more.
 
-**Licences:** GNU FreeFont is under the GPL with the font exception, the others under the
-Apache License 2.0. Neither puts any condition on what you make: the letters you cut and
-their G-code are yours.
+**Licences:** GNU FreeFont is under the GPL with the font exception, Relief SingleLine
+under the SIL Open Font License 1.1, the others under the Apache License 2.0. None puts any
+condition on what you make: the letters you cut and their G-code are yours.
+
+### Single-line text
+
+The other fonts give each letter as the outline round its strokes, which suits a V-carve or
+a pocket. A **single-line** font gives each stroke once, down its middle, as open lines and
+arcs: one pass of a small bit cuts the letter. That is what labels, serial and part
+numbers, scales, small lettering (under about 8 mm, where V-carved grooves run together)
+and quick nameplates want.
+
+- **Font:** *Relief SingleLine*, in the *Single-line* group of the font list. It has the
+  Latin letters with accents of all the app's languages, digits and the common symbols,
+  but no Cyrillic: write Russian in an outline font.
+- **Cutting it:** a [Follow path](../operations/path.md) on the text, with a V-bit (the
+  line as wide as the bit is deep) or a small end mill, at the depth you choose, 0.3 to
+  1 mm for most engraving. Profile, Pocket and V-carve need closed outlines and refuse
+  these letters, saying why.
+- **Everything else as for any text:** height (the capital height), alignment, lines, on
+  an arc, moved, turned and edited. Strokes that cross are each cut; they aren't joined.
+- **On the command line:** `chipload text add P "PART 42-A" --font "Relief SingleLine"
+  --height 6 --at 10,10`, then `chipload op add P path --layer text --depth 0.5`.
 
 ### Your computer's fonts
 
