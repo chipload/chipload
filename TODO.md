@@ -91,9 +91,8 @@ done is in git and in the releases' notes on GitHub, no longer listed here.
 6. **First-run setup:** on the first start, ask for the machine's travel and the first tool.
    A new project without a library now has a travel and a centre-cutting tool (2026-11-20),
    so this is about the user's own values, not the warnings.
-7. **Laser and plasma: decide.** CLAUDE.md promises G-code for "CNC routers, mills, plasma,
-   laser", but the posts are spindle-only. *Recommended:* narrow the claim to routers and
-   mills until a user asks. The user decides.
+7. **Laser and plasma:** the user wants both (2026-11-22): profile cutting and marking.
+   Spec draft docs/specs/laser-and-plasma.md awaits review (7 decisions).
 8. **Leftovers of what was built** (each small; do when it comes up):
    - drawing: the dashed line from a rounded corner's handle to its arc
      (polyline-radii.md §4); a true SPLINE in DXF export (an R2000 writer) or control-point
