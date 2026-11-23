@@ -81,6 +81,8 @@ and type or paste the list, one sign per line, with `|` in a line to start that 
 second line, with or without spaces round it (`ANNA BERG | ROOM 12`); the dialog says so
 under the list. A list starts on *Size: Fixed*; the preview shows the grid and the count,
 drawn alongside while you type (typing never waits for it). The operations are listed once the signs are made.
+*Make sign* makes them alongside too: a long list in a script font takes a few seconds,
+and the dialog says *Making the sign…* until they are in the project.
 
 - **Every sign the same:** the font, frame, borders, style, edge and tools are the ones
   set. With *Size: Fixed* every sign is that size and **every sign gets the same letter

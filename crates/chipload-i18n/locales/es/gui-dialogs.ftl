@@ -190,6 +190,7 @@ sign-signs-list-hover = El mismo letrero para cada línea de una lista: placas c
 sign-list-hint = ANNA BERG | SALA 12
 sign-list-help = Un letrero por línea. Una | empieza la segunda línea del letrero, con o sin espacios alrededor: ANNA BERG | SALA 12
 sign-drawing = Dibujando el letrero…
+sign-making = Creando el letrero…
 sign-list-count = { $count } letreros, en cuadrícula
 sign-list-made = Hechos { $count } letreros en una pieza: { $operations } operaciones los cortan todos. Cambie un nombre y su marco lo sigue.
 sign-refused = No se pudo crear el letrero.

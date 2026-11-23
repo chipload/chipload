@@ -246,6 +246,13 @@ pub(super) struct SignWork {
     worker: super::worker::Worker<SignPreview>,
 }
 
+/// The sign being made after *Make sign*: its letters and operations on a thread of their
+/// own, the dialog open and waiting, so the window never stops (a list of script-font signs
+/// takes seconds).
+pub(super) struct SignMaking {
+    worker: super::worker::Worker<Result<Made, chipload_pipeline::PipelineError>>,
+}
+
 impl Default for SignPreview {
     fn default() -> Self {
         Self {
@@ -307,6 +314,7 @@ impl ChiploadApp {
         }
         self.canvas_tools.sign_preview = SignPreview::default();
         self.canvas_tools.sign_work = None;
+        self.canvas_tools.sign_making = None;
         self.dialogs.prompt = Some(Prompt::Sign(Box::new(settings)));
     }
 
@@ -411,9 +419,9 @@ impl ChiploadApp {
         }
     }
 
-    /// Make the sign, as one undo step; its part becomes the active one and the sign is
-    /// selected. False, with the reason in the report, when it is refused.
-    pub(super) fn make_sign(&mut self, settings: &SignSettings) -> bool {
+    /// Start making the sign on its own thread. False, with the reason in the report, when
+    /// it is refused before it starts.
+    fn start_making_sign(&mut self, settings: &SignSettings) -> bool {
         self.commit();
         self.reload_library();
         let library = self.library().map(|l| l.tools.clone());
@@ -426,7 +434,45 @@ impl ChiploadApp {
             self.error(vec![t!(self, "sign-no-tools")]);
             return false;
         };
-        match settings.make(&job, request, &*fonts, library.as_ref(), lang, false) {
+        let settings = settings.clone();
+        let started = super::worker::Worker::start("make sign", move |_| {
+            settings.make(&job, request, &*fonts, library.as_ref(), lang, false)
+        });
+        match started {
+            Ok(worker) => {
+                self.canvas_tools.sign_making = Some(SignMaking { worker });
+                true
+            }
+            Err(err) => {
+                self.error(vec![err.to_string()]);
+                false
+            }
+        }
+    }
+
+    /// The sign being made, when it is done: Some(true) when it went into the project as
+    /// one undo step, its part the active one and the sign selected; Some(false), with the
+    /// reason in the report, when it was refused; None while it is still being made.
+    fn sign_made(&mut self, ctx: &egui::Context) -> Option<bool> {
+        let making = self.canvas_tools.sign_making.as_ref()?;
+        #[cfg(test)]
+        let done = Some(making.worker.wait());
+        #[cfg(not(test))]
+        let done = making.worker.poll();
+        let Some(done) = done else {
+            ctx.request_repaint_after(std::time::Duration::from_millis(16));
+            return None;
+        };
+        self.canvas_tools.sign_making = None;
+        let made = match done {
+            Ok(made) => made,
+            Err(stopped) => {
+                let why = stopped.text_or(t!(self, "sign-refused"));
+                self.error(vec![why]);
+                return Some(false);
+            }
+        };
+        Some(match made {
             Ok(made) => {
                 if let Some(edit) = self.edit.as_mut() {
                     edit.adopt(made.job);
@@ -451,7 +497,7 @@ impl ChiploadApp {
                 self.error_report(Report::failed(t!(self, "sign-refused"), err.message()));
                 false
             }
-        }
+        })
     }
 
     /// The dialog: the values in groups, the sign drawn as it will be, what it adds,
@@ -465,6 +511,12 @@ impl ChiploadApp {
         let units = self.prefs.units;
         let library = self.library().map(|l| l.tools.clone());
         let preview = self.sign_preview(ctx, &settings);
+        // Made: the dialog closes; refused: it stays, the reason in the report.
+        if self.sign_made(ctx) == Some(true) {
+            self.dialogs.prompt = None;
+            return;
+        }
+        let making = self.canvas_tools.sign_making.is_some();
         let mut answer: Option<bool> = None;
         let modal = egui::Modal::new(egui::Id::new("new-sign")).show(ctx, |ui| {
             ui.set_width(560.0);
@@ -487,8 +539,14 @@ impl ChiploadApp {
                 });
             ui.add_space(6.0);
             sign_picture(ui, &preview.lines);
-            // A font whose letters join takes a moment: say the picture is coming.
-            if self.canvas_tools.sign_work.is_some() {
+            // A font whose letters join takes a moment: say the picture, or the sign, is
+            // coming.
+            if making {
+                ui.horizontal(|ui| {
+                    ui.spinner();
+                    ui.weak(t!(ui, "sign-making"));
+                });
+            } else if self.canvas_tools.sign_work.is_some() {
                 ui.horizontal(|ui| {
                     ui.spinner();
                     ui.weak(t!(ui, "sign-drawing"));
@@ -510,7 +568,7 @@ impl ChiploadApp {
             }
             ui.add_space(6.0);
             ui.horizontal(|ui| {
-                let ready = preview.adds.is_ok();
+                let ready = preview.adds.is_ok() && !making;
                 if ui
                     .add_enabled(ready, egui::Button::new(t!(ui, "sign-make")))
                     .clicked()
@@ -527,10 +585,15 @@ impl ChiploadApp {
         }
         match answer {
             Some(true) => {
-                self.dialogs.prompt = None;
-                self.make_sign(&settings);
+                self.start_making_sign(&settings);
+                self.dialogs.prompt = Some(Prompt::Sign(settings));
+                ctx.request_repaint();
             }
-            Some(false) => self.dialogs.prompt = None,
+            // Cancelled while it is being made: its result is let go of.
+            Some(false) => {
+                self.canvas_tools.sign_making = None;
+                self.dialogs.prompt = None;
+            }
             None => self.dialogs.prompt = Some(Prompt::Sign(settings)),
         }
     }

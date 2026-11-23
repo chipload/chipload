@@ -70,6 +70,8 @@ pub struct CanvasTools {
     pub(super) sign_preview: super::sign::SignPreview,
     /// The sign being drawn for that preview, on its own thread.
     pub(super) sign_work: Option<super::sign::SignWork>,
+    /// The sign being made after *Make sign*, on its own thread.
+    pub(super) sign_making: Option<super::sign::SignMaking>,
     pub(super) two_sided_preview: super::two_sided::TwoSidedPreview,
 }
 
@@ -100,6 +102,7 @@ impl Default for CanvasTools {
             frame_preview: frames::FramePreview::default(),
             sign_preview: super::sign::SignPreview::default(),
             sign_work: None,
+            sign_making: None,
             two_sided_preview: super::two_sided::TwoSidedPreview::default(),
         }
     }

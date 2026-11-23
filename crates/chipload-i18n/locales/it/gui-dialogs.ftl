@@ -190,6 +190,7 @@ sign-signs-list-hover = La stessa insegna per ogni riga di una lista: targhette,
 sign-list-hint = ANNA BERG | STANZA 12
 sign-list-help = Un'insegna per riga. Una | inizia la seconda riga dell'insegna, con o senza spazi attorno: ANNA BERG | STANZA 12
 sign-drawing = Disegno dell'insegna…
+sign-making = Creazione dell'insegna…
 sign-list-count = { $count } insegne, a griglia
 sign-list-made = Fatte { $count } insegne in un pezzo: { $operations } lavorazioni le tagliano tutte. Cambia un nome e la sua cornice lo segue.
 sign-refused = Impossibile creare l'insegna.

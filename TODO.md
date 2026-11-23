@@ -63,6 +63,8 @@ done is in git and in the releases' notes on GitHub, no longer listed here.
      cancellable back to the project; New sign after *Don't save* now opens the sign;
    - ~~a polyline closed by another lost its handles~~ (the user, 2026-11-23): the clicked
      shape of a chained outline is the one edited;
+   - ~~*Make sign* on a thread of its own~~ (2026-11-23): the dialog says it is being made,
+     the window never stops; refused, the dialog stays open;
    - ~~nesting overflow after raising counts step by step~~ (the user, 2026-11-23): a
      part's count covers every board of its stock, so what went to Setup 2 is counted and
      Setup 2 fills before a new board is made;

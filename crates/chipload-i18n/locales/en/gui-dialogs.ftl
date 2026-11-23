@@ -191,6 +191,7 @@ sign-signs-list-hover = The same sign for every line of a list: name plates, doo
 sign-list-hint = ANNA BERG | ROOM 12
 sign-list-help = One sign per line. A | starts the sign's second line, with or without spaces round it: ANNA BERG | ROOM 12
 sign-drawing = Drawing the sign…
+sign-making = Making the sign…
 sign-list-count = { $count } signs, in a grid
 sign-list-made = Made { $count } signs in one part: { $operations } operations cut them all. Change a name and its frame follows.
 sign-refused = Couldn't make the sign.

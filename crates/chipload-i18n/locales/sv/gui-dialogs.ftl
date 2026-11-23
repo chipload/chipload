@@ -190,6 +190,7 @@ sign-signs-list-hover = Samma skylt för varje rad i en lista: namnskyltar, dör
 sign-list-hint = ANNA BERG | RUM 12
 sign-list-help = En skylt per rad. Ett | börjar skyltens andra rad, med eller utan mellanslag runt: ANNA BERG | RUM 12
 sign-drawing = Ritar skylten…
+sign-making = Gör skylten…
 sign-list-count = { $count } skyltar, i ett rutnät
 sign-list-made = Gjorde { $count } skyltar i en del: { $operations } operationer skär alla. Ändra ett namn så följer dess ram.
 sign-refused = Kunde inte göra skylten.
