@@ -80,7 +80,7 @@ words. Make them all at once from a list: in *New sign…*, choose **Signs: From
 and type or paste the list, one sign per line, with `|` in a line to start that sign's
 second line, with or without spaces round it (`ANNA BERG | ROOM 12`); the dialog says so
 under the list. A list starts on *Size: Fixed*; the preview shows the grid and the count,
-drawn again when the typing pauses. The operations are listed once the signs are made.
+drawn alongside while you type (typing never waits for it). The operations are listed once the signs are made.
 
 - **Every sign the same:** the font, frame, borders, style, edge and tools are the ones
   set. With *Size: Fixed* every sign is that size and **every sign gets the same letter

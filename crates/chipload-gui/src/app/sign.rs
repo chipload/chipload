@@ -237,14 +237,14 @@ pub(super) struct SignPreview {
     fitted: Option<f64>,
     /// How many signs it makes.
     count: usize,
-    /// The words or the list as last typed, and when (egui's time, s): the picture waits
-    /// for a pause in the typing.
-    typed: String,
-    typed_at: f64,
 }
 
-/// How long the typing pauses before the picture is drawn again, s.
-const TYPING_PAUSE_S: f64 = 0.3;
+/// The sign being drawn for the dialog on a thread of its own, for the values `key`
+/// names: typing never waits for the letters.
+pub(super) struct SignWork {
+    key: String,
+    worker: super::worker::Worker<SignPreview>,
+}
 
 impl Default for SignPreview {
     fn default() -> Self {
@@ -254,8 +254,6 @@ impl Default for SignPreview {
             adds: Ok(Vec::new()),
             fitted: None,
             count: 0,
-            typed: String::new(),
-            typed_at: 0.0,
         }
     }
 }
@@ -303,84 +301,110 @@ impl ChiploadApp {
         {
             settings.font.clone_from(font);
         }
+        self.canvas_tools.sign_preview = SignPreview::default();
+        self.canvas_tools.sign_work = None;
         self.dialogs.prompt = Some(Prompt::Sign(Box::new(settings)));
     }
 
     /// The sign the settings make, for the preview: its shapes and its operations' names.
+    /// The sign the settings make, for the preview: its shapes and its operations' names.
+    /// Drawn on a thread of its own: until it is ready, the last picture stays, and a new
+    /// one is started for the values as they are then.
     fn sign_preview(&mut self, ctx: &egui::Context, settings: &SignSettings) -> SignPreview {
-        let Some(edit) = self.edit.as_ref() else {
+        if self.edit.is_none() {
             return SignPreview::default();
+        }
+        // The dialog's values alone: the project can't change while it is open, and the
+        // preview starts afresh when it opens (`start_sign`). Writing out the drawing at
+        // every frame slowed typing in a large project.
+        let key = format!("{settings:?}");
+        if let Some(work) = &self.canvas_tools.sign_work {
+            #[cfg(test)]
+            let done = Some(work.worker.wait());
+            #[cfg(not(test))]
+            let done = work.worker.poll();
+            match done {
+                Some(Ok(preview)) => {
+                    self.canvas_tools.sign_preview = preview;
+                    self.canvas_tools.sign_work = None;
+                }
+                Some(Err(stopped)) => {
+                    let why = stopped.text_or(t!(self, "sign-refused"));
+                    self.canvas_tools.sign_preview = SignPreview {
+                        key: work.key.clone(),
+                        adds: Err(why),
+                        ..SignPreview::default()
+                    };
+                    self.canvas_tools.sign_work = None;
+                }
+                None => ctx.request_repaint_after(std::time::Duration::from_millis(16)),
+            }
+        }
+        if self.canvas_tools.sign_preview.key != key && self.canvas_tools.sign_work.is_none() {
+            self.start_sign_preview(ctx, settings, key);
+        }
+        self.canvas_tools.sign_preview.clone()
+    }
+
+    /// Start drawing the sign for `settings` (named by `key`) on its own thread.
+    fn start_sign_preview(&mut self, ctx: &egui::Context, settings: &SignSettings, key: String) {
+        let Some(edit) = self.edit.as_ref() else {
+            return;
         };
-        let key = format!(
-            "{settings:?}{:?}{:?}{:?}",
-            edit.job.drawing,
-            edit.job.tools,
-            self.library().map(|l| &l.tools)
-        );
-        let typed = if settings.from_list {
-            &settings.list
-        } else {
-            &settings.words
-        };
-        let now = ctx.input(|i| i.time);
-        let last = &mut self.canvas_tools.sign_preview;
-        if last.typed != *typed {
-            last.typed.clone_from(typed);
-            last.typed_at = now;
-        }
-        if last.key == key {
-            return last.clone();
-        }
-        // While typing, the last picture stays: drawing it again at every letter lags.
-        let wait = TYPING_PAUSE_S - (now - last.typed_at);
-        if wait > 0.0 && !last.key.is_empty() {
-            ctx.request_repaint_after(std::time::Duration::from_secs_f64(wait));
-            return last.clone();
-        }
-        let (typed, typed_at) = (last.typed.clone(), last.typed_at);
+        let job = edit.job.clone();
+        let settings = settings.clone();
         let lang = self.prefs.language;
         let units = self.prefs.units.into();
         let library = self.library().map(|l| l.tools.clone());
         let fonts = self.font_source();
-        let made = match settings.request(&edit.job, library.as_ref()) {
-            None => Err(t!(self, "sign-no-tools")),
-            Some((job, request)) => settings
-                .make(&job, request, &*fonts, library.as_ref(), lang, true)
-                .map_err(|e| e.message().render(lang, units)),
-        };
-        let preview = match made {
-            Ok(made) => SignPreview {
-                key,
-                lines: made
-                    .job
-                    .drawing
-                    .shapes
-                    .iter()
-                    .filter(|s| made.shapes.contains(&s.id))
-                    .flat_map(|s| crate::draw::outline(&s.geometry))
-                    .collect(),
-                adds: Ok(made
-                    .operations
-                    .iter()
-                    .map(|&i| made.job.operations[i].name().to_string())
-                    .collect()),
-                fitted: made.fitted,
-                count: made.count,
-                typed,
-                typed_at,
-            },
-            Err(why) => SignPreview {
-                key,
-                lines: Vec::new(),
-                adds: Err(why),
-                fitted: None,
-                count: 0,
-                typed,
-                typed_at,
-            },
-        };
-        self.canvas_tools.sign_preview = preview.clone();
-        preview
+        let no_tools = t!(self, "sign-no-tools");
+        let job_key = key.clone();
+        let started = super::worker::Worker::start("sign preview", move |_| {
+            let made = match settings.request(&job, library.as_ref()) {
+                None => Err(no_tools),
+                Some((job, request)) => settings
+                    .make(&job, request, &*fonts, library.as_ref(), lang, true)
+                    .map_err(|e| e.message().render(lang, units)),
+            };
+            match made {
+                Ok(made) => SignPreview {
+                    key: job_key,
+                    lines: made
+                        .job
+                        .drawing
+                        .shapes
+                        .iter()
+                        .filter(|s| made.shapes.contains(&s.id))
+                        .flat_map(|s| crate::draw::outline(&s.geometry))
+                        .collect(),
+                    adds: Ok(made
+                        .operations
+                        .iter()
+                        .map(|&i| made.job.operations[i].name().to_string())
+                        .collect()),
+                    fitted: made.fitted,
+                    count: made.count,
+                },
+                Err(why) => SignPreview {
+                    key: job_key,
+                    adds: Err(why),
+                    ..SignPreview::default()
+                },
+            }
+        });
+        match started {
+            Ok(worker) => {
+                self.canvas_tools.sign_work = Some(SignWork { key, worker });
+                ctx.request_repaint_after(std::time::Duration::from_millis(16));
+            }
+            Err(err) => {
+                self.canvas_tools.sign_preview = SignPreview {
+                    key,
+                    adds: Err(err.to_string()),
+                    ..SignPreview::default()
+                };
+            }
+        }
     }
 
     /// Make the sign, as one undo step; its part becomes the active one and the sign is

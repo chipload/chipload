@@ -55,8 +55,8 @@ done is in git and in the releases' notes on GitHub, no longer listed here.
      Acorn, controllers named; UCCNC waits for a manual that says how it reads I and J and
      its units (§8);
    - ~~signs from a list~~ built 2026-11-22 (docs/specs/batch-signs.md), pushed; from the
-     user's testing 2026-11-23: the preview waits for a pause in the typing and only draws
-     the signs, the list's format stays shown under it, and long lists are quick (a frame's
+     user's testing 2026-11-23: the preview is drawn on a thread of its own, so typing never
+     waits (a list's only draws the signs), the list's format stays shown under it, and long lists are quick (a frame's
      box no longer chains the whole drawing; nesting tests boxes before polylines: 100
      signs 15 s → 1 s);
    - ~~`op remove`, `op duplicate`, `op move`~~ on the command line (found missing while
