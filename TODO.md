@@ -54,8 +54,11 @@ done is in git and in the releases' notes on GitHub, no longer listed here.
    - ~~more post-processors~~ built 2026-11-22 (docs/specs/more-posts.md): MASSO, Centroid
      Acorn, controllers named; UCCNC waits for a manual that says how it reads I and J and
      its units (§8);
-   - ~~signs from a list~~ built 2026-11-22 (docs/specs/batch-signs.md), pushed, for the
-     user to try;
+   - ~~signs from a list~~ built 2026-11-22 (docs/specs/batch-signs.md), pushed; from the
+     user's testing 2026-11-23: the preview waits for a pause in the typing and only draws
+     the signs, the list's format stays shown under it, and long lists are quick (a frame's
+     box no longer chains the whole drawing; nesting tests boxes before polylines: 100
+     signs 15 s → 1 s);
    - ~~`op remove`, `op duplicate`, `op move`~~ on the command line (found missing while
      building; the window had them), 2026-11-22, the rules in `chipload_pipeline::operations`.
 1. **Drawing, step 2** (the review of the drawing tools, 2026-11-18; docs/specs/

@@ -16,8 +16,8 @@ use crate::frames::{FrameSize, add_frame};
 use crate::groups::{Members, group};
 use crate::new_ops::OpKind;
 use crate::sign::{
-    Ctx, SignRequest, SignStyle, check_size, check_tools, check_values, fitted_height, framed_size,
-    length, refused, round_words, set_depth, sign_name,
+    Ctx, SignRequest, SignStyle, check_size, check_tools, check_values, fits_size, fitted_height,
+    framed_size, length, refused, round_words, set_depth, sign_name,
 };
 use crate::texts::{NewText, add_text};
 
@@ -45,6 +45,8 @@ pub struct BatchMade {
     pub texts: Vec<Vec<u64>>,
     pub outlines: Vec<u64>,
     pub groups: Vec<u64>,
+    /// Each sign's frame lines: its outline first, then its borders from the outside in.
+    pub frames: Vec<Vec<u64>>,
     /// The operations made, by index, in cutting order.
     pub operations: Vec<usize>,
     /// The one letters' height every sign got, for a fixed size, mm.
@@ -78,6 +80,33 @@ pub fn add_sign_batch(
     batch: &BatchRequest,
     fonts: &dyn FontSource,
     library: Option<&ToolLibrary>,
+    lang: Language,
+) -> Result<(Job, BatchMade), PipelineError> {
+    let (mut job, mut made) = draw_sign_batch(job, batch, fonts, lang)?;
+    let base = SignRequest {
+        words: String::new(),
+        around: Vec::new(),
+        ..batch.sign.clone()
+    };
+    made.operations = batch_operations(
+        &mut job,
+        &base,
+        made.part,
+        &made.layers,
+        &made.groups,
+        &made.frames,
+        library,
+        lang,
+    )?;
+    Ok((job, made))
+}
+
+/// The signs drawn, grouped, in their part, as `add_sign_batch` makes them, without the
+/// operations: what the dialog's picture shows while the list is typed, quickly.
+pub fn draw_sign_batch(
+    job: &Job,
+    batch: &BatchRequest,
+    fonts: &dyn FontSource,
     lang: Language,
 ) -> Result<(Job, BatchMade), PipelineError> {
     let words = list_words(&batch.list);
@@ -117,9 +146,17 @@ pub fn add_sign_batch(
     let fitted = match base.size {
         Some(size) => {
             check_size(&base, size)?;
+            // The longest first: a sign whose words fit at the least height found so far
+            // can't lower it, so most need one try rather than a search each.
+            let mut order: Vec<&String> = words.iter().collect();
+            order.sort_by_key(|w| std::cmp::Reverse(w.lines().map(str::len).max()));
             let mut least = f64::INFINITY;
-            for w in &words {
-                least = least.min(fitted_height(&each(w), size, fonts)?);
+            for w in order {
+                let request = each(w);
+                if least.is_finite() && fits_size(&request, least, size, fonts).unwrap_or(false) {
+                    continue;
+                }
+                least = least.min(fitted_height(&request, size, fonts)?);
             }
             Some(least)
         }
@@ -157,9 +194,6 @@ pub fn add_sign_batch(
         innermost.push(made.frame);
         groups.push(made.group);
     }
-    let operations = batch_operations(
-        &mut job, &base, part, &layers, &groups, &innermost, library, lang,
-    )?;
     job.active_part = Some(part);
     Ok((
         job,
@@ -168,7 +202,8 @@ pub fn add_sign_batch(
             texts,
             outlines,
             groups,
-            operations,
+            frames: innermost,
+            operations: Vec::new(),
             fitted,
             layers,
         },

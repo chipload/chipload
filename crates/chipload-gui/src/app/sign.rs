@@ -168,7 +168,9 @@ struct Made {
 }
 
 impl SignSettings {
-    /// The sign, or the list's signs, in `job` with `request`.
+    /// The sign, or the list's signs, in `job` with `request`. For the preview, a list's
+    /// signs are only drawn: making their operations takes long, and the picture shows
+    /// the outlines.
     fn make(
         &self,
         job: &chipload_job::Job,
@@ -176,6 +178,7 @@ impl SignSettings {
         fonts: &dyn chipload_pipeline::fonts::FontSource,
         library: Option<&ToolLibrary>,
         lang: crate::i18n::Language,
+        preview: bool,
     ) -> Result<Made, chipload_pipeline::PipelineError> {
         let before: std::collections::BTreeSet<u64> =
             job.drawing.shapes.iter().map(|s| s.id).collect();
@@ -189,14 +192,18 @@ impl SignSettings {
         };
         if self.from_list && self.around.is_empty() {
             use chipload_pipeline::sign_batch::{
-                BatchRequest, DEFAULT_BATCH_GAP_MM, add_sign_batch,
+                BatchRequest, DEFAULT_BATCH_GAP_MM, add_sign_batch, draw_sign_batch,
             };
             let batch = BatchRequest {
                 sign: request,
                 list: self.list.lines().map(str::to_string).collect(),
                 gap: DEFAULT_BATCH_GAP_MM,
             };
-            let (done, made) = add_sign_batch(job, &batch, fonts, library, lang)?;
+            let (done, made) = if preview {
+                draw_sign_batch(job, &batch, fonts, lang)?
+            } else {
+                add_sign_batch(job, &batch, fonts, library, lang)?
+            };
             return Ok(Made {
                 shapes: new_shapes(&done),
                 job: done,
@@ -230,7 +237,14 @@ pub(super) struct SignPreview {
     fitted: Option<f64>,
     /// How many signs it makes.
     count: usize,
+    /// The words or the list as last typed, and when (egui's time, s): the picture waits
+    /// for a pause in the typing.
+    typed: String,
+    typed_at: f64,
 }
+
+/// How long the typing pauses before the picture is drawn again, s.
+const TYPING_PAUSE_S: f64 = 0.3;
 
 impl Default for SignPreview {
     fn default() -> Self {
@@ -240,6 +254,8 @@ impl Default for SignPreview {
             adds: Ok(Vec::new()),
             fitted: None,
             count: 0,
+            typed: String::new(),
+            typed_at: 0.0,
         }
     }
 }
@@ -291,7 +307,7 @@ impl ChiploadApp {
     }
 
     /// The sign the settings make, for the preview: its shapes and its operations' names.
-    fn sign_preview(&mut self, settings: &SignSettings) -> SignPreview {
+    fn sign_preview(&mut self, ctx: &egui::Context, settings: &SignSettings) -> SignPreview {
         let Some(edit) = self.edit.as_ref() else {
             return SignPreview::default();
         };
@@ -301,9 +317,27 @@ impl ChiploadApp {
             edit.job.tools,
             self.library().map(|l| &l.tools)
         );
-        if self.canvas_tools.sign_preview.key == key {
-            return self.canvas_tools.sign_preview.clone();
+        let typed = if settings.from_list {
+            &settings.list
+        } else {
+            &settings.words
+        };
+        let now = ctx.input(|i| i.time);
+        let last = &mut self.canvas_tools.sign_preview;
+        if last.typed != *typed {
+            last.typed.clone_from(typed);
+            last.typed_at = now;
         }
+        if last.key == key {
+            return last.clone();
+        }
+        // While typing, the last picture stays: drawing it again at every letter lags.
+        let wait = TYPING_PAUSE_S - (now - last.typed_at);
+        if wait > 0.0 && !last.key.is_empty() {
+            ctx.request_repaint_after(std::time::Duration::from_secs_f64(wait));
+            return last.clone();
+        }
+        let (typed, typed_at) = (last.typed.clone(), last.typed_at);
         let lang = self.prefs.language;
         let units = self.prefs.units.into();
         let library = self.library().map(|l| l.tools.clone());
@@ -311,7 +345,7 @@ impl ChiploadApp {
         let made = match settings.request(&edit.job, library.as_ref()) {
             None => Err(t!(self, "sign-no-tools")),
             Some((job, request)) => settings
-                .make(&job, request, &*fonts, library.as_ref(), lang)
+                .make(&job, request, &*fonts, library.as_ref(), lang, true)
                 .map_err(|e| e.message().render(lang, units)),
         };
         let preview = match made {
@@ -332,6 +366,8 @@ impl ChiploadApp {
                     .collect()),
                 fitted: made.fitted,
                 count: made.count,
+                typed,
+                typed_at,
             },
             Err(why) => SignPreview {
                 key,
@@ -339,6 +375,8 @@ impl ChiploadApp {
                 adds: Err(why),
                 fitted: None,
                 count: 0,
+                typed,
+                typed_at,
             },
         };
         self.canvas_tools.sign_preview = preview.clone();
@@ -360,7 +398,7 @@ impl ChiploadApp {
             self.error(vec![t!(self, "sign-no-tools")]);
             return false;
         };
-        match settings.make(&job, request, &*fonts, library.as_ref(), lang) {
+        match settings.make(&job, request, &*fonts, library.as_ref(), lang, false) {
             Ok(made) => {
                 if let Some(edit) = self.edit.as_mut() {
                     edit.adopt(made.job);
@@ -398,7 +436,7 @@ impl ChiploadApp {
             .unwrap_or_default();
         let units = self.prefs.units;
         let library = self.library().map(|l| l.tools.clone());
-        let preview = self.sign_preview(&settings);
+        let preview = self.sign_preview(ctx, &settings);
         let mut answer: Option<bool> = None;
         let modal = egui::Modal::new(egui::Id::new("new-sign")).show(ctx, |ui| {
             ui.set_width(560.0);
@@ -426,7 +464,10 @@ impl ChiploadApp {
                     if preview.count > 1 {
                         ui.weak(t!(ui, "sign-list-count", count = preview.count));
                     }
-                    ui.weak(t!(ui, "sign-adds", operations = names.join(", ")));
+                    // A list's preview draws the signs only (`SignSettings::make`).
+                    if !names.is_empty() {
+                        ui.weak(t!(ui, "sign-adds", operations = names.join(", ")));
+                    }
                 }
                 Err(why) => {
                     ui.colored_label(ui.visuals().warn_fg_color, why);
@@ -510,6 +551,8 @@ fn word_fields(
                 .desired_width(f32::INFINITY)
                 .hint_text(t!(ui, "sign-list-hint")),
         );
+        // Shown while typing, not only in the empty box.
+        ui.weak(t!(ui, "sign-list-help"));
     } else {
         ui.label(crate::style::bold(ui, t!(ui, "sign-words")));
         ui.add(

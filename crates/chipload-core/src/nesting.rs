@@ -26,6 +26,31 @@ impl Ring {
     }
 }
 
+/// The box round a ring's points: ((x0, y0), (x1, y1)).
+pub fn ring_box(points: &[Point]) -> (Point, Point) {
+    points.iter().fold(
+        (
+            (f64::INFINITY, f64::INFINITY),
+            (f64::NEG_INFINITY, f64::NEG_INFINITY),
+        ),
+        |((x0, y0), (x1, y1)), &(x, y)| ((x0.min(x), y0.min(y)), (x1.max(x), y1.max(y))),
+    )
+}
+
+/// Whether a ring with box `inner` can lie inside one with box `outer`: only if the inner
+/// box lies within the outer one. A ring inside or on another's boundary (within
+/// `CHAIN_TOL_MM`, as `contains` decides) has every point within that tolerance of the
+/// outer box, so twice the tolerance never turns away a ring that `contains` would accept.
+/// A quick test before `contains`, which compares whole polylines: among thousands of
+/// contours (a list of signs' letters) nearly every pair is told apart by its boxes.
+pub fn may_contain(outer: (Point, Point), inner: (Point, Point)) -> bool {
+    let slack = 2.0 * CHAIN_TOL_MM;
+    inner.0.0 >= outer.0.0 - slack
+        && inner.0.1 >= outer.0.1 - slack
+        && inner.1.0 <= outer.1.0 + slack
+        && inner.1.1 <= outer.1.1 + slack
+}
+
 pub fn contains(outer: &Ring, inner: &Ring) -> bool {
     match outer.pline.contains(&inner.pline) {
         PlineContainsResult::Pline2InsidePline1 => true,
@@ -218,5 +243,26 @@ mod tests {
         ]);
         assert!(!contains(&u, &rect(3.0, 4.0, 7.0, 8.0)));
         assert!(contains(&u, &rect(0.0, 0.0, 10.0, 3.0)));
+    }
+
+    #[test]
+    fn boxes_tell_apart_only_what_cannot_be_inside() {
+        let outer = rect(0.0, 0.0, 10.0, 10.0);
+        let b = |r: &Ring| ring_box(&r.points);
+        // Inside, sharing edges, identical: all may be inside.
+        for inner in [
+            rect(2.0, 2.0, 8.0, 8.0),
+            rect(0.0, 4.0, 10.0, 6.0),
+            rect(0.0, 0.0, 10.0, 10.0),
+        ] {
+            assert!(may_contain(b(&outer), b(&inner)));
+        }
+        // Within the tolerance of the edge still may.
+        let near = rect(-CHAIN_TOL_MM, 0.0, 5.0, 5.0);
+        assert!(may_contain(b(&outer), b(&near)));
+        // Sticking out, or beside: never inside.
+        assert!(!may_contain(b(&outer), b(&rect(5.0, 4.0, 15.0, 6.0))));
+        assert!(!may_contain(b(&outer), b(&rect(20.0, 0.0, 30.0, 10.0))));
+        assert!(!contains(&outer, &rect(5.0, 4.0, 15.0, 6.0)));
     }
 }

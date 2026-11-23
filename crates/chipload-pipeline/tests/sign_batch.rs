@@ -9,7 +9,9 @@ use chipload_job::{Job, Operation};
 use chipload_pipeline::fonts::BuiltinOnly;
 use chipload_pipeline::frames::follow_frames;
 use chipload_pipeline::sign::{SignRequest, SignStyle};
-use chipload_pipeline::sign_batch::{BatchRequest, DEFAULT_BATCH_GAP_MM, add_sign_batch};
+use chipload_pipeline::sign_batch::{
+    BatchRequest, DEFAULT_BATCH_GAP_MM, add_sign_batch, draw_sign_batch,
+};
 use chipload_pipeline::{empty_project, run_setups};
 use common::corpus_value;
 
@@ -186,4 +188,41 @@ fn a_kept_board_too_small_or_an_empty_list_is_refused() {
     )
     .unwrap_err();
     assert!(err.message().english().contains("no signs"));
+}
+
+#[test]
+fn the_preview_draws_the_same_signs_without_operations() {
+    let list = batch(&NAMES);
+    let (made_job, made) =
+        add_sign_batch(&project(), &list, &BuiltinOnly, None, Language::En).unwrap();
+    let (drawn_job, drawn) =
+        draw_sign_batch(&project(), &list, &BuiltinOnly, Language::En).unwrap();
+    assert_eq!(drawn_job.drawing, made_job.drawing);
+    assert_eq!(drawn.fitted, made.fitted);
+    assert_eq!(drawn.outlines, made.outlines);
+    assert!(drawn.operations.is_empty() && drawn_job.operations.is_empty());
+}
+
+#[test]
+fn one_letters_height_for_every_sign_is_the_least_of_their_own() {
+    // The longest name decides, wherever it is in the list; each sign alone would fit
+    // larger letters, or the same.
+    let alone = |name: &str| {
+        add_sign_batch(
+            &project(),
+            &batch(&[name]),
+            &BuiltinOnly,
+            None,
+            Language::En,
+        )
+        .unwrap()
+        .1
+        .fitted
+        .unwrap()
+    };
+    let (_, made) =
+        add_sign_batch(&project(), &batch(&NAMES), &BuiltinOnly, None, Language::En).unwrap();
+    let height = made.fitted.unwrap();
+    let least = NAMES.iter().map(|n| alone(n)).fold(f64::INFINITY, f64::min);
+    assert!((height - least).abs() < 1e-9, "{height} vs {least}");
 }

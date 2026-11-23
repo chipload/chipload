@@ -8,7 +8,7 @@ use chipload_i18n::Message;
 use chipload_job::edit::{Mirror, mirrored, transformed, translated};
 use chipload_job::{Geometry, Job, Operation, Shape};
 
-use crate::{PipelineError, ids_text, load_drawing, op_label};
+use crate::{PipelineError, ids_text, op_label};
 
 fn refused(message: Message) -> PipelineError {
     PipelineError::Job(message)
@@ -455,20 +455,11 @@ pub fn arc_slot_geometry(
     })
 }
 
-/// The exact box round shapes `ids` (arcs included), mm: ((x0, y0), (x1, y1)).
+/// The exact box round shapes `ids` (arcs included), mm: ((x0, y0), (x1, y1)). From
+/// their own segments, as `drawn_box`: chaining the whole drawing for a few shapes made
+/// every frame that follows its words slower the more there were (a list of signs).
 pub fn shapes_bounds(job: &Job, ids: &[u64]) -> Option<((f64, f64), (f64, f64))> {
-    let contours = load_drawing(job).ok()?.contours;
-    contours
-        .iter()
-        .flat_map(|c| c.parts.iter())
-        .filter(|p| p.segment.shape.is_some_and(|id| ids.contains(&id)))
-        .map(|p| p.segment.prim.bounds())
-        .reduce(|(lo, hi), (a, b)| {
-            (
-                (lo.0.min(a.0), lo.1.min(a.1)),
-                (hi.0.max(b.0), hi.1.max(b.1)),
-            )
-        })
+    drawn_box(job, ids)
 }
 
 /// Copies of drawn shapes `ids`, moved by `by` (mm), on the same layers, with new ids

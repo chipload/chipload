@@ -545,10 +545,20 @@ fn classify(mut contours: Vec<Contour>, issues: &mut Vec<Issue>) -> Vec<Contour>
             }
         }
     }
-    for (index, inner) in &rings {
+    // Boxes first: comparing every pair's polylines took seconds with thousands of contours.
+    let boxes: Vec<(Point, Point)> = rings
+        .iter()
+        .map(|(_, r)| nesting::ring_box(&r.points))
+        .collect();
+    for (i, (index, inner)) in rings.iter().enumerate() {
         let depth = rings
             .iter()
-            .filter(|(other, outer)| other != index && nesting::contains(outer, inner))
+            .zip(&boxes)
+            .filter(|((other, outer), outer_box)| {
+                other != index
+                    && nesting::may_contain(**outer_box, boxes[i])
+                    && nesting::contains(outer, inner)
+            })
             .count();
         contours[*index].nesting_depth = Some(depth);
     }

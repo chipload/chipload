@@ -402,11 +402,7 @@ pub(crate) fn fitted_height(
     fonts: &dyn FontSource,
 ) -> Result<f64, PipelineError> {
     check_size(request, size)?;
-    let slack = chipload_core::tolerances::CHAIN_TOL_MM;
-    let fits = |height: f64| -> Result<bool, PipelineError> {
-        let (w, h) = framed_size(request, height, fonts)?;
-        Ok(w <= size.0 + slack && h <= size.1 + slack)
-    };
+    let fits = |height: f64| fits_size(request, height, size, fonts);
     let too_small = || {
         refused(
             Message::new("pipeline-sign-size-small")
@@ -432,6 +428,18 @@ pub(crate) fn fitted_height(
     }
     let rounded = ((low * 10.0).floor() / 10.0).max(FIT_MIN_HEIGHT_MM);
     Ok(rounded)
+}
+
+/// Whether the frame round `request`'s words at letters `height` fits within `size`.
+pub(crate) fn fits_size(
+    request: &SignRequest,
+    height: f64,
+    size: (f64, f64),
+    fonts: &dyn FontSource,
+) -> Result<bool, PipelineError> {
+    let slack = chipload_core::tolerances::CHAIN_TOL_MM;
+    let (w, h) = framed_size(request, height, fonts)?;
+    Ok(w <= size.0 + slack && h <= size.1 + slack)
 }
 
 /// The outer size of the frame round `request`'s words at letters `height`, mm.
