@@ -382,21 +382,16 @@ impl ChiploadApp {
         );
         ui.add_space((ui.available_height() * 0.18).max(16.0));
         ui.vertical_centered(|ui| {
-            egui::Frame::new()
-                .fill(ui.visuals().panel_fill)
-                .stroke(ui.visuals().widgets.noninteractive.bg_stroke)
-                .corner_radius(8.0)
-                .inner_margin(24.0)
-                .show(ui, |ui| {
-                    ui.set_max_width(START_WIDTH);
-                    self.start_choices(ui);
-                    ui.add_space(16.0);
-                    ui.label(
-                        RichText::new(format!("⚠ {}", t!(ui, "panels-danger")))
-                            .small()
-                            .color(ui.visuals().warn_fg_color),
-                    );
-                });
+            start_card(ui.visuals()).show(ui, |ui| {
+                ui.set_max_width(START_WIDTH);
+                self.start_choices(ui);
+                ui.add_space(16.0);
+                ui.label(
+                    RichText::new(format!("⚠ {}", t!(ui, "panels-danger")))
+                        .small()
+                        .color(ui.visuals().warn_fg_color),
+                );
+            });
         });
     }
 
@@ -471,6 +466,15 @@ impl ChiploadApp {
         }
         picked
     }
+}
+
+/// The start screen's card, also round *New*'s choices with a project open.
+pub(super) fn start_card(visuals: &egui::Visuals) -> egui::Frame {
+    egui::Frame::new()
+        .fill(visuals.panel_fill)
+        .stroke(visuals.widgets.noninteractive.bg_stroke)
+        .corner_radius(8.0)
+        .inner_margin(24.0)
 }
 
 /// Width of the start screen's card.

@@ -77,12 +77,19 @@ impl ChiploadApp {
     fn start_prompt(&mut self, ctx: &egui::Context) {
         let mut picked = false;
         let mut cancel = false;
-        let modal = egui::Modal::new(egui::Id::new("new-start")).show(ctx, |ui| {
-            ui.set_max_width(super::panels::START_WIDTH);
-            picked = self.start_choices(ui);
-            ui.add_space(12.0);
-            cancel = ui.button(t!(ui, "common-cancel")).clicked();
-        });
+        // The start screen's card, as it looks there (the user, 2026-11-23).
+        let card = super::panels::start_card(&ctx.global_style().visuals);
+        let modal = egui::Modal::new(egui::Id::new("new-start"))
+            .frame(card)
+            .show(ctx, |ui| {
+                ui.set_max_width(super::panels::START_WIDTH);
+                picked = self.start_choices(ui);
+                ui.add_space(16.0);
+                let wide = egui::vec2(super::panels::START_WIDTH, 32.0);
+                cancel = ui
+                    .add(egui::Button::new(t!(ui, "common-cancel")).min_size(wide))
+                    .clicked();
+            });
         if picked {
             // The choice has set what comes next (its dialog, or none).
             if matches!(self.dialogs.prompt, Some(Prompt::Start)) {
