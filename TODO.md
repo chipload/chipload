@@ -4,6 +4,64 @@ What's planned. Each item gets a spec in `docs/specs/` that is reviewed before i
 (see `CLAUDE.md`). Pruned 2026-11-20 before 0.39.0 (the user: "prune the todo"): what was
 done is in git and in the releases' notes on GitHub, no longer listed here.
 
+## Release 0.40.0 "Signs" (prepared 2026-11-23)
+
+- **State:** the user's findings from testing fixed (2026-11-23). Version 0.40.0, the
+  third-party notices regenerated, the guide's screenshots renewed, the checks run (tests,
+  clippy, fmt, `cargo deny`, the libraries for wasm32). Main pushed; **the tag is the
+  user's** (`git tag -a v0.40.0 -m "Chipload 0.40.0"`, docs/releasing.md).
+  Run the tests on the Windows clone before tagging (new window tests: New's start
+  choices, a polyline closed by another). Then the draft release, then the guide
+  (`packaging/docs/publish-book.sh v0.40.0`).
+- **Its notes** (draft, to paste into the GitHub release and edit):
+
+  > **Chipload 0.40.0: signs**
+  >
+  > **Signs**
+  > - **Signs from a list:** *New sign… › Signs: From a list* makes the same sign for
+  >   every line, `|` starting a sign's second line (`ANNA BERG | ROOM 12`). With a fixed
+  >   size every sign gets the same letter height, so they match; all go in one part, cut
+  >   together. `chipload sign add --list names.txt`.
+  > - **A fixed size:** *Size: Fixed* takes the sign's outer size and finds the largest
+  >   letters that fit (`sign add --size 300x100`).
+  > - **Round words** on a round frame, and **text on an arc** for any text.
+  > - **Single-line text:** the Relief SingleLine font gives open strokes for a follow path
+  >   with a V-bit or engraver: quick lettering, one pass.
+  > - *New sign…* on the start page; the preview is drawn alongside while you type, and a
+  >   script font's sign is made in a fraction of the time it took.
+  >
+  > **Drawing**
+  > - **Fillet and chamfer between two shapes**, and at a polyline's corner beside an arc;
+  >   no need to select first.
+  > - **Arcs while drawing a polyline:** A switches to tangent arcs, L back to lines.
+  > - **Scale by a length** (two clicks and the new length) and **stretch** in X or Y: side
+  >   handles on the selection's box, *Keep proportions* in the form.
+  >
+  > **Nesting**
+  > - A part's count in the Nest window covers every board of its stock: raising it fills
+  >   the board that took the overflow before a new one is made.
+  >
+  > **Machines**
+  > - New post-processors: **MASSO** and **Centroid Acorn**, written from their manuals and
+  >   not yet tried on a machine (reports welcome). Each post names the controllers it is
+  >   for.
+  > - LinuxCNC in inches: `G64 P` is now given in inches.
+  >
+  > **V-carve** (from a safety review)
+  > - Passes share the depth actually carved, not a generous end depth (which turned three
+  >   passes into one full-depth pass); the depth checked against the stock is the depth
+  >   carved; a new V-carve starts at its bit's cone depth; a loop (an O) starts at its
+  >   shallowest point.
+  >
+  > **Also**
+  > - *New* with a project open offers the start screen's choices.
+  > - `chipload op remove`, `op duplicate` and `op move`.
+  >
+  > **Compatibility:** projects with a radius at a corner beside an arc (schema 43) can't
+  > be opened by 0.39 or older. V-carves' G-code changes (pass levels and where loops
+  > begin; the deepest Z is the same), as does LinuxCNC's in inches (`G64 P`); every other
+  > older project gives the same G-code.
+
 ## In progress
 
 - **Translations** (docs/specs/translations.md, ADR 0022): the app, its messages and the
@@ -81,7 +139,7 @@ done is in git and in the releases' notes on GitHub, no longer listed here.
    - ~~text on an arc~~ built 2026-11-21 (docs/specs/text-on-arc.md, the sign wizard's
      round words too), pushed, for the user to try;
    - ~~scale by reference and stretching in X and Y~~ built 2026-11-22
-     (docs/specs/scale-and-stretch.md), not pushed, for the user to try;
+     (docs/specs/scale-and-stretch.md), pushed;
    - spline to polyline (explode), joining open splines, their end tangents;
    - extending arc ends along their circle;
    - an arc's form by centre, radius and angles when a polyline is one arc;
