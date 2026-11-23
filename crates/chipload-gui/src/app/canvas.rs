@@ -908,6 +908,7 @@ impl ChiploadApp {
                 // 2026-11-03).
                 self.focus = Focus::Stock;
             } else {
+                self.clicked_shape = picked.and_then(|c| self.shape_at(c, self.view.to_world(pos)));
                 self.click(picked, toggle);
             }
         }

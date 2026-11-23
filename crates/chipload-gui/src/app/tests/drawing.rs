@@ -1226,3 +1226,42 @@ fn a_and_l_switch_a_polylines_sides_and_a_shapes_end_gives_the_first_arc_its_dir
     assert!((bulges[0] - (2f64.sqrt() - 1.0)).abs() < 1e-9, "{bulges:?}");
     assert_eq!(bulges[1], 0.0);
 }
+
+#[test]
+fn a_polyline_closed_by_another_is_still_edited_alone() {
+    // The user, 2026-11-23: an open polyline closed by a second one chains into one
+    // outline; the one clicked keeps its handles and form.
+    let mut app = drawn_part();
+    app.click(None, false);
+    app.start_drawing(Tool::Polyline);
+    for p in [(200.0, 100.0), (240.0, 100.0), (240.0, 130.0)] {
+        app.draw_click(p, false);
+    }
+    app.finish_drawing();
+    app.commit();
+    app.start_drawing(Tool::Polyline);
+    for p in [(240.0, 130.0), (200.0, 130.0), (200.0, 100.0)] {
+        app.draw_click(p, false);
+    }
+    app.finish_drawing();
+    app.commit();
+    let (first, second) = (4, 5);
+    let outline = contour_of(&app, first);
+    assert_eq!(contour_of(&app, second), outline, "one outline");
+    assert!(
+        app.contours
+            .iter()
+            .find(|c| c.id == outline)
+            .unwrap()
+            .closed
+    );
+    // A click on the second's top line: the outline is selected, the second is edited.
+    app.clicked_shape = app.shape_at(outline, (220.0, 130.5));
+    app.click(Some(outline), false);
+    assert_eq!(app.selected_shape(), Some(second));
+    assert!(!app.shape_handles().is_empty());
+    // And on the first's right side.
+    app.clicked_shape = app.shape_at(outline, (239.5, 115.0));
+    app.click(Some(outline), false);
+    assert_eq!(app.selected_shape(), Some(first));
+}

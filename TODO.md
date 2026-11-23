@@ -61,6 +61,13 @@ done is in git and in the releases' notes on GitHub, no longer listed here.
      signs 15 s → 1 s);
    - ~~*New* with a project open shows the start screen's choices~~ (the user, 2026-11-23),
      cancellable back to the project; New sign after *Don't save* now opens the sign;
+   - ~~a polyline closed by another lost its handles~~ (the user, 2026-11-23): the clicked
+     shape of a chained outline is the one edited;
+   - **Nesting overflow overlapping after raising counts step by step** (the user,
+     2026-11-23, a screenshot): not reproduced from the command line, the Nest window or
+     Nest all; waiting for the user's steps or project;
+   - **Layers for drawn shapes** (the user, 2026-11-23): layers feel strange for our own
+     shapes; rather a flat list, an exploded DXF becoming shapes. To talk about.
    - ~~`op remove`, `op duplicate`, `op move`~~ on the command line (found missing while
      building; the window had them), 2026-11-22, the rules in `chipload_pipeline::operations`.
 1. **Drawing, step 2** (the review of the drawing tools, 2026-11-18; docs/specs/

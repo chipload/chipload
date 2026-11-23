@@ -420,6 +420,9 @@ pub struct ChiploadApp {
     /// What the pending fit shows instead of everything (a screenshot's close-up).
     fit_only: Option<Vec<crate::view::Point3>>,
     pub selection: CanvasSelection,
+    /// The drawn shape last clicked on the canvas: of an outline chained from several
+    /// shapes, the one its handles and form are for (the user, 2026-11-23).
+    pub(super) clicked_shape: Option<u64>,
     /// The focused operation's corners and an open corner menu (docs/specs/dogbone-per-corner.md).
     corners: corners::CornerMarkers,
     /// Where the Q menu is open (docs/specs/fewer-clicks.md §2).
@@ -522,6 +525,7 @@ impl Default for ChiploadApp {
             focus_thickness: false,
             fit_only: None,
             selection: CanvasSelection::Nothing,
+            clicked_shape: None,
             corners: corners::CornerMarkers::default(),
             quick_menu: None,
             context_pick: None,

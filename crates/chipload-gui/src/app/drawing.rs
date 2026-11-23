@@ -391,8 +391,26 @@ impl ChiploadApp {
         let shapes = shapes_of(only);
         match shapes.len() {
             1 => shapes.into_iter().next(),
-            _ => None,
+            // Several shapes chained into one outline (an open polyline closed by
+            // another): the one clicked, so it can still be edited (the user,
+            // 2026-11-23). The outline stays selected whole for operations.
+            _ => self.clicked_shape.filter(|s| shapes.contains(s)),
         }
+    }
+
+    /// The drawn shape of contour `contour` nearest `at` (world mm).
+    pub(super) fn shape_at(&self, contour: usize, at: Point) -> Option<u64> {
+        let contour = self.contours.iter().find(|c| c.id == contour)?;
+        contour
+            .parts
+            .iter()
+            .filter_map(|p| {
+                let near = chipload_draw::intersect::nearest_on(&p.segment.prim, at);
+                let d = chipload_core::primitives::distance(near, at);
+                p.segment.shape.map(|s| (d, s))
+            })
+            .min_by(|a, b| a.0.total_cmp(&b.0))
+            .map(|(_, s)| s)
     }
 
     /// Apply new values to the selected drawn shape. On failure the project is unchanged
