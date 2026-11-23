@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Post-processors - Chipload 0.39.0 user guide</title>
+        <title>Post-processors - Chipload 0.40.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6e70ea5e.js";
+            window.path_to_searchindex_js = "searchindex-fa2f3dbc.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-edc691ed.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.39.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.40.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -179,24 +179,31 @@
                     <main>
                         <h1 id="post-processors"><a class="header" href="#post-processors">Post-processors</a></h1>
 <p>A post-processor turns Chipload’s toolpath into the G-code dialect your controller reads.
-Three are built in:</p>
+Five are built in:</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>Post</th><th>For</th><th>Files</th><th>Tool changes</th></tr>
 </thead>
 <tbody>
-<tr><td><code>grbl</code></td><td>GRBL 1.1 routers (and senders such as UGS, CNCjs, gSender)</td><td><code>.nc</code></td><td>one file per tool, or one file with <code>T… M6</code> for a sender that handles the change</td></tr>
+<tr><td><code>grbl</code></td><td>GRBL 1.1, grblHAL, FluidNC and Carbide Motion routers (and senders such as UGS, CNCjs, gSender)</td><td><code>.nc</code></td><td>one file per tool, or one file with <code>T… M6</code> for a sender that handles the change</td></tr>
 <tr><td><code>linuxcnc</code></td><td>LinuxCNC</td><td><code>.ngc</code></td><td>one file per tool</td></tr>
 <tr><td><code>mach3</code></td><td>Mach3 and Mach4</td><td><code>.tap</code></td><td>one file per tool</td></tr>
+<tr><td><code>masso</code></td><td>MASSO G2 and G3</td><td><code>.nc</code></td><td>one file per tool</td></tr>
+<tr><td><code>acorn</code></td><td>Centroid Acorn and other CNC12 controls</td><td><code>.cnc</code></td><td>one file per tool</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>The LinuxCNC and Mach3/4 posts haven’t been run on a real controller yet.</strong> Their
-programs say so in a header comment: check the program and air-cut before you cut. If you
-run one of them successfully, please report it.</p>
+<p><code>chipload post list</code> names the controllers each post is for, and so does the <em>Post</em> list
+in the app.</p>
+<p><strong>Only the GRBL post has been run on a real controller so far.</strong> The others’ programs say
+so in a header comment: check the program and air-cut before you cut. If you run one of
+them successfully, please report it.</p>
 <p>Every post writes arcs as G2/G3, mm and absolute coordinates, and waits 3 s after starting
-the spindle. The <a href="reference/posts.html">post-processor reference</a> lists every post’s
+the spindle. Each writes its controller’s own dialect, from the controller’s own manual:
+MASSO’s wait is written in milliseconds (<code>G4 P3000</code>), as MASSO reads it; the Centroid post
+comments with <code>;</code>; neither writes G91.1, since both read I and J from the arc’s start
+anyway. The <a href="reference/posts.html">post-processor reference</a> lists every post’s
 settings.</p>
 <h2 id="choosing-the-post"><a class="header" href="#choosing-the-post">Choosing the post</a></h2>
 <ul>
@@ -216,7 +223,11 @@ program.</li>
 <p>The easiest start is a copy of a built-in post, from the <code>crates/chipload-post/posts/</code> and
 <code>templates/</code> folders of the source. Rules:</p>
 <ul>
-<li><strong>Names:</strong> a post can’t take a built-in name (<code>grbl</code>, <code>linuxcnc</code>, <code>mach3</code>).</li>
+<li><strong>Names:</strong> a post can’t take a built-in name (<code>grbl</code>, <code>linuxcnc</code>, <code>mach3</code>, <code>masso</code>,
+<code>acorn</code>).</li>
+<li><strong>Controllers and the wait:</strong> <code>controllers = ["My router"]</code> names what the post is for,
+shown by <code>post list</code>; <code>dwell_unit = "ms"</code> writes the spindle’s wait in milliseconds, for
+a controller whose G4 reads P that way (seconds otherwise).</li>
 <li><strong>Copied into the project:</strong> a project that uses your post keeps its own copy of both
 files, so it gives the same G-code on another computer or after you change the files.
 When your files differ from the project’s copy, the app shows <strong>Update</strong> next to the Post
@@ -226,7 +237,7 @@ an error if it loops without end.</li>
 <li><strong>The checker still decides.</strong> Whatever your template writes, the <a href="first-part.html#the-checker">checker</a>
 reads it back as a controller would. It accepts only the codes it knows: G0–G3, G4, G17,
 G20, G21, G90, G91.1, G94, the setup codes G40, G49, G80, G54, G61 and G64 P (at most
-0.05 mm), M3–M6, M7–M9 and M30, and <code>%</code> lines. Anything else, such as G41/G42 cutter
+0.05 mm; P is in the program’s units, so at most 0.002 under G20), M3–M6, M7–M9 and M30, and <code>%</code> lines. Anything else, such as G41/G42 cutter
 compensation, G43 tool lengths, G28 or G53 machine moves, or G91 relative moves, makes the
 check fail, and nothing is exported.</li>
 </ul>
@@ -247,7 +258,7 @@ cut).</p>
 <tr><td><code>tool_id</code>, <code>tool_diameter</code>, <code>rpm</code></td><td>the (first) tool, its diameter in the program’s units, its spindle speed</td></tr>
 <tr><td><code>spindle</code></td><td><code>"cw"</code> or <code>"ccw"</code></td></tr>
 <tr><td><code>safe_z</code></td><td>the safe height, in the program’s units</td></tr>
-<tr><td><code>dwell</code></td><td>seconds to wait after starting the spindle, or none</td></tr>
+<tr><td><code>dwell</code></td><td>the wait after starting the spindle, in seconds (or milliseconds with <code>dwell_unit = "ms"</code>), or none</td></tr>
 <tr><td><code>work_zero</code></td><td>where the work zero is, as text for a comment, or none</td></tr>
 <tr><td><code>file</code></td><td>with one file per tool: <code>number</code>, <code>count</code>, <code>tool</code> (text) and <code>operations</code> (text); otherwise none</td></tr>
 <tr><td><code>tools</code></td><td>with one file and tool changes: a list of the tools as text; otherwise none</td></tr>

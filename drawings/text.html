@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Text - Chipload 0.39.0 user guide</title>
+        <title>Text - Chipload 0.40.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6e70ea5e.js";
+            window.path_to_searchindex_js = "../searchindex-fa2f3dbc.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-edc691ed.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.39.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.40.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -230,8 +230,29 @@ corner stays where it is. Its height is rounded to 0.1 mm.</li>
 </ul>
 <p>The box follows the cursor while you drag, and the text is written again when you let
 go, as one undo step. Hold <strong>Alt</strong> for no steps (any angle, any size) and no snapping.</p>
+<h2 id="on-an-arc"><a class="header" href="#on-an-arc">On an arc</a></h2>
+<p>Tick <strong>On an arc</strong> in the text’s properties and its line follows a circle, as on a round
+plaque, a coaster or a badge. The circle’s centre is the text’s <strong>Position</strong> (anchor and
+rotation don’t apply then), and three more fields set the rest:</p>
+<ul>
+<li><strong>Radius:</strong> of the circle through the middle of the letters, half a capital height above
+their base. A top text and a bottom text with the same radius lie in one ring;</li>
+<li><strong>Side:</strong> <strong>Top</strong> stands the letters on the outside, reading clockwise, as a name along
+the top; <strong>Bottom</strong> keeps them upright at the bottom, reading counter-clockwise, as a
+date along the bottom;</li>
+<li><strong>Angle:</strong> how far the text is turned round the circle from straight up (top) or
+straight down (bottom). With <strong>Align</strong> <em>centre</em> (which a text gets when it goes on an
+arc) its middle sits there; with <em>left</em> or <em>right</em>, its start or end.</li>
+</ul>
+<p>Each letter is moved and turned whole onto the circle, so it keeps the font’s exact shape;
+on a top text their tops spread a little and their feet close in, as on any lettered ring.
+More lines stack the way they’re read: nearer the centre on the top, further out on the
+bottom. A line longer than its circle, or one that would reach the centre, is refused
+with the reason. On the canvas the box is the square round the ring: its middle moves the
+circle, its turn handle moves the text round it, and a corner scales the radius and the
+letters together.</p>
 <h2 id="fonts"><a class="header" href="#fonts">Fonts</a></h2>
-<p>Chipload has 17 fonts built in, so a project writes the same letters on every computer. The
+<p>Chipload has 18 fonts built in, so a project writes the same letters on every computer. The
 <em>Font</em> list groups them and shows each name in its own face; <code>chipload text fonts</code> lists
 them with their style.</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../images/fonts.png" alt="Every built-in font writing “Maker Space · Oak &amp; Iron 1926”"><span class="img-wrapper"><img src="../images/fonts.png" alt="Every built-in font writing “Maker Space · Oak &amp; Iron 1926”"></span></label></p>
@@ -241,6 +262,7 @@ Slab and Roboto Slab Bold.</li>
 <li><strong>Script:</strong> Satisfy, Yellowtail and Rochester, handwriting with joined letters.</li>
 <li><strong>Display:</strong> Luckiest Guy, Ultra, Chewy, Smokum, Cherry Cream Soda and Permanent Marker,
 bold and decorative, for headings and signs.</li>
+<li><strong>Single-line:</strong> Relief SingleLine, made for CNC engraving (below).</li>
 </ul>
 <p>They all have the Latin letters with accents (Å, Ä, Ö, É, Ñ, Ø, …), digits and the common
 symbols (€, °, ±; ⌀ only in some of the FreeFont faces). A character a font lacks is left
@@ -253,9 +275,27 @@ them. Letters that don’t overlap anything keep the font’s exact outline.</p>
 the thick ones deep. The scripts V-carve well too. For a pocket or a profile, a font with
 even, sturdy strokes works best (FreeSans Bold, Roboto Slab, Ultra, Luckiest Guy, Chewy);
 Smokum’s pointed serifs need a pocketing tool of 2 mm or more.</p>
-<p><strong>Licences:</strong> GNU FreeFont is under the GPL with the font exception, the others under the
-Apache License 2.0. Neither puts any condition on what you make: the letters you cut and
-their G-code are yours.</p>
+<p><strong>Licences:</strong> GNU FreeFont is under the GPL with the font exception, Relief SingleLine
+under the SIL Open Font License 1.1, the others under the Apache License 2.0. None puts any
+condition on what you make: the letters you cut and their G-code are yours.</p>
+<h3 id="single-line-text"><a class="header" href="#single-line-text">Single-line text</a></h3>
+<p>The other fonts give each letter as the outline round its strokes, which suits a V-carve or
+a pocket. A <strong>single-line</strong> font gives each stroke once, down its middle, as open lines and
+arcs: one pass of a small bit cuts the letter. That is what labels, serial and part
+numbers, scales, small lettering (under about 8 mm, where V-carved grooves run together)
+and quick nameplates want.</p>
+<ul>
+<li><strong>Font:</strong> <em>Relief SingleLine</em>, in the <em>Single-line</em> group of the font list. It has the
+Latin letters with accents of all the app’s languages, digits and the common symbols,
+but no Cyrillic: write Russian in an outline font.</li>
+<li><strong>Cutting it:</strong> a <a href="../operations/path.html">Follow path</a> on the text, with a V-bit (the
+line as wide as the bit is deep) or a small end mill, at the depth you choose, 0.3 to
+1 mm for most engraving. Profile, Pocket and V-carve need closed outlines and refuse
+these letters, saying why.</li>
+<li><strong>Everything else as for any text:</strong> height (the capital height), alignment, lines, on
+an arc, moved, turned and edited. Strokes that cross are each cut; they aren’t joined.</li>
+<li><strong>On the command line:</strong> <code>chipload text add P "PART 42-A" --font "Relief SingleLine" --height 6 --at 10,10</code>, then <code>chipload op add P path --layer text --depth 0.5</code>.</li>
+</ul>
 <h3 id="your-computers-fonts"><a class="header" href="#your-computers-fonts">Your computer’s fonts</a></h3>
 <p>The <em>Font</em> list also has <strong>On this computer</strong>: every TrueType or OpenType font installed
 there, by name (“Arial Bold”). Hover over a name to see a sample. The first time the list
@@ -285,6 +325,9 @@ left-out letter is found again when the text changes size, place or font.</p>
 <pre><code class="language-sh">chipload text add sign.chipload "MAKER\nSPACE" --height 20 --at 40,30 --font "FreeSerif Bold" --align center
 chipload text set sign.chipload 1 --rotate 15 --spacing 1     # change it; its letters are made again
 chipload text set sign.chipload 1 --anchor center --at 85,55  # centred on X85 Y55, and stays centred
+chipload text add plaque.chipload "MAKER SPACE" --height 12 --at 0,0 --arc 60   # along the top of a circle round 0,0
+chipload text add plaque.chipload "EST. 2026" --height 8 --at 0,0 --arc 60 --side bottom
+chipload text set plaque.chipload 1 --angle 100               # turned round the circle; --straight: off the arc
 chipload place sign.chipload --text 1 --at 10,10 --height 25  # its corner, turn and height
 chipload text list sign.chipload
 chipload text remove sign.chipload 1

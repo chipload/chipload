@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Signs and frames - Chipload 0.39.0 user guide</title>
+        <title>Signs and frames - Chipload 0.40.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6e70ea5e.js";
+            window.path_to_searchindex_js = "../searchindex-fa2f3dbc.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-edc691ed.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.39.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.40.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -186,8 +186,11 @@ size as a blank, for a frame you cut with operations of your own. A sign you wil
 <h2 id="a-sign-in-one-step"><a class="header" href="#a-sign-in-one-step">A sign in one step</a></h2>
 <p><strong>New sign…</strong> (<strong>Sign</strong> in the ribbon’s <em>WIZARDS</em> group, or <em>Wizards &gt; New sign…</em>) makes a whole sign: the words, a frame round them, and every operation that
 cuts it, in a part of its own named after the words (a new project’s empty part becomes
-it). The dialog draws the sign as it will be and lists the operations it adds. (Design:
-<code>docs/specs/sign-maker.md</code>.)</p>
+it). The dialog draws the sign as it will be and lists the operations it adds. With no
+project open, <strong>New sign…</strong> on the start page starts a new project for it, with the
+choices last made in the new project dialog (the library’s defaults the first time),
+without asking for them again: the sign fits the board round itself. Cancel the sign and
+the empty project stays. (Design: <code>docs/specs/sign-maker.md</code>, <code>sign-size-and-start.md</code>.)</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../images/new-sign.png" alt="New sign… filled in: the words, a notched frame with double lines, an edge chamfer, the sign drawn below and the operations it adds"><span class="img-wrapper"><img src="../images/new-sign.png" alt="New sign… filled in: the words, a notched frame with double lines, an edge chamfer, the sign drawn below and the operations it adds"></span></label></p>
 <ul>
 <li><strong>Words</strong>, <strong>Font</strong>, <strong>Height</strong>: the text, centred on the board. The font list is the
@@ -201,9 +204,27 @@ be made yet (its background pocket needs them grouped with the frame, and a grou
 only drawn shapes and texts).</li>
 <li><strong>Frame</strong>: as for <em>Frame…</em> below: the kind, margin, corner, borders and their groove
 width. The frame follows the words afterwards.</li>
+<li><strong>Words</strong> (with the <em>Oval</em> frame): <em>Straight</em>, or <em>Round</em> for a round plaque: the first
+line goes along the top of a circle, the second along its bottom, both on one radius
+(<a href="text.html#on-an-arc">text on an arc</a>), and any further lines straight in the middle.
+The radius is the least that keeps the longer line within 150° of the circle and the
+middle clear; the frame is the circle round their ring, the margin out from the
+letters, and it follows them when you change the texts’ radius, words or size.</li>
+<li><strong>Size</strong>: <em>Fit the words</em> (the sign grows round letters of the <strong>Height</strong> given) or
+<em>Fixed</em>, for a sign that has to fit a place: a door plate of 300 × 100 mm, a round
+plaque of 200 mm. <em>Fixed</em> asks for the <strong>Outer size</strong> (for round words on the round
+frame, a <strong>Diameter</strong>) instead of the height: that is the outline that is cut out, and
+the letters get the largest height that fits inside the borders, gap and margin, to
+0.1 mm, shown as <strong>Letters</strong> while you type. The frame keeps that size afterwards:
+changing the words later doesn’t grow it or refit the letters, so change the text’s
+height yourself if they no longer fit. Round shapes already drawn, the frame is that
+size round them.</li>
 <li><strong>Style</strong>:
 <ul>
-<li><em>Engraved</em>: the letters V-carved;</li>
+<li><em>Engraved</em>: the letters V-carved; in a <a href="text.html#single-line-text">single-line font</a>,
+a Follow path of the V-bit down each stroke instead, at the <strong>Engrave depth</strong> (1 mm
+by default; <code>--engrave-depth</code> on the command line). <em>Raised</em> and <em>Inlay</em> need an
+outline font;</li>
 <li><em>Raised</em>: the background inside the innermost border cut down round the letters with
 the end mill (<strong>Background depth</strong>, 3 mm by default), the letters and the border left
 standing; it needs a border. Inside corners round the letters keep the end mill’s
@@ -229,6 +250,37 @@ and <em>Cut out</em> (a profile outside the outline, through, with tabs). Feeds 
 tools’ cutting data. The words and the frame are one group: a click selects the sign, a drag
 moves it. All of it is one undo step, and every part of it is ordinary shapes and
 operations afterwards.</p>
+<h2 id="signs-from-a-list"><a class="header" href="#signs-from-a-list">Signs from a list</a></h2>
+<p>Name plates, door signs, place cards and drawer labels are the same sign with different
+words. Make them all at once from a list: in <em>New sign…</em>, choose <strong>Signs: From a list</strong>
+and type or paste the list, one sign per line, with <code>|</code> in a line to start that sign’s
+second line, with or without spaces round it (<code>ANNA BERG | ROOM 12</code>); the dialog says so
+under the list. A list starts on <em>Size: Fixed</em>; the preview shows the grid and the count,
+drawn alongside while you type (typing never waits for it). The operations are listed once the signs are made.
+<em>Make sign</em> makes them alongside too: a long list in a script font takes a few seconds,
+and the dialog says <em>Making the sign…</em> until they are in the project.</p>
+<ul>
+<li><strong>Every sign the same:</strong> the font, frame, borders, style, edge and tools are the ones
+set. With <em>Size: Fixed</em> every sign is that size and <strong>every sign gets the same letter
+height</strong>, the largest that fits the longest line of the list, so the signs match. With
+<em>Fit the words</em>, each frame follows its own words.</li>
+<li><strong>One part, cut at once:</strong> the signs go in one part named after the first and the count
+(“ANNA BERG +19”). Its operations cut every sign together: all the letters, then all
+the borders and edges with the V-bit, then every cut-out with the end mill, so the tool
+changes once, not twice for every sign. The operations select the batch’s layers
+(<em>ANNA BERG +19 letters</em>, <em>… borders</em>, <em>… outline</em>), so a name corrected later is
+still cut.</li>
+<li><strong>Each sign stays a sign:</strong> its words and frame are grouped, and the frame follows its
+words.</li>
+<li><strong>Laid out in a grid</strong> 10 mm apart: as near square as the count allows when the board is
+fitted round the signs; on a board you keep, as many to a row as fit, from its top left,
+and a list that doesn’t fit is refused with the board size it needs.</li>
+<li><strong>Styles:</strong> engraved (single-line fonts too) and raised (one background pocket per sign,
+all with the end mill). Inlaid signs are made one at a time: each plug needs a board of
+its own.</li>
+<li><strong>On the command line:</strong> <code>chipload sign add P --list names.txt --size 200x60 --vbit 2 --end-mill 1</code>, or <code>--list-words "ANNA BERG|ROOM 12\nBO LIND|ROOM 14"</code>; <code>--list-gap</code>
+sets the space between signs.</li>
+</ul>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../images/frame.png" alt="A text selected, Draw &gt; Frame… open under Selection, a rounded frame with one border previewed round the text"><span class="img-wrapper"><img src="../images/frame.png" alt="A text selected, Draw &gt; Frame… open under Selection, a rounded frame with one border previewed round the text"></span></label></p>
 <h2 id="a-frame-round-a-text"><a class="header" href="#a-frame-round-a-text">A frame round a text</a></h2>
 <ol>
@@ -350,6 +402,9 @@ chipload frame add sign.chipload --corners notch --around-text 1 --borders 1 --d
 chipload frame add plate.chipload --kind banner --width 300 --height 90 --corner 25
 chipload sign add sign.chipload "THE NÄSLUNDS" --font FreeSerif --frame rectangle --corners notch \
     --borders 1 --double --style engraved --edge chamfer:3 --vbit 2 --end-mill 1 --thickness 18
+chipload sign add plaque.chipload "MAKER SPACE\nEST. 2026" --frame oval --round --height 12 \
+    --borders 1 --vbit 2 --end-mill 1 --thickness 12
+chipload sign add door.chipload "SMITH\n12" --size 300x100 --vbit 2 --end-mill 1   # letters as high as fit
 chipload frame kinds
 chipload frame list sign.chipload                              # the frames that follow, with their values
 chipload frame set sign.chipload 7 --margin 15 --borders 2     # change them: drawn again

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Chipload 0.39.0 user guide</title>
+        <title>Chipload 0.40.0 user guide</title>
         <meta name="robots" content="noindex">
 
 
@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6e70ea5e.js";
+            window.path_to_searchindex_js = "searchindex-fa2f3dbc.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-edc691ed.js"></script>
@@ -138,7 +138,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.39.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.40.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -375,7 +375,8 @@ the first steps (<a href="#starting-from-a-drawing-file">below</a>).</p>
 <h2 id="in-the-app"><a class="header" href="#in-the-app">In the app</a></h2>
 <ol>
 <li>
-<p><strong>A new project:</strong> <em>File &gt; New project</em> (Ctrl+N).</p>
+<p><strong>A new project:</strong> <em>New project</em> on the start screen; with a project open, <em>File &gt; New…</em>
+(Ctrl+N) shows the same choices, then <em>New project</em>.</p>
 <ul>
 <li>The <a href="#the-new-project-dialog">new project dialog</a> asks for the
 material, the board’s thickness and size, Z zero, the machine and the tools. Set the
@@ -645,7 +646,7 @@ or a picture shows its settings on the right, in <a href="#properties">Propertie
 <a href="#rest-machining-1">rest pass</a> shows under it), for a relief <em>Add roughing pass ▸</em>
 (<a href="#roughing-first">roughing</a>) and <em>Add smoothing pass</em>
 (<a href="#smoothing-the-steps">smoothing</a>, greyed out until it has a roughing
-pass), and <em>Delete</em>.</li>
+pass), and <em>Delete</em>. On the command line: <code>chipload op move P --op 4 --to 2</code>, <code>op duplicate P --op 2</code>, <code>op remove P --op 3</code>.</li>
 <li><strong>A style:</strong> <em>Apply to the selection</em> and <em>Delete</em>.</li>
 <li><strong>A rest pass, floor pass, roughing or smoothing pass:</strong> <em>Remove</em> (or Delete with it
 selected); a roughing pass also <em>Add smoothing pass</em>.</li>
@@ -1530,9 +1531,19 @@ click on either side of the edge, or type it). The rectangle is turned to the ed
 <li><strong>Polyline</strong> (<strong>L</strong>): points joined by straight or arc segments, open or closed. Click
 the first point again to close it; Enter or a double-click finishes it open.
 <ul>
-<li><strong>Rounded corners:</strong> each corner between two straight sides can have a <em>Radius</em>, an
-arc tangent to both sides. The point stays at the sharp corner, so the numbers you
-drew stay as they were. Set it in the form’s points table (the <em>Radius</em> column), or
+<li><strong>Arcs while drawing:</strong> press <strong>A</strong> (or <em>Arc</em> on the status bar) and the next sides
+are arcs, each going on smoothly from the side before it; the click sets where the
+arc ends. <strong>L</strong> (or <em>Line</em>) goes back to lines. Shift holds the arc’s sweep to 15°
+steps (a quarter or half circle), and the readout shows its radius and sweep. The
+first side needs a direction to go on from, so it is a line, unless you start on the
+end of an open drawn shape: then the arc goes on from that shape. A point straight
+behind can’t be reached by an arc. Each new polyline starts with lines. On the command
+line, <code>t</code> in <code>--bulges</code> is such an arc: <code>chipload shape add P polyline --open --points "0,0 40,0 60,20 60,40" --bulges "0 t t"</code>.</li>
+<li><strong>Rounded corners:</strong> each corner can have a <em>Radius</em>, an arc tangent to both sides,
+beside an arc side too (a line running into an arc, or two arcs). The point stays at
+the sharp corner, so the numbers you drew stay as they were; an arc side is cut back
+along its own circle to meet the round. Where the sides already meet smoothly there is
+no corner. Set it in the form’s points table (the <em>Radius</em> column), or
 give <em>Radius</em> on the status bar while drawing: every corner gets it, and a corner whose
 sides are too short gets the most that fits. An open polyline’s ends have no corner. On
 the command line: <code>chipload shape add P polyline --points "0,0 100,0 100,60 0,60" --radii "0 5 5 0"</code>, <code>shape set P ID --radii …</code>.</li>
@@ -1648,16 +1659,29 @@ frame), and a <em>Count</em> for several rings, each the distance further. The s
 new ones go on the same layer and are selected. A circle, a rectangle or slot, and a
 polygon inward or with sharp corners keep their kind; anything else becomes a polyline
 with true arcs. On the command line: <code>chipload shape offset P 1 2 --distance 3 [--side inside] [--corners sharp] [--count 2]</code>.</li>
-<li><strong>Fillet</strong> and <strong>Chamfer</strong>: select one drawn shape (or click it with the tool), then
-click a corner (it is marked when the cursor is near it) to round it with an arc of the
+<li><strong>Fillet</strong> and <strong>Chamfer</strong>: click a corner of any drawn shape (it is marked when the
+cursor is near it; no need to select the shape first, and a selected shape’s corners
+come first) to round it with an arc of the
 <em>Radius</em> on the status bar, or cut it straight across, the <em>Distance</em> back along each
-side. Shift+click does every corner. A corner is a point between two straight sides; a
-radius too large for the sides is refused with the most that fits (two corners on one
-side share it). A polyline’s corner gets that <em>Radius</em> (above), so it stays editable; a
-rectangle rounded all round keeps its kind (its corner radius); any other shape becomes
-a polyline and keeps its number, so operations still cut it. Chamfer leaves rounded
-corners as they are.
+side. Shift+click does every corner. Fillet rounds any corner, beside an arc too;
+Chamfer only cuts corners between two straight sides. A radius too large for the sides
+is refused with the most that fits (two corners on one side share it); a <em>Radius</em> of 0
+makes a rounded corner sharp again. A polyline’s corner gets that <em>Radius</em> (above), so
+it stays editable; a rectangle rounded all round keeps its kind (its corner radius); any
+other shape becomes a polyline and keeps its number, so operations still cut it. Chamfer
+leaves rounded corners as they are.
 <code>chipload shape fillet P 3 --radius 2 [--corner 0]</code>, <code>chipload shape chamfer P 3 --distance 1</code>.</li>
+<li><strong>Fillet between two shapes:</strong> two open drawn polylines (lines and arcs too) that meet,
+cross or fall short are joined by a round: each is trimmed or extended to it, on the
+part you pick, and they join into one polyline as after a Trim when they’re on one
+layer (the round goes on the first one’s layer). Between two lines the round stays the
+corner’s <em>Radius</em>. A radius of 0 trims or extends them to meet in a sharp corner;
+Chamfer between two lines cuts across, the <em>Distance</em> back from where they meet. On the
+command line, a point near each part to keep: <code>chipload shape fillet P 3 --with 4 --radius 5 --keep 10,0 --keep 0,10</code> (or <code>shape chamfer … --distance 2</code>). In the window,
+with Fillet (or Chamfer): click the first shape on the part to keep (away from its
+corners), then move to the second: the round and both shapes trimmed or extended are
+shown before you click it, on its part to keep; if no round fits, the status bar says
+why. Escape, or a click on empty space, forgets the first pick. One undo step.</li>
 <li><strong>Trim</strong> (<strong>X</strong>), <strong>Extend</strong> and <strong>Break</strong> work on the drawn shape under the cursor; no
 need to select it first. Trim shows the piece it will remove before you click, Extend
 the shape grown to the next one ahead (click near the end to extend), Break a mark where
@@ -1702,6 +1726,27 @@ line and mirroring it gives the whole outline, ready to cut. Unticked, the shape
 place and keep their numbers, and operations’ start points and tabs on them follow. On
 the command line: <code>chipload shape mirror P 3 4 --line "0,0 0,100" [--copy]</code>, or
 <code>--about-shape 7</code> for a drawn line.</li>
+<li><strong>Scale by a length:</strong> when you know what a length on the drawing should be (two holes
+100 mm apart, a side 450 mm long), select what to scale, choose <em>Scale</em> in MODIFY and
+click the two ends of that length. They snap, and the first one stays where it is. The
+entry beside the cursor shows the length now; type the length it should be (units and
+arithmetic work, as in every field) and press Enter, or click a third point: its
+distance from the first becomes the new length, so a length can be taken from another
+shape. The two points don’t have to lie on the selection. Esc goes back a step. It
+scales whatever the box’s corners scale: drawn shapes, a text, a picture, a group or a
+whole DXF, which is handy for a drawing or a traced picture that came in at the wrong
+size. On the command line: <code>chipload shape scale P 3 4 --reference "10,10 110,12" --length 120</code>, and for a DXF <code>chipload place P --reference "0,0 254,0" --length 100</code>.</li>
+<li><strong>Stretch:</strong> a different factor along X and along Y, to make shapes wider without making
+them taller. Straight sides stretch exactly. A rectangle square to the axes stays a
+rectangle; a spline goes through its stretched points. A stretched circle or arc is part
+of an ellipse, which can’t be cut as one arc, so a circle, a polygon, a turned
+rectangle or a polyline with arcs becomes a polyline of lines and arcs that follows the
+stretched curve within 0.01 mm; it keeps its number, so the operations that cut it
+follow. Corner radii stay the radii you typed. Equal factors scale evenly, and a circle
+stays a circle. Only drawn shapes stretch: explode a DXF (<code>chipload dxf explode</code>) or
+turn a text’s letters into shapes first. In the window: drag the middle of a side of the
+box round the selected shapes, or untick <em>Keep proportions</em> and type a width or height
+(both below). The status bar names the shapes that became polylines. On the command line: <code>chipload shape stretch P 3 4 --x 1.25</code> (about the middle of their box), <code>--width 500 --about 0,0</code>, <code>--y 0.8</code>.</li>
 <li><strong>Arrays</strong> add copies of drawn shapes in a grid or round a centre; the originals stay
 and the copies go on their layers with new numbers. A grid counts the originals in its
 columns and rows and spaces them centre to centre (negative goes left or down). A polar
@@ -1756,7 +1801,10 @@ whole with their own handles.</li>
 <li><strong>Handles:</strong> drag a selected shape’s handles to change it. A drag snaps as drawing does;
 hold Alt to turn snapping off. Hold Shift to keep a point (or a centre, or a corner) to
 15° steps from where it was, so straight across, up or at 45°; on a turn handle or a
-polygon’s corner, Shift turns the shape in 15° steps.</li>
+polygon’s corner, Shift turns the shape in 15° steps.
+Shapes whose ends meet make one outline (an open polyline closed by another): a click
+selects the whole outline for operations, and the handles and form are the clicked
+shape’s.</li>
 <li><strong>Several points at once:</strong> on a selected polyline or spline, Ctrl+click (⌘ on a Mac) its
 points to pick them; they turn solid. Drag any of them and all move together, as one
 undo step (Shift keeps the move to 15° steps). Ctrl+click a picked point to leave it out;
@@ -1791,16 +1839,20 @@ every corner alike).</li>
 <li><strong>Move, turn and size:</strong> select a polyline, or several drawn shapes (Ctrl+click), and a
 dashed box shows round them: drag the square in the middle to move them, the round handle
 beyond the right side to turn them (in steps of 15°; hold Alt for 0.1°), a corner to
-scale them evenly, the opposite corner staying put. One circle or rectangle keeps its own
-handles instead. The shapes keep their ids, so the operations that cut them follow, and so
+scale them evenly, the opposite corner staying put, or the middle of a side to
+<a href="#editing-operations">stretch</a> them one way, the opposite side staying put. One circle or
+rectangle keeps its own handles instead. The shapes keep their ids, so the operations that cut them follow, and so
 do the operations’ start points, <a href="#corner-by-corner">corner choices</a>
 and tabs placed by hand on them (also with <code>shape move</code>, <code>turn</code> and <code>scale</code>, and when you
 change one shape through its own handles or form: a corner’s choice stays with that
 corner of a rectangle you move or resize).</li>
-<li><strong>Position and Turn:</strong> a selected polyline’s form, and the <em>Selection</em> section when several
-drawn shapes are selected, have <em>Position</em> (the lower-left corner of the box round them:
-type a value to move them there) and <em>Turn</em>: ⟲ 90, ⟳ 90, or type an angle and press
-Enter. A polyline keeps no angle of its own; turning moves its points.</li>
+<li><strong>Position, Size and Turn:</strong> a selected polyline’s or spline’s form, and the <em>Selection</em>
+section when several drawn shapes are selected, have <em>Position</em> (the lower-left corner of
+the box round them: type a value to move them there), <em>Size</em> (the box’s width and height)
+and <em>Turn</em>: ⟲ 90, ⟳ 90, or type an angle and press Enter. With <em>Keep proportions</em> ticked
+(as it starts), a new width or height scales them evenly about the middle of their box;
+unticked, it stretches them one way. A polyline keeps no angle of its own; turning moves
+its points.</li>
 <li><strong>In the Browser:</strong> under <em>Drawing</em>, the <em>Circles</em>, <em>Rectangles</em>, <em>Polylines</em>,
 <em>Polygons</em> and <em>Splines</em> groups list their shapes in a folder per layer. Click a row to select the
 shape (Ctrl+click adds or removes); right-click to rename, copy or delete it. A group
@@ -1873,6 +1925,8 @@ chipload shape mirror part.chipload 8 9 --axis x      # flip in place; ids kept
 chipload shape move part.chipload 8 9 --dx 10 --dy -5
 chipload shape turn part.chipload 8 9 --angle-deg 30  # about the middle of their box (or --about X,Y)
 chipload shape scale part.chipload 8 --factor 1.5
+chipload shape scale part.chipload 8 --reference "0,0 30,0" --length 45   # A–B becomes 45 long, A stays
+chipload shape stretch part.chipload 8 9 --x 1.5      # wider, not taller (also --y, --width, --height, --about)
 chipload shape remove part.chipload 8
 chipload shape join part.chipload --gap 0.05   # join ends that almost meet
 </code></pre>
@@ -2087,6 +2141,7 @@ and <code>--width</code>):</p>
 <tr><td>Align with the stock</td><td><code>--align bottom-left --margin 10</code>, <code>--align center</code></td></tr>
 <tr><td>Turn about its centre, on top of any turn</td><td><code>--rotate 30</code> (any angle; negative: clockwise)</td></tr>
 <tr><td>Scale about its centre</td><td><code>--scale 2</code>, <code>--width 100</code>, <code>--height 50</code></td></tr>
+<tr><td>Scale so a length on it becomes another, the first point staying</td><td><code>--reference "0,0 254,0" --length 100</code></td></tr>
 <tr><td>Back to as drawn</td><td><code>--reset</code></td></tr>
 </tbody>
 </table>
@@ -2129,7 +2184,7 @@ different.</li>
 <li><strong>Stock:</strong> the stock isn’t changed. If the drawing now reaches past it, the report says
 so.</li>
 </ul>
-<p>An empty project (<em>File &gt; New project</em>, <code>chipload new</code>) takes its first DXF the same way:
+<p>An empty project (<em>New project</em> on the start screen or under <em>File &gt; New…</em>, <code>chipload new</code>) takes its first DXF the same way:
 <em>Add DXF</em>, or <em>File &gt; Add DXF or SVG to project…</em>.</p>
 <p>A DXF saved by a program that gives every entity a new handle on each save makes every
 shape look new. Operations that select by <strong>layer</strong> survive that; ones that select single
@@ -2535,8 +2590,29 @@ corner stays where it is. Its height is rounded to 0.1 mm.</li>
 </ul>
 <p>The box follows the cursor while you drag, and the text is written again when you let
 go, as one undo step. Hold <strong>Alt</strong> for no steps (any angle, any size) and no snapping.</p>
+<h2 id="on-an-arc"><a class="header" href="#on-an-arc">On an arc</a></h2>
+<p>Tick <strong>On an arc</strong> in the text’s properties and its line follows a circle, as on a round
+plaque, a coaster or a badge. The circle’s centre is the text’s <strong>Position</strong> (anchor and
+rotation don’t apply then), and three more fields set the rest:</p>
+<ul>
+<li><strong>Radius:</strong> of the circle through the middle of the letters, half a capital height above
+their base. A top text and a bottom text with the same radius lie in one ring;</li>
+<li><strong>Side:</strong> <strong>Top</strong> stands the letters on the outside, reading clockwise, as a name along
+the top; <strong>Bottom</strong> keeps them upright at the bottom, reading counter-clockwise, as a
+date along the bottom;</li>
+<li><strong>Angle:</strong> how far the text is turned round the circle from straight up (top) or
+straight down (bottom). With <strong>Align</strong> <em>centre</em> (which a text gets when it goes on an
+arc) its middle sits there; with <em>left</em> or <em>right</em>, its start or end.</li>
+</ul>
+<p>Each letter is moved and turned whole onto the circle, so it keeps the font’s exact shape;
+on a top text their tops spread a little and their feet close in, as on any lettered ring.
+More lines stack the way they’re read: nearer the centre on the top, further out on the
+bottom. A line longer than its circle, or one that would reach the centre, is refused
+with the reason. On the canvas the box is the square round the ring: its middle moves the
+circle, its turn handle moves the text round it, and a corner scales the radius and the
+letters together.</p>
 <h2 id="fonts"><a class="header" href="#fonts">Fonts</a></h2>
-<p>Chipload has 17 fonts built in, so a project writes the same letters on every computer. The
+<p>Chipload has 18 fonts built in, so a project writes the same letters on every computer. The
 <em>Font</em> list groups them and shows each name in its own face; <code>chipload text fonts</code> lists
 them with their style.</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/fonts.png" alt="Every built-in font writing “Maker Space · Oak &amp; Iron 1926”"><span class="img-wrapper"><img src="images/fonts.png" alt="Every built-in font writing “Maker Space · Oak &amp; Iron 1926”"></span></label></p>
@@ -2546,6 +2622,7 @@ Slab and Roboto Slab Bold.</li>
 <li><strong>Script:</strong> Satisfy, Yellowtail and Rochester, handwriting with joined letters.</li>
 <li><strong>Display:</strong> Luckiest Guy, Ultra, Chewy, Smokum, Cherry Cream Soda and Permanent Marker,
 bold and decorative, for headings and signs.</li>
+<li><strong>Single-line:</strong> Relief SingleLine, made for CNC engraving (below).</li>
 </ul>
 <p>They all have the Latin letters with accents (Å, Ä, Ö, É, Ñ, Ø, …), digits and the common
 symbols (€, °, ±; ⌀ only in some of the FreeFont faces). A character a font lacks is left
@@ -2558,9 +2635,27 @@ them. Letters that don’t overlap anything keep the font’s exact outline.</p>
 the thick ones deep. The scripts V-carve well too. For a pocket or a profile, a font with
 even, sturdy strokes works best (FreeSans Bold, Roboto Slab, Ultra, Luckiest Guy, Chewy);
 Smokum’s pointed serifs need a pocketing tool of 2 mm or more.</p>
-<p><strong>Licences:</strong> GNU FreeFont is under the GPL with the font exception, the others under the
-Apache License 2.0. Neither puts any condition on what you make: the letters you cut and
-their G-code are yours.</p>
+<p><strong>Licences:</strong> GNU FreeFont is under the GPL with the font exception, Relief SingleLine
+under the SIL Open Font License 1.1, the others under the Apache License 2.0. None puts any
+condition on what you make: the letters you cut and their G-code are yours.</p>
+<h3 id="single-line-text"><a class="header" href="#single-line-text">Single-line text</a></h3>
+<p>The other fonts give each letter as the outline round its strokes, which suits a V-carve or
+a pocket. A <strong>single-line</strong> font gives each stroke once, down its middle, as open lines and
+arcs: one pass of a small bit cuts the letter. That is what labels, serial and part
+numbers, scales, small lettering (under about 8 mm, where V-carved grooves run together)
+and quick nameplates want.</p>
+<ul>
+<li><strong>Font:</strong> <em>Relief SingleLine</em>, in the <em>Single-line</em> group of the font list. It has the
+Latin letters with accents of all the app’s languages, digits and the common symbols,
+but no Cyrillic: write Russian in an outline font.</li>
+<li><strong>Cutting it:</strong> a <a href="#follow-path">Follow path</a> on the text, with a V-bit (the
+line as wide as the bit is deep) or a small end mill, at the depth you choose, 0.3 to
+1 mm for most engraving. Profile, Pocket and V-carve need closed outlines and refuse
+these letters, saying why.</li>
+<li><strong>Everything else as for any text:</strong> height (the capital height), alignment, lines, on
+an arc, moved, turned and edited. Strokes that cross are each cut; they aren’t joined.</li>
+<li><strong>On the command line:</strong> <code>chipload text add P "PART 42-A" --font "Relief SingleLine" --height 6 --at 10,10</code>, then <code>chipload op add P path --layer text --depth 0.5</code>.</li>
+</ul>
 <h3 id="your-computers-fonts"><a class="header" href="#your-computers-fonts">Your computer’s fonts</a></h3>
 <p>The <em>Font</em> list also has <strong>On this computer</strong>: every TrueType or OpenType font installed
 there, by name (“Arial Bold”). Hover over a name to see a sample. The first time the list
@@ -2590,6 +2685,9 @@ left-out letter is found again when the text changes size, place or font.</p>
 <pre><code class="language-sh">chipload text add sign.chipload "MAKER\nSPACE" --height 20 --at 40,30 --font "FreeSerif Bold" --align center
 chipload text set sign.chipload 1 --rotate 15 --spacing 1     # change it; its letters are made again
 chipload text set sign.chipload 1 --anchor center --at 85,55  # centred on X85 Y55, and stays centred
+chipload text add plaque.chipload "MAKER SPACE" --height 12 --at 0,0 --arc 60   # along the top of a circle round 0,0
+chipload text add plaque.chipload "EST. 2026" --height 8 --at 0,0 --arc 60 --side bottom
+chipload text set plaque.chipload 1 --angle 100               # turned round the circle; --straight: off the arc
 chipload place sign.chipload --text 1 --at 10,10 --height 25  # its corner, turn and height
 chipload text list sign.chipload
 chipload text remove sign.chipload 1
@@ -2938,8 +3036,11 @@ size as a blank, for a frame you cut with operations of your own. A sign you wil
 <h2 id="a-sign-in-one-step"><a class="header" href="#a-sign-in-one-step">A sign in one step</a></h2>
 <p><strong>New sign…</strong> (<strong>Sign</strong> in the ribbon’s <em>WIZARDS</em> group, or <em>Wizards &gt; New sign…</em>) makes a whole sign: the words, a frame round them, and every operation that
 cuts it, in a part of its own named after the words (a new project’s empty part becomes
-it). The dialog draws the sign as it will be and lists the operations it adds. (Design:
-<code>docs/specs/sign-maker.md</code>.)</p>
+it). The dialog draws the sign as it will be and lists the operations it adds. With no
+project open, <strong>New sign…</strong> on the start page starts a new project for it, with the
+choices last made in the new project dialog (the library’s defaults the first time),
+without asking for them again: the sign fits the board round itself. Cancel the sign and
+the empty project stays. (Design: <code>docs/specs/sign-maker.md</code>, <code>sign-size-and-start.md</code>.)</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/new-sign.png" alt="New sign… filled in: the words, a notched frame with double lines, an edge chamfer, the sign drawn below and the operations it adds"><span class="img-wrapper"><img src="images/new-sign.png" alt="New sign… filled in: the words, a notched frame with double lines, an edge chamfer, the sign drawn below and the operations it adds"></span></label></p>
 <ul>
 <li><strong>Words</strong>, <strong>Font</strong>, <strong>Height</strong>: the text, centred on the board. The font list is the
@@ -2953,9 +3054,27 @@ be made yet (its background pocket needs them grouped with the frame, and a grou
 only drawn shapes and texts).</li>
 <li><strong>Frame</strong>: as for <em>Frame…</em> below: the kind, margin, corner, borders and their groove
 width. The frame follows the words afterwards.</li>
+<li><strong>Words</strong> (with the <em>Oval</em> frame): <em>Straight</em>, or <em>Round</em> for a round plaque: the first
+line goes along the top of a circle, the second along its bottom, both on one radius
+(<a href="#on-an-arc">text on an arc</a>), and any further lines straight in the middle.
+The radius is the least that keeps the longer line within 150° of the circle and the
+middle clear; the frame is the circle round their ring, the margin out from the
+letters, and it follows them when you change the texts’ radius, words or size.</li>
+<li><strong>Size</strong>: <em>Fit the words</em> (the sign grows round letters of the <strong>Height</strong> given) or
+<em>Fixed</em>, for a sign that has to fit a place: a door plate of 300 × 100 mm, a round
+plaque of 200 mm. <em>Fixed</em> asks for the <strong>Outer size</strong> (for round words on the round
+frame, a <strong>Diameter</strong>) instead of the height: that is the outline that is cut out, and
+the letters get the largest height that fits inside the borders, gap and margin, to
+0.1 mm, shown as <strong>Letters</strong> while you type. The frame keeps that size afterwards:
+changing the words later doesn’t grow it or refit the letters, so change the text’s
+height yourself if they no longer fit. Round shapes already drawn, the frame is that
+size round them.</li>
 <li><strong>Style</strong>:
 <ul>
-<li><em>Engraved</em>: the letters V-carved;</li>
+<li><em>Engraved</em>: the letters V-carved; in a <a href="#single-line-text">single-line font</a>,
+a Follow path of the V-bit down each stroke instead, at the <strong>Engrave depth</strong> (1 mm
+by default; <code>--engrave-depth</code> on the command line). <em>Raised</em> and <em>Inlay</em> need an
+outline font;</li>
 <li><em>Raised</em>: the background inside the innermost border cut down round the letters with
 the end mill (<strong>Background depth</strong>, 3 mm by default), the letters and the border left
 standing; it needs a border. Inside corners round the letters keep the end mill’s
@@ -2981,6 +3100,37 @@ and <em>Cut out</em> (a profile outside the outline, through, with tabs). Feeds 
 tools’ cutting data. The words and the frame are one group: a click selects the sign, a drag
 moves it. All of it is one undo step, and every part of it is ordinary shapes and
 operations afterwards.</p>
+<h2 id="signs-from-a-list"><a class="header" href="#signs-from-a-list">Signs from a list</a></h2>
+<p>Name plates, door signs, place cards and drawer labels are the same sign with different
+words. Make them all at once from a list: in <em>New sign…</em>, choose <strong>Signs: From a list</strong>
+and type or paste the list, one sign per line, with <code>|</code> in a line to start that sign’s
+second line, with or without spaces round it (<code>ANNA BERG | ROOM 12</code>); the dialog says so
+under the list. A list starts on <em>Size: Fixed</em>; the preview shows the grid and the count,
+drawn alongside while you type (typing never waits for it). The operations are listed once the signs are made.
+<em>Make sign</em> makes them alongside too: a long list in a script font takes a few seconds,
+and the dialog says <em>Making the sign…</em> until they are in the project.</p>
+<ul>
+<li><strong>Every sign the same:</strong> the font, frame, borders, style, edge and tools are the ones
+set. With <em>Size: Fixed</em> every sign is that size and <strong>every sign gets the same letter
+height</strong>, the largest that fits the longest line of the list, so the signs match. With
+<em>Fit the words</em>, each frame follows its own words.</li>
+<li><strong>One part, cut at once:</strong> the signs go in one part named after the first and the count
+(“ANNA BERG +19”). Its operations cut every sign together: all the letters, then all
+the borders and edges with the V-bit, then every cut-out with the end mill, so the tool
+changes once, not twice for every sign. The operations select the batch’s layers
+(<em>ANNA BERG +19 letters</em>, <em>… borders</em>, <em>… outline</em>), so a name corrected later is
+still cut.</li>
+<li><strong>Each sign stays a sign:</strong> its words and frame are grouped, and the frame follows its
+words.</li>
+<li><strong>Laid out in a grid</strong> 10 mm apart: as near square as the count allows when the board is
+fitted round the signs; on a board you keep, as many to a row as fit, from its top left,
+and a list that doesn’t fit is refused with the board size it needs.</li>
+<li><strong>Styles:</strong> engraved (single-line fonts too) and raised (one background pocket per sign,
+all with the end mill). Inlaid signs are made one at a time: each plug needs a board of
+its own.</li>
+<li><strong>On the command line:</strong> <code>chipload sign add P --list names.txt --size 200x60 --vbit 2 --end-mill 1</code>, or <code>--list-words "ANNA BERG|ROOM 12\nBO LIND|ROOM 14"</code>; <code>--list-gap</code>
+sets the space between signs.</li>
+</ul>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/frame.png" alt="A text selected, Draw &gt; Frame… open under Selection, a rounded frame with one border previewed round the text"><span class="img-wrapper"><img src="images/frame.png" alt="A text selected, Draw &gt; Frame… open under Selection, a rounded frame with one border previewed round the text"></span></label></p>
 <h2 id="a-frame-round-a-text"><a class="header" href="#a-frame-round-a-text">A frame round a text</a></h2>
 <ol>
@@ -3102,6 +3252,9 @@ chipload frame add sign.chipload --corners notch --around-text 1 --borders 1 --d
 chipload frame add plate.chipload --kind banner --width 300 --height 90 --corner 25
 chipload sign add sign.chipload "THE NÄSLUNDS" --font FreeSerif --frame rectangle --corners notch \
     --borders 1 --double --style engraved --edge chamfer:3 --vbit 2 --end-mill 1 --thickness 18
+chipload sign add plaque.chipload "MAKER SPACE\nEST. 2026" --frame oval --round --height 12 \
+    --borders 1 --vbit 2 --end-mill 1 --thickness 12
+chipload sign add door.chipload "SMITH\n12" --size 300x100 --vbit 2 --end-mill 1   # letters as high as fit
 chipload frame kinds
 chipload frame list sign.chipload                              # the frames that follow, with their values
 chipload frame set sign.chipload 7 --margin 15 --borders 2     # change them: drawn again
@@ -3495,7 +3648,10 @@ and keeps it unless it finds better.</li>
 <li><strong>Turns:</strong> <code>none</code>, <code>half</code> (0° or 180°), <code>quarter</code> (the default) or <code>every-15</code>, for every
 part (<code>--turns quarter</code>) or one (<code>--turns 2=none</code>). They are kept in the project.</li>
 <li><strong>Counts:</strong> <code>--count ID=N</code> cuts part ID N times: instances are added (not mirrored), or
-the highest-numbered ones that are on removed; at least one stays.</li>
+the highest-numbered ones that are on removed; at least one stays. The count covers this
+board and the other boards of its stock that took what didn’t fit: raised from 8 to 9 with
+two already on Setup 2, one more is cut, and it goes onto Setup 2 while there is room.
+Lowered, those other boards give up theirs first.</li>
 <li><strong>Mirrored instances</strong> stay mirrored; nesting turns and moves them, never mirrors them.</li>
 <li><strong>What doesn’t fit goes onto more boards,</strong> as a slicer adds plates: to the next
 <a href="#setups">setup</a> with the same stock and a size of its own, else to a new
@@ -3590,6 +3746,9 @@ engraving over a cut-out.</li>
 <pre><code class="language-sh">chipload part list part.chipload                        # id, name, instances, operations
 chipload part add part.chipload --name box              # an empty part, now active
 chipload op part part.chipload --op 4 --part 2          # move operation 4 into part 2
+chipload op move part.chipload --op 4 --to 2            # operation 4 cut second (joins that part)
+chipload op duplicate part.chipload --op 2              # a copy right after it, "… (copy)"
+chipload op remove part.chipload --op 3                 # as Delete in the app
 chipload part instance add part.chipload --part 2   # part 2 placed again (see Instances)
 chipload part set part.chipload 2 --name lid --off      # rename, turn off (--on)
 chipload part activate part.chipload 1
@@ -4125,7 +4284,7 @@ a V-bit without one is refused.</p>
 </thead>
 <tbody>
 <tr><td><strong>Start depth</strong></td><td>where the carved surface is: 0 for the stock top, more to carve into a floor an earlier pocket cut</td></tr>
-<tr><td><strong>End depth</strong></td><td>the deepest the tip may go. Strokes that need more get walls (see <em>Wide strokes</em>). The bit’s own size is a limit too: it can’t go deeper than its cutting edge reaches.</td></tr>
+<tr><td><strong>End depth</strong></td><td>the deepest the tip may go: a limit, not the depth cut. Strokes that need more get walls (see <em>Wide strokes</em>). The bit’s own size is a limit too: it can’t go deeper than its cutting edge reaches. A new V-carve starts at the bit’s full cone depth, at most half the stock, so letters carve fully; a deeper limit than the strokes need does no harm, since only the depth actually cut is checked against the stock</td></tr>
 <tr><td><strong>Depth passes</strong></td><td>how the depth is split into passes: <strong>Equal load</strong> or <strong>Step down</strong> (see <em>Passes</em>)</td></tr>
 <tr><td><strong>Passes</strong></td><td>with <em>Equal load</em>: how many passes to the end depth, 1 for one. Each removes as much as the others, so they get shallower on the way down. Their depths are shown under the field</td></tr>
 <tr><td><strong>Step down</strong></td><td>with <em>Step down</em>: the deepest each pass goes. The passes are equal, the last at the end depth, as in a pocket. Their depths are shown under the field</td></tr>
@@ -4149,12 +4308,16 @@ lighter on the bit and take longer.</li>
 equal steps. 5 mm with a 2 mm step down goes to 1.67, 3.33 and 5 mm. Each pass removes
 more than the one before (with three, 1 : 3 : 5), so pick a step the last pass can take.</li>
 </ul>
-<p>Either way, the depths are counted from the end depth, so a stroke that is shallower than
-that is done in fewer passes: the deeper ones find nothing left to cut. Switching from one
+<p>Either way, the passes share the depth the carve actually goes to: with the end depth at
+10 mm and strokes that need 4.4 mm, 3 passes go to 2.54, 3.59 and 4.4 mm, and the Report
+says so. The depths under the field are counted from the end depth, so they are what you
+get when the carve goes that deep. Within one carve, a stroke shallower than the deepest is
+done in fewer passes: the deeper ones find nothing left to cut there. Switching from one
 to the other keeps the count of passes, for when you switch back.</p>
 <p>The carving is done area by area: each letter (or each closed part of a drawing, such as
 the dot of an <em>i</em>) gets all its passes, and its walls, before the bit moves to the
-nearest next one.</p>
+nearest next one. A loop of the centre line (an <em>O</em>, the bowl of an <em>a</em>) has no corner to
+go in at, so the bit goes in where the stroke is narrowest, the shallowest point of the loop.</p>
 <p>Within a letter the bit lifts as little as it can. The short branches the centre line
 runs into sharp corners (shorter than 5 mm) are cut out and back as the bit passes them,
 instead of each with a trip up to safe Z. In the passes after the first, where two pieces
@@ -5472,24 +5635,31 @@ style that can’t be carried over is named and left out; the others load.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="post-processors"><a class="header" href="#post-processors">Post-processors</a></h1>
 <p>A post-processor turns Chipload’s toolpath into the G-code dialect your controller reads.
-Three are built in:</p>
+Five are built in:</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>Post</th><th>For</th><th>Files</th><th>Tool changes</th></tr>
 </thead>
 <tbody>
-<tr><td><code>grbl</code></td><td>GRBL 1.1 routers (and senders such as UGS, CNCjs, gSender)</td><td><code>.nc</code></td><td>one file per tool, or one file with <code>T… M6</code> for a sender that handles the change</td></tr>
+<tr><td><code>grbl</code></td><td>GRBL 1.1, grblHAL, FluidNC and Carbide Motion routers (and senders such as UGS, CNCjs, gSender)</td><td><code>.nc</code></td><td>one file per tool, or one file with <code>T… M6</code> for a sender that handles the change</td></tr>
 <tr><td><code>linuxcnc</code></td><td>LinuxCNC</td><td><code>.ngc</code></td><td>one file per tool</td></tr>
 <tr><td><code>mach3</code></td><td>Mach3 and Mach4</td><td><code>.tap</code></td><td>one file per tool</td></tr>
+<tr><td><code>masso</code></td><td>MASSO G2 and G3</td><td><code>.nc</code></td><td>one file per tool</td></tr>
+<tr><td><code>acorn</code></td><td>Centroid Acorn and other CNC12 controls</td><td><code>.cnc</code></td><td>one file per tool</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>The LinuxCNC and Mach3/4 posts haven’t been run on a real controller yet.</strong> Their
-programs say so in a header comment: check the program and air-cut before you cut. If you
-run one of them successfully, please report it.</p>
+<p><code>chipload post list</code> names the controllers each post is for, and so does the <em>Post</em> list
+in the app.</p>
+<p><strong>Only the GRBL post has been run on a real controller so far.</strong> The others’ programs say
+so in a header comment: check the program and air-cut before you cut. If you run one of
+them successfully, please report it.</p>
 <p>Every post writes arcs as G2/G3, mm and absolute coordinates, and waits 3 s after starting
-the spindle. The <a href="#post-processors-1">post-processor reference</a> lists every post’s
+the spindle. Each writes its controller’s own dialect, from the controller’s own manual:
+MASSO’s wait is written in milliseconds (<code>G4 P3000</code>), as MASSO reads it; the Centroid post
+comments with <code>;</code>; neither writes G91.1, since both read I and J from the arc’s start
+anyway. The <a href="#post-processors-1">post-processor reference</a> lists every post’s
 settings.</p>
 <h2 id="choosing-the-post"><a class="header" href="#choosing-the-post">Choosing the post</a></h2>
 <ul>
@@ -5509,7 +5679,11 @@ program.</li>
 <p>The easiest start is a copy of a built-in post, from the <code>crates/chipload-post/posts/</code> and
 <code>templates/</code> folders of the source. Rules:</p>
 <ul>
-<li><strong>Names:</strong> a post can’t take a built-in name (<code>grbl</code>, <code>linuxcnc</code>, <code>mach3</code>).</li>
+<li><strong>Names:</strong> a post can’t take a built-in name (<code>grbl</code>, <code>linuxcnc</code>, <code>mach3</code>, <code>masso</code>,
+<code>acorn</code>).</li>
+<li><strong>Controllers and the wait:</strong> <code>controllers = ["My router"]</code> names what the post is for,
+shown by <code>post list</code>; <code>dwell_unit = "ms"</code> writes the spindle’s wait in milliseconds, for
+a controller whose G4 reads P that way (seconds otherwise).</li>
 <li><strong>Copied into the project:</strong> a project that uses your post keeps its own copy of both
 files, so it gives the same G-code on another computer or after you change the files.
 When your files differ from the project’s copy, the app shows <strong>Update</strong> next to the Post
@@ -5519,7 +5693,7 @@ an error if it loops without end.</li>
 <li><strong>The checker still decides.</strong> Whatever your template writes, the <a href="#the-checker">checker</a>
 reads it back as a controller would. It accepts only the codes it knows: G0–G3, G4, G17,
 G20, G21, G90, G91.1, G94, the setup codes G40, G49, G80, G54, G61 and G64 P (at most
-0.05 mm), M3–M6, M7–M9 and M30, and <code>%</code> lines. Anything else, such as G41/G42 cutter
+0.05 mm; P is in the program’s units, so at most 0.002 under G20), M3–M6, M7–M9 and M30, and <code>%</code> lines. Anything else, such as G41/G42 cutter
 compensation, G43 tool lengths, G28 or G53 machine moves, or G91 relative moves, makes the
 check fail, and nothing is exported.</li>
 </ul>
@@ -5540,7 +5714,7 @@ cut).</p>
 <tr><td><code>tool_id</code>, <code>tool_diameter</code>, <code>rpm</code></td><td>the (first) tool, its diameter in the program’s units, its spindle speed</td></tr>
 <tr><td><code>spindle</code></td><td><code>"cw"</code> or <code>"ccw"</code></td></tr>
 <tr><td><code>safe_z</code></td><td>the safe height, in the program’s units</td></tr>
-<tr><td><code>dwell</code></td><td>seconds to wait after starting the spindle, or none</td></tr>
+<tr><td><code>dwell</code></td><td>the wait after starting the spindle, in seconds (or milliseconds with <code>dwell_unit = "ms"</code>), or none</td></tr>
 <tr><td><code>work_zero</code></td><td>where the work zero is, as text for a comment, or none</td></tr>
 <tr><td><code>file</code></td><td>with one file per tool: <code>number</code>, <code>count</code>, <code>tool</code> (text) and <code>operations</code> (text); otherwise none</td></tr>
 <tr><td><code>tools</code></td><td>with one file and tool changes: a list of the tools as text; otherwise none</td></tr>
@@ -6320,6 +6494,55 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h3 id="chipload-op-remove"><a class="header" href="#chipload-op-remove"><code>chipload op remove</code></a></h3>
+<p>Remove an operation, as Delete in the app does</p>
+<pre><code class="language-text">chipload op remove &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The operation’s number as the app lists it (1 = first; <code>get</code> and <code>set</code> paths count from 0) Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-duplicate"><a class="header" href="#chipload-op-duplicate"><code>chipload op duplicate</code></a></h3>
+<p>Copy an operation right after itself, in the same part, named “… (copy)”</p>
+<pre><code class="language-text">chipload op duplicate &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The operation’s number as the app lists it (1 = first; <code>get</code> and <code>set</code> paths count from 0) Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-move"><a class="header" href="#chipload-op-move"><code>chipload op move</code></a></h3>
+<p>Move an operation to another place in the cutting order (it joins the part of the operation that was there). A surface of the whole board stays first in its setup</p>
+<pre><code class="language-text">chipload op move &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The operation’s number as the app lists it (1 = first) Required.</td></tr>
+<tr><td><code>--to &lt;TO&gt;</code></td><td>The place it goes to, numbered the same way; it joins that operation’s part. Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
 <h3 id="chipload-op-add-rest"><a class="header" href="#chipload-op-add-rest"><code>chipload op add-rest</code></a></h3>
 <p>Add a rest pass to a pocket (docs/specs/rest-passes.md): a smaller endmill that clears what the pocket’s tool (or its last pass’s) leaves, in the pocket’s shapes and depths. It is cut after the run of pockets with the pocket’s tool</p>
 <pre><code class="language-text">chipload op add-rest &lt;PROJECT&gt; [OPTIONS]
@@ -6826,7 +7049,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--angle-deg &lt;ANGLE_DEG&gt;</code></td><td>Rotation about the centre (a polygon: its first corner’s angle from +X), degrees, counter-clockwise.</td></tr>
 <tr><td><code>--corner-radius &lt;CORNER_RADIUS&gt;</code></td><td>The radius of the rectangle’s corners, at most half its shorter side (default 0: sharp)</td></tr>
 <tr><td><code>--points &lt;POINTS&gt;</code></td><td>Polyline points, or the points a spline passes through: “X,Y X,Y …”.</td></tr>
-<tr><td><code>--bulges &lt;BULGES&gt;</code></td><td>Polyline bulges “B B …”, one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight)</td></tr>
+<tr><td><code>--bulges &lt;BULGES&gt;</code></td><td>Polyline bulges “B B …”, one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight); t: an arc going on smoothly from the segment before it (docs/specs/polyline-tangent-arcs.md)</td></tr>
 <tr><td><code>--start-deg &lt;START_DEG&gt;</code></td><td>An arc slot’s start, degrees counter-clockwise from +X.</td></tr>
 <tr><td><code>--end-deg &lt;END_DEG&gt;</code></td><td>An arc slot’s end, degrees: past the start goes counter-clockwise, before it clockwise.</td></tr>
 <tr><td><code>--radii &lt;RADII&gt;</code></td><td>Corner radii “R R …”, mm, 0 sharp: a polyline’s one per point (an open one’s ends 0), a rectangle’s four counter-clockwise from its (−length/2, −width/2) corner, a polygon’s one per corner from its first. Each corner is rounded by an arc tangent to both sides, its point staying at the sharp corner (docs/specs/polyline-radii.md)</td></tr>
@@ -6860,7 +7083,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--angle-deg &lt;ANGLE_DEG&gt;</code></td><td>Rotation about the centre (a polygon: its first corner’s angle from +X), degrees, counter-clockwise.</td></tr>
 <tr><td><code>--corner-radius &lt;CORNER_RADIUS&gt;</code></td><td>The radius of the rectangle’s corners, at most half its shorter side (default 0: sharp)</td></tr>
 <tr><td><code>--points &lt;POINTS&gt;</code></td><td>Polyline points, or the points a spline passes through: “X,Y X,Y …”.</td></tr>
-<tr><td><code>--bulges &lt;BULGES&gt;</code></td><td>Polyline bulges “B B …”, one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight)</td></tr>
+<tr><td><code>--bulges &lt;BULGES&gt;</code></td><td>Polyline bulges “B B …”, one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight); t: an arc going on smoothly from the segment before it (docs/specs/polyline-tangent-arcs.md)</td></tr>
 <tr><td><code>--start-deg &lt;START_DEG&gt;</code></td><td>An arc slot’s start, degrees counter-clockwise from +X.</td></tr>
 <tr><td><code>--end-deg &lt;END_DEG&gt;</code></td><td>An arc slot’s end, degrees: past the start goes counter-clockwise, before it clockwise.</td></tr>
 <tr><td><code>--radii &lt;RADII&gt;</code></td><td>Corner radii “R R …”, mm, 0 sharp: a polyline’s one per point (an open one’s ends 0), a rectangle’s four counter-clockwise from its (−length/2, −width/2) corner, a polygon’s one per corner from its first. Each corner is rounded by an arc tangent to both sides, its point staying at the sharp corner (docs/specs/polyline-radii.md)</td></tr>
@@ -6964,7 +7187,7 @@ reaches the assistant only once you save.</li>
 </table>
 </div>
 <h3 id="chipload-shape-scale"><a class="header" href="#chipload-shape-scale"><code>chipload shape scale</code></a></h3>
-<p>Scale drawn shapes evenly about the middle of the box round them, or a point</p>
+<p>Scale drawn shapes evenly about the middle of the box round them, or a point; or by reference: two points and the length their distance should have, the first point staying (docs/specs/scale-and-stretch.md §2)</p>
 <pre><code class="language-text">chipload shape scale &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
 </code></pre>
 <div class="table-wrapper">
@@ -6975,8 +7198,31 @@ reaches the assistant only once you save.</li>
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S)</td></tr>
-<tr><td><code>--factor &lt;FACTOR&gt;</code></td><td>The factor, greater than 0: 2 doubles them. Required.</td></tr>
+<tr><td><code>--factor &lt;FACTOR&gt;</code></td><td>The factor, greater than 0: 2 doubles them.</td></tr>
 <tr><td><code>--about &lt;ABOUT&gt;</code></td><td>Scale about this point “X,Y” instead.</td></tr>
+<tr><td><code>--reference &lt;REFERENCE&gt;</code></td><td>Two points “X1,Y1 X2,Y2”, on any shape: scaled so their distance becomes –length, the first point staying.</td></tr>
+<tr><td><code>--length &lt;LENGTH&gt;</code></td><td>With –reference: the length the two points’ distance becomes, mm (or with a unit)</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-stretch"><a class="header" href="#chipload-shape-stretch"><code>chipload shape stretch</code></a></h3>
+<p>Stretch drawn shapes along X and Y about the middle of the box round them, or a point (docs/specs/scale-and-stretch.md §3). Circles and arcs become polylines fitted to the stretched curve; corner radii stay. Prints the shapes that became polylines</p>
+<pre><code class="language-text">chipload shape stretch &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S)</td></tr>
+<tr><td><code>--x &lt;X&gt;</code></td><td>The factor along X, greater than 0 (default 1)</td></tr>
+<tr><td><code>--y &lt;Y&gt;</code></td><td>The factor along Y, greater than 0 (default 1)</td></tr>
+<tr><td><code>--width &lt;WIDTH&gt;</code></td><td>Stretch along X until the box round the shapes is this wide, mm (or with a unit)</td></tr>
+<tr><td><code>--height &lt;HEIGHT&gt;</code></td><td>Stretch along Y until the box round the shapes is this high, mm (or with a unit)</td></tr>
+<tr><td><code>--about &lt;ABOUT&gt;</code></td><td>The point that stays, “X,Y”; default: the middle of the box round the shapes.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -7002,7 +7248,7 @@ reaches the assistant only once you save.</li>
 </table>
 </div>
 <h3 id="chipload-shape-fillet"><a class="header" href="#chipload-shape-fillet"><code>chipload shape fillet</code></a></h3>
-<p>Round corners of a drawn shape with arcs of a radius; it keeps its id (docs/specs/drawing-editing.md §3)</p>
+<p>Round corners of a drawn shape with arcs of a radius, beside arcs too; it keeps its id (docs/specs/drawing-editing.md §3). With –with, a round between two open drawn polylines, lines or arcs instead, both trimmed or extended to it and joined as after a trim (docs/specs/fillet-between-shapes.md §5)</p>
 <pre><code class="language-text">chipload shape fillet &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
 </code></pre>
 <div class="table-wrapper">
@@ -7013,8 +7259,10 @@ reaches the assistant only once you save.</li>
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>&lt;ID&gt;</code></td><td>The shape id (as <code>inspect</code> lists it, without the S)</td></tr>
-<tr><td><code>--radius &lt;RADIUS&gt;</code></td><td>The radius, mm (or with a unit) Required.</td></tr>
+<tr><td><code>--radius &lt;RADIUS&gt;</code></td><td>The radius, mm (or with a unit); 0 makes a corner sharp, or two shapes meet in one. Required.</td></tr>
 <tr><td><code>--corner &lt;CORNER&gt;</code></td><td>Only this corner: its point’s number, from 0 (default: every corner)</td></tr>
+<tr><td><code>--with &lt;WITH&gt;</code></td><td>The second shape: a round between the two.</td></tr>
+<tr><td><code>--keep &lt;KEEP&gt;</code></td><td>With –with, twice: a point near the part of each shape to keep, “X,Y”, in the shapes’ order. Repeatable.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -7227,6 +7475,8 @@ reaches the assistant only once you save.</li>
 <tr><td><code>&lt;ID&gt;</code></td><td>The shape id (as <code>inspect</code> lists it, without the S)</td></tr>
 <tr><td><code>--distance &lt;DISTANCE&gt;</code></td><td>How far back along each side, mm (or with a unit) Required.</td></tr>
 <tr><td><code>--corner &lt;CORNER&gt;</code></td><td>Only this corner: its point’s number, from 0 (default: every corner)</td></tr>
+<tr><td><code>--with &lt;WITH&gt;</code></td><td>The second shape: a straight cut between two lines, back from where they meet (docs/specs/fillet-between-shapes.md §5)</td></tr>
+<tr><td><code>--keep &lt;KEEP&gt;</code></td><td>With –with, twice: a point near the part of each line to keep, “X,Y”, in the shapes’ order. Repeatable.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -7629,6 +7879,10 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--spacing &lt;SPACING&gt;</code></td><td>Extra space between letters, mm (default 0: the font’s own)</td></tr>
 <tr><td><code>--line-spacing &lt;LINE_SPACING&gt;</code></td><td>From one line’s base to the next, in capital heights (default 1.6)</td></tr>
 <tr><td><code>--layer &lt;LAYER&gt;</code></td><td>The layer for its letters (default “text”)</td></tr>
+<tr><td><code>--arc &lt;ARC&gt;</code></td><td>Write it along a circle round –at of this radius, through the letters’ middles (docs/specs/text-on-arc.md); a new text on an arc is centred on its angle unless –align says otherwise.</td></tr>
+<tr><td><code>--side &lt;SIDE&gt;</code></td><td>On an arc: along the top (read clockwise, the default) or the bottom (upright, read counter-clockwise) One of: <code>top</code>, <code>bottom</code>.</td></tr>
+<tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>On an arc: where it sits, degrees counter-clockwise from +X (its middle, start or end as aligned; default 90 on the top, 270 on the bottom)</td></tr>
+<tr><td><code>--straight</code></td><td>Off the arc: on straight lines again.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -7655,6 +7909,10 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--spacing &lt;SPACING&gt;</code></td><td>Extra space between letters, mm (default 0: the font’s own)</td></tr>
 <tr><td><code>--line-spacing &lt;LINE_SPACING&gt;</code></td><td>From one line’s base to the next, in capital heights (default 1.6)</td></tr>
 <tr><td><code>--layer &lt;LAYER&gt;</code></td><td>The layer for its letters (default “text”)</td></tr>
+<tr><td><code>--arc &lt;ARC&gt;</code></td><td>Write it along a circle round –at of this radius, through the letters’ middles (docs/specs/text-on-arc.md); a new text on an arc is centred on its angle unless –align says otherwise.</td></tr>
+<tr><td><code>--side &lt;SIDE&gt;</code></td><td>On an arc: along the top (read clockwise, the default) or the bottom (upright, read counter-clockwise) One of: <code>top</code>, <code>bottom</code>.</td></tr>
+<tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>On an arc: where it sits, degrees counter-clockwise from +X (its middle, start or end as aligned; default 90 on the top, 270 on the bottom)</td></tr>
+<tr><td><code>--straight</code></td><td>Off the arc: on straight lines again.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -7819,11 +8077,16 @@ reaches the assistant only once you save.</li>
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>&lt;WORDS&gt;</code></td><td>What it says; “\n” starts a new line. Leave it out to make the sign round shapes already drawn (–around, –around-text, –around-image)</td></tr>
+<tr><td><code>--list &lt;LIST&gt;</code></td><td>A list of signs instead of the words: a text file, one sign per line, <code>|</code> (or “\n”) starting a sign’s second line. Every sign gets the same frame and style, in one part whose operations cut them all (docs/specs/batch-signs.md)</td></tr>
+<tr><td><code>--list-words &lt;LIST_WORDS&gt;</code></td><td>The list given here instead of a file: signs separated by “\n”, lines by <code>|</code>.</td></tr>
+<tr><td><code>--list-gap &lt;LIST_GAP&gt;</code></td><td>With a list: between two signs, and from a kept board’s edge, mm (default 10)</td></tr>
 <tr><td><code>--around &lt;AROUND&gt;</code></td><td>Round these shapes instead of new words (ids as <code>inspect</code> lists them) Repeatable.</td></tr>
 <tr><td><code>--around-text &lt;AROUND_TEXT&gt;</code></td><td>Round these texts’ letters. Repeatable.</td></tr>
 <tr><td><code>--around-image &lt;AROUND_IMAGE&gt;</code></td><td>Round these traced pictures (ids as <code>image list</code> shows them): carved as the picture, the frame following it when it is traced again. Repeatable.</td></tr>
 <tr><td><code>--font &lt;FONT&gt;</code></td><td>The font (<code>chipload text fonts</code>)</td></tr>
 <tr><td><code>--height &lt;HEIGHT&gt;</code></td><td>The capital height, mm. Default: <code>30</code>.</td></tr>
+<tr><td><code>--size &lt;SIZE&gt;</code></td><td>The sign’s outer size “W×H”, such as 300x100 (any length unit; plain numbers are mm): the frame is that size and the letters as high as fit, instead of –height (docs/specs/sign-size-and-start.md §1)</td></tr>
+<tr><td><code>--engrave-depth &lt;ENGRAVE_DEPTH&gt;</code></td><td>With a single-line font (<code>text fonts</code>): how deep the follow path engraves the words, mm (default 1)</td></tr>
 <tr><td><code>--frame &lt;FRAME&gt;</code></td><td>The frame (<code>frame kinds</code>) One of: <code>rectangle</code>, <code>rounded</code>, <code>notched</code>, <code>chamfered</code>, <code>stepped</code>, <code>oval</code>, <code>arched</code>, <code>double-arch</code>, <code>gable</code>, <code>shield</code>, <code>plaque</code>, <code>banner</code>, <code>octagon</code>. Default: <code>rounded</code>.</td></tr>
 <tr><td><code>--corners &lt;CORNERS&gt;</code></td><td>A rectangular frame’s corners: sharp, round, notch, chamfer or step. One of: <code>sharp</code>, <code>round</code>, <code>notch</code>, <code>chamfer</code>, <code>step</code>.</td></tr>
 <tr><td><code>--corner &lt;CORNER&gt;</code></td><td>The frame’s corner size, mm (default: a tenth of its shorter side)</td></tr>
@@ -7832,6 +8095,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--gap &lt;GAP&gt;</code></td><td>From the outline to the first border and between borders, mm. Default: <code>5</code>.</td></tr>
 <tr><td><code>--border-corners &lt;BORDER_CORNERS&gt;</code></td><td>The borders’ own corners, inside a rectangular frame. One of: <code>sharp</code>, <code>round</code>, <code>notch</code>, <code>chamfer</code>, <code>step</code>.</td></tr>
 <tr><td><code>--double</code></td><td>Each border two grooves.</td></tr>
+<tr><td><code>--round</code></td><td>Round words, with <code>--frame oval</code>: the first line along the top of a circle, the second along its bottom, the rest straight in the middle; the frame the circle round them (docs/specs/text-on-arc.md §6)</td></tr>
 <tr><td><code>--border-width &lt;BORDER_WIDTH&gt;</code></td><td>The borders’ groove width at the surface, mm: their depth comes from the V-bit.</td></tr>
 <tr><td><code>--style &lt;STYLE&gt;</code></td><td>engraved (V-carved letters), raised (the background cleared round them) or inlay. One of: <code>engraved</code>, <code>raised</code>, <code>inlay</code>. Default: <code>engraved</code>.</td></tr>
 <tr><td><code>--relief &lt;RELIEF&gt;</code></td><td>A raised sign’s background depth, mm.</td></tr>
@@ -9154,6 +9418,8 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--scale &lt;SCALE&gt;</code></td><td>Scale it about its centre by this factor (&gt; 0), on top of any scale it has. After –rotate, before –align.</td></tr>
 <tr><td><code>--width &lt;WIDTH&gt;</code></td><td>Scale it about its centre until it is this wide, mm (the height follows)</td></tr>
 <tr><td><code>--height &lt;HEIGHT&gt;</code></td><td>Scale it about its centre until it is this high, mm (the width follows)</td></tr>
+<tr><td><code>--reference &lt;REFERENCE&gt;</code></td><td>Two points “X1,Y1 X2,Y2”: scale it so their distance becomes –length, the first point staying (docs/specs/scale-and-stretch.md §2). After –rotate, before –align.</td></tr>
+<tr><td><code>--length &lt;LENGTH&gt;</code></td><td>With –reference: the length the two points’ distance becomes, mm (or with a unit)</td></tr>
 <tr><td><code>--reset</code></td><td>Back to where the DXF has it: no turn, no scale, no move.</td></tr>
 <tr><td><code>--dxf &lt;DXF&gt;</code></td><td>Which DXF of the project (as <code>dxf list</code> shows); needed when it has several.</td></tr>
 <tr><td><code>--image &lt;IMAGE&gt;</code></td><td>A picture of the project instead (as <code>image list</code> shows it): –at, –rotate and –width apply, as <code>image set</code>.</td></tr>
@@ -9233,7 +9499,7 @@ reaches the assistant only once you save.</li>
 <h1 id="project-file"><a class="header" href="#project-file">Project file</a></h1>
 <!-- Generated by `chipload reference`; do not edit. Regenerate with CHIPLOAD_UPDATE_GOLDEN=1 cargo test -p chipload-cli --test guide. -->
 <p>A project (<code>.chipload</code>) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked <em>no</em> may be left out. Lengths are in mm, angles in radians, feeds in mm/min. <code>chipload schema project</code> prints the JSON Schema this page is made from.</p>
-<p>Schema version 42. Older files load through Chipload’s migrations; this schema describes only the current version.</p>
+<p>Schema version 43. Older files load through Chipload’s migrations; this schema describes only the current version.</p>
 <h2 id="the-file-2"><a class="header" href="#the-file-2">The file</a></h2>
 <div class="table-wrapper">
 <table>
@@ -9247,7 +9513,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>machine</code></td><td><a href="#machine">Machine</a></td><td>yes</td><td>The machine: post-processor, safe height, limits.</td></tr>
 <tr><td><code>operations</code></td><td>list of <a href="#operation">Operation</a></td><td>yes</td><td>The operations, cut in this order: grouped by part, in the parts’ order.</td></tr>
 <tr><td><code>parts</code></td><td>list of <a href="#part">Part</a></td><td>yes</td><td>The parts: groups of operations, each cut with its copies before the next part. At least one.</td></tr>
-<tr><td><code>schema_version</code></td><td><code>42</code></td><td>yes</td><td>The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones.</td></tr>
+<tr><td><code>schema_version</code></td><td><code>43</code></td><td>yes</td><td>The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones.</td></tr>
 <tr><td><code>setups</code></td><td>list of <a href="#setup">Setup</a></td><td>yes</td><td>The setups: each a board clamped on the machine, with its stock, its work zero and the parts cut from it, written as a program of its own. At least one. Since schema 34.</td></tr>
 <tr><td><code>tools</code></td><td>list of <a href="#tool">Tool</a></td><td>yes</td><td>The tools the operations cut with.</td></tr>
 <tr><td><code>written_by</code></td><td>string or null</td><td>no</td><td>The Chipload version that wrote the file, for reference.</td></tr>
@@ -9269,6 +9535,16 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h2 id="arcside"><a class="header" href="#arcside">ArcSide</a></h2>
+<p>Which way a text on an arc reads.</p>
+<ul>
+<li>
+<p><code>"top"</code>: The letters stand on the outside of the circle and read clockwise.</p>
+</li>
+<li>
+<p><code>"bottom"</code>: The letters stand upright at the bottom, inside the circle, and read counter-clockwise.</p>
+</li>
+</ul>
 <h2 id="autothreshold"><a class="header" href="#autothreshold">AutoThreshold</a></h2>
 <p>The word “auto”.</p>
 <p>One of: <code>"auto"</code>.</p>
@@ -10578,6 +10854,7 @@ reaches the assistant only once you save.</li>
 <tbody>
 <tr><td><code>align</code></td><td><a href="#textalign">TextAlign</a></td><td>yes</td><td>How the lines line up against each other.</td></tr>
 <tr><td><code>anchor</code></td><td><a href="#textanchor">TextAnchor</a></td><td>no</td><td>What <code>x</code> and <code>y</code> are: the box’s lower-left corner (before the turn), or its centre. A centred text stays centred there when its words, font or size change. Missing: the corner.</td></tr>
+<tr><td><code>arc</code></td><td><a href="#textarc">TextArc</a> or null</td><td>no</td><td>Written along a circle round its position (docs/specs/text-on-arc.md §4); None: on straight lines. Optional, no schema bump: an older Chipload refuses the field.</td></tr>
 <tr><td><code>font</code></td><td>string</td><td>yes</td><td>The font: a built-in one (FreeSans, FreeSerif, …) or one on the computer, by its full name (<code>chipload text fonts</code>). Only its name is stored; its letters are the text’s shapes, kept where the font isn’t (docs/specs/system-fonts.md).</td></tr>
 <tr><td><code>height</code></td><td>number</td><td>yes</td><td>The height of a capital letter, mm.</td></tr>
 <tr><td><code>id</code></td><td>integer</td><td>yes</td><td>The text’s id, which its letters name.</td></tr>
@@ -10604,6 +10881,20 @@ reaches the assistant only once you save.</li>
 <p><code>"center"</code>: The centre of the text’s box (the turn keeps it in place).</p>
 </li>
 </ul>
+<h2 id="textarc"><a class="header" href="#textarc">TextArc</a></h2>
+<p>A text on an arc: the circle through its letters’ middles and where on it the text sits (docs/specs/text-on-arc.md §2).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>angle</code></td><td>number</td><td>yes</td><td>Where the text sits, degrees counter-clockwise from +X: its middle, start or end as it is aligned.</td></tr>
+<tr><td><code>radius</code></td><td>number</td><td>yes</td><td>The radius of the circle through the first line’s letters’ middles (half a capital height above its base), mm; more than 0.</td></tr>
+<tr><td><code>side</code></td><td><a href="#arcside">ArcSide</a></td><td>yes</td><td>Along the top (standing outside, read clockwise) or the bottom (upright, read counter-clockwise).</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="tool"><a class="header" href="#tool">Tool</a></h2>
 <div class="table-wrapper">
 <table>
@@ -10930,7 +11221,9 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>arcs</code></td><td>boolean</td><td>no</td><td>Write arcs as G2/G3; false writes them as short lines (G1). Missing: false.</td></tr>
+<tr><td><code>controllers</code></td><td>list of string</td><td>no</td><td>The controllers the post is for, as <code>post list</code> names them, e.g. GRBL, grblHAL. Missing: none named (docs/specs/more-posts.md §2).</td></tr>
 <tr><td><code>decimals</code></td><td>integer</td><td>no</td><td>Decimals for coordinates and feeds in mm. Missing: 3.</td></tr>
+<tr><td><code>dwell_unit</code></td><td><a href="#dwellunit">DwellUnit</a></td><td>no</td><td>The unit of the dwell’s P: <code>s</code> (seconds) or <code>ms</code> (milliseconds, MASSO). Missing: seconds (docs/specs/more-posts.md §4).</td></tr>
 <tr><td><code>file_extension</code></td><td>string</td><td>no</td><td>The G-code file’s extension, e.g. <code>.nc</code>. Missing: <code>.nc</code>.</td></tr>
 <tr><td><code>inch_decimals</code></td><td>integer</td><td>no</td><td>Decimals for coordinates and feeds in inches. Missing: 4.</td></tr>
 <tr><td><code>name</code></td><td>string</td><td>yes</td><td>The post’s display name, e.g. “GRBL”.</td></tr>
@@ -10944,6 +11237,16 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h2 id="dwellunit"><a class="header" href="#dwellunit">DwellUnit</a></h2>
+<p>The unit a controller reads a dwell’s P in.</p>
+<ul>
+<li>
+<p><code>"s"</code>: Seconds (LinuxCNC, GRBL, Centroid CNC12).</p>
+</li>
+<li>
+<p><code>"ms"</code>: Milliseconds (MASSO).</p>
+</li>
+</ul>
 <h2 id="toolchange-2"><a class="header" href="#toolchange-2">ToolChange</a></h2>
 <p>How a job with several tools is written.</p>
 <ul>
@@ -10966,6 +11269,8 @@ reaches the assistant only once you save.</li>
 <tr><td><code>grbl</code></td><td><code>.nc</code></td><td>3</td><td>G2/G3</td><td>3</td><td>files, program</td><td></td></tr>
 <tr><td><code>linuxcnc</code></td><td><code>.ngc</code></td><td>3</td><td>G2/G3</td><td>3</td><td>files</td><td>Not yet tested on a real LinuxCNC machine: check the program and air-cut first.</td></tr>
 <tr><td><code>mach3</code></td><td><code>.tap</code></td><td>3</td><td>G2/G3</td><td>3</td><td>files</td><td>Not yet tested on a real Mach3 or Mach4 machine: check the program and air-cut first.</td></tr>
+<tr><td><code>masso</code></td><td><code>.nc</code></td><td>3</td><td>G2/G3</td><td>3</td><td>files</td><td>Not yet tested on a real MASSO machine: check the program and air-cut first.</td></tr>
+<tr><td><code>acorn</code></td><td><code>.cnc</code></td><td>3</td><td>G2/G3</td><td>3</td><td>files</td><td>Not yet tested on a real Centroid machine: check the program and air-cut first.</td></tr>
 </tbody>
 </table>
 </div>

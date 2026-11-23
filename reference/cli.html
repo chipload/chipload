@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Command line - Chipload 0.39.0 user guide</title>
+        <title>Command line - Chipload 0.40.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6e70ea5e.js";
+            window.path_to_searchindex_js = "../searchindex-fa2f3dbc.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-edc691ed.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.39.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.40.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -444,6 +444,55 @@
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>--op &lt;OP&gt;</code></td><td>The operation’s number as the app lists it (1 = first; <code>get</code> and <code>set</code> paths count from 0) Required.</td></tr>
 <tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The tool’s id in the project. Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-remove"><a class="header" href="#chipload-op-remove"><code>chipload op remove</code></a></h3>
+<p>Remove an operation, as Delete in the app does</p>
+<pre><code class="language-text">chipload op remove &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The operation’s number as the app lists it (1 = first; <code>get</code> and <code>set</code> paths count from 0) Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-duplicate"><a class="header" href="#chipload-op-duplicate"><code>chipload op duplicate</code></a></h3>
+<p>Copy an operation right after itself, in the same part, named “… (copy)”</p>
+<pre><code class="language-text">chipload op duplicate &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The operation’s number as the app lists it (1 = first; <code>get</code> and <code>set</code> paths count from 0) Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-move"><a class="header" href="#chipload-op-move"><code>chipload op move</code></a></h3>
+<p>Move an operation to another place in the cutting order (it joins the part of the operation that was there). A surface of the whole board stays first in its setup</p>
+<pre><code class="language-text">chipload op move &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The operation’s number as the app lists it (1 = first) Required.</td></tr>
+<tr><td><code>--to &lt;TO&gt;</code></td><td>The place it goes to, numbered the same way; it joins that operation’s part. Required.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -954,7 +1003,7 @@
 <tr><td><code>--angle-deg &lt;ANGLE_DEG&gt;</code></td><td>Rotation about the centre (a polygon: its first corner’s angle from +X), degrees, counter-clockwise.</td></tr>
 <tr><td><code>--corner-radius &lt;CORNER_RADIUS&gt;</code></td><td>The radius of the rectangle’s corners, at most half its shorter side (default 0: sharp)</td></tr>
 <tr><td><code>--points &lt;POINTS&gt;</code></td><td>Polyline points, or the points a spline passes through: “X,Y X,Y …”.</td></tr>
-<tr><td><code>--bulges &lt;BULGES&gt;</code></td><td>Polyline bulges “B B …”, one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight)</td></tr>
+<tr><td><code>--bulges &lt;BULGES&gt;</code></td><td>Polyline bulges “B B …”, one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight); t: an arc going on smoothly from the segment before it (docs/specs/polyline-tangent-arcs.md)</td></tr>
 <tr><td><code>--start-deg &lt;START_DEG&gt;</code></td><td>An arc slot’s start, degrees counter-clockwise from +X.</td></tr>
 <tr><td><code>--end-deg &lt;END_DEG&gt;</code></td><td>An arc slot’s end, degrees: past the start goes counter-clockwise, before it clockwise.</td></tr>
 <tr><td><code>--radii &lt;RADII&gt;</code></td><td>Corner radii “R R …”, mm, 0 sharp: a polyline’s one per point (an open one’s ends 0), a rectangle’s four counter-clockwise from its (−length/2, −width/2) corner, a polygon’s one per corner from its first. Each corner is rounded by an arc tangent to both sides, its point staying at the sharp corner (docs/specs/polyline-radii.md)</td></tr>
@@ -988,7 +1037,7 @@
 <tr><td><code>--angle-deg &lt;ANGLE_DEG&gt;</code></td><td>Rotation about the centre (a polygon: its first corner’s angle from +X), degrees, counter-clockwise.</td></tr>
 <tr><td><code>--corner-radius &lt;CORNER_RADIUS&gt;</code></td><td>The radius of the rectangle’s corners, at most half its shorter side (default 0: sharp)</td></tr>
 <tr><td><code>--points &lt;POINTS&gt;</code></td><td>Polyline points, or the points a spline passes through: “X,Y X,Y …”.</td></tr>
-<tr><td><code>--bulges &lt;BULGES&gt;</code></td><td>Polyline bulges “B B …”, one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight)</td></tr>
+<tr><td><code>--bulges &lt;BULGES&gt;</code></td><td>Polyline bulges “B B …”, one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight); t: an arc going on smoothly from the segment before it (docs/specs/polyline-tangent-arcs.md)</td></tr>
 <tr><td><code>--start-deg &lt;START_DEG&gt;</code></td><td>An arc slot’s start, degrees counter-clockwise from +X.</td></tr>
 <tr><td><code>--end-deg &lt;END_DEG&gt;</code></td><td>An arc slot’s end, degrees: past the start goes counter-clockwise, before it clockwise.</td></tr>
 <tr><td><code>--radii &lt;RADII&gt;</code></td><td>Corner radii “R R …”, mm, 0 sharp: a polyline’s one per point (an open one’s ends 0), a rectangle’s four counter-clockwise from its (−length/2, −width/2) corner, a polygon’s one per corner from its first. Each corner is rounded by an arc tangent to both sides, its point staying at the sharp corner (docs/specs/polyline-radii.md)</td></tr>
@@ -1092,7 +1141,7 @@
 </table>
 </div>
 <h3 id="chipload-shape-scale"><a class="header" href="#chipload-shape-scale"><code>chipload shape scale</code></a></h3>
-<p>Scale drawn shapes evenly about the middle of the box round them, or a point</p>
+<p>Scale drawn shapes evenly about the middle of the box round them, or a point; or by reference: two points and the length their distance should have, the first point staying (docs/specs/scale-and-stretch.md §2)</p>
 <pre><code class="language-text">chipload shape scale &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
 </code></pre>
 <div class="table-wrapper">
@@ -1103,8 +1152,31 @@
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S)</td></tr>
-<tr><td><code>--factor &lt;FACTOR&gt;</code></td><td>The factor, greater than 0: 2 doubles them. Required.</td></tr>
+<tr><td><code>--factor &lt;FACTOR&gt;</code></td><td>The factor, greater than 0: 2 doubles them.</td></tr>
 <tr><td><code>--about &lt;ABOUT&gt;</code></td><td>Scale about this point “X,Y” instead.</td></tr>
+<tr><td><code>--reference &lt;REFERENCE&gt;</code></td><td>Two points “X1,Y1 X2,Y2”, on any shape: scaled so their distance becomes –length, the first point staying.</td></tr>
+<tr><td><code>--length &lt;LENGTH&gt;</code></td><td>With –reference: the length the two points’ distance becomes, mm (or with a unit)</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-stretch"><a class="header" href="#chipload-shape-stretch"><code>chipload shape stretch</code></a></h3>
+<p>Stretch drawn shapes along X and Y about the middle of the box round them, or a point (docs/specs/scale-and-stretch.md §3). Circles and arcs become polylines fitted to the stretched curve; corner radii stay. Prints the shapes that became polylines</p>
+<pre><code class="language-text">chipload shape stretch &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S)</td></tr>
+<tr><td><code>--x &lt;X&gt;</code></td><td>The factor along X, greater than 0 (default 1)</td></tr>
+<tr><td><code>--y &lt;Y&gt;</code></td><td>The factor along Y, greater than 0 (default 1)</td></tr>
+<tr><td><code>--width &lt;WIDTH&gt;</code></td><td>Stretch along X until the box round the shapes is this wide, mm (or with a unit)</td></tr>
+<tr><td><code>--height &lt;HEIGHT&gt;</code></td><td>Stretch along Y until the box round the shapes is this high, mm (or with a unit)</td></tr>
+<tr><td><code>--about &lt;ABOUT&gt;</code></td><td>The point that stays, “X,Y”; default: the middle of the box round the shapes.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -1130,7 +1202,7 @@
 </table>
 </div>
 <h3 id="chipload-shape-fillet"><a class="header" href="#chipload-shape-fillet"><code>chipload shape fillet</code></a></h3>
-<p>Round corners of a drawn shape with arcs of a radius; it keeps its id (docs/specs/drawing-editing.md §3)</p>
+<p>Round corners of a drawn shape with arcs of a radius, beside arcs too; it keeps its id (docs/specs/drawing-editing.md §3). With –with, a round between two open drawn polylines, lines or arcs instead, both trimmed or extended to it and joined as after a trim (docs/specs/fillet-between-shapes.md §5)</p>
 <pre><code class="language-text">chipload shape fillet &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
 </code></pre>
 <div class="table-wrapper">
@@ -1141,8 +1213,10 @@
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>&lt;ID&gt;</code></td><td>The shape id (as <code>inspect</code> lists it, without the S)</td></tr>
-<tr><td><code>--radius &lt;RADIUS&gt;</code></td><td>The radius, mm (or with a unit) Required.</td></tr>
+<tr><td><code>--radius &lt;RADIUS&gt;</code></td><td>The radius, mm (or with a unit); 0 makes a corner sharp, or two shapes meet in one. Required.</td></tr>
 <tr><td><code>--corner &lt;CORNER&gt;</code></td><td>Only this corner: its point’s number, from 0 (default: every corner)</td></tr>
+<tr><td><code>--with &lt;WITH&gt;</code></td><td>The second shape: a round between the two.</td></tr>
+<tr><td><code>--keep &lt;KEEP&gt;</code></td><td>With –with, twice: a point near the part of each shape to keep, “X,Y”, in the shapes’ order. Repeatable.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -1355,6 +1429,8 @@
 <tr><td><code>&lt;ID&gt;</code></td><td>The shape id (as <code>inspect</code> lists it, without the S)</td></tr>
 <tr><td><code>--distance &lt;DISTANCE&gt;</code></td><td>How far back along each side, mm (or with a unit) Required.</td></tr>
 <tr><td><code>--corner &lt;CORNER&gt;</code></td><td>Only this corner: its point’s number, from 0 (default: every corner)</td></tr>
+<tr><td><code>--with &lt;WITH&gt;</code></td><td>The second shape: a straight cut between two lines, back from where they meet (docs/specs/fillet-between-shapes.md §5)</td></tr>
+<tr><td><code>--keep &lt;KEEP&gt;</code></td><td>With –with, twice: a point near the part of each line to keep, “X,Y”, in the shapes’ order. Repeatable.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -1757,6 +1833,10 @@
 <tr><td><code>--spacing &lt;SPACING&gt;</code></td><td>Extra space between letters, mm (default 0: the font’s own)</td></tr>
 <tr><td><code>--line-spacing &lt;LINE_SPACING&gt;</code></td><td>From one line’s base to the next, in capital heights (default 1.6)</td></tr>
 <tr><td><code>--layer &lt;LAYER&gt;</code></td><td>The layer for its letters (default “text”)</td></tr>
+<tr><td><code>--arc &lt;ARC&gt;</code></td><td>Write it along a circle round –at of this radius, through the letters’ middles (docs/specs/text-on-arc.md); a new text on an arc is centred on its angle unless –align says otherwise.</td></tr>
+<tr><td><code>--side &lt;SIDE&gt;</code></td><td>On an arc: along the top (read clockwise, the default) or the bottom (upright, read counter-clockwise) One of: <code>top</code>, <code>bottom</code>.</td></tr>
+<tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>On an arc: where it sits, degrees counter-clockwise from +X (its middle, start or end as aligned; default 90 on the top, 270 on the bottom)</td></tr>
+<tr><td><code>--straight</code></td><td>Off the arc: on straight lines again.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -1783,6 +1863,10 @@
 <tr><td><code>--spacing &lt;SPACING&gt;</code></td><td>Extra space between letters, mm (default 0: the font’s own)</td></tr>
 <tr><td><code>--line-spacing &lt;LINE_SPACING&gt;</code></td><td>From one line’s base to the next, in capital heights (default 1.6)</td></tr>
 <tr><td><code>--layer &lt;LAYER&gt;</code></td><td>The layer for its letters (default “text”)</td></tr>
+<tr><td><code>--arc &lt;ARC&gt;</code></td><td>Write it along a circle round –at of this radius, through the letters’ middles (docs/specs/text-on-arc.md); a new text on an arc is centred on its angle unless –align says otherwise.</td></tr>
+<tr><td><code>--side &lt;SIDE&gt;</code></td><td>On an arc: along the top (read clockwise, the default) or the bottom (upright, read counter-clockwise) One of: <code>top</code>, <code>bottom</code>.</td></tr>
+<tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>On an arc: where it sits, degrees counter-clockwise from +X (its middle, start or end as aligned; default 90 on the top, 270 on the bottom)</td></tr>
+<tr><td><code>--straight</code></td><td>Off the arc: on straight lines again.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -1947,11 +2031,16 @@
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>&lt;WORDS&gt;</code></td><td>What it says; “\n” starts a new line. Leave it out to make the sign round shapes already drawn (–around, –around-text, –around-image)</td></tr>
+<tr><td><code>--list &lt;LIST&gt;</code></td><td>A list of signs instead of the words: a text file, one sign per line, <code>|</code> (or “\n”) starting a sign’s second line. Every sign gets the same frame and style, in one part whose operations cut them all (docs/specs/batch-signs.md)</td></tr>
+<tr><td><code>--list-words &lt;LIST_WORDS&gt;</code></td><td>The list given here instead of a file: signs separated by “\n”, lines by <code>|</code>.</td></tr>
+<tr><td><code>--list-gap &lt;LIST_GAP&gt;</code></td><td>With a list: between two signs, and from a kept board’s edge, mm (default 10)</td></tr>
 <tr><td><code>--around &lt;AROUND&gt;</code></td><td>Round these shapes instead of new words (ids as <code>inspect</code> lists them) Repeatable.</td></tr>
 <tr><td><code>--around-text &lt;AROUND_TEXT&gt;</code></td><td>Round these texts’ letters. Repeatable.</td></tr>
 <tr><td><code>--around-image &lt;AROUND_IMAGE&gt;</code></td><td>Round these traced pictures (ids as <code>image list</code> shows them): carved as the picture, the frame following it when it is traced again. Repeatable.</td></tr>
 <tr><td><code>--font &lt;FONT&gt;</code></td><td>The font (<code>chipload text fonts</code>)</td></tr>
 <tr><td><code>--height &lt;HEIGHT&gt;</code></td><td>The capital height, mm. Default: <code>30</code>.</td></tr>
+<tr><td><code>--size &lt;SIZE&gt;</code></td><td>The sign’s outer size “W×H”, such as 300x100 (any length unit; plain numbers are mm): the frame is that size and the letters as high as fit, instead of –height (docs/specs/sign-size-and-start.md §1)</td></tr>
+<tr><td><code>--engrave-depth &lt;ENGRAVE_DEPTH&gt;</code></td><td>With a single-line font (<code>text fonts</code>): how deep the follow path engraves the words, mm (default 1)</td></tr>
 <tr><td><code>--frame &lt;FRAME&gt;</code></td><td>The frame (<code>frame kinds</code>) One of: <code>rectangle</code>, <code>rounded</code>, <code>notched</code>, <code>chamfered</code>, <code>stepped</code>, <code>oval</code>, <code>arched</code>, <code>double-arch</code>, <code>gable</code>, <code>shield</code>, <code>plaque</code>, <code>banner</code>, <code>octagon</code>. Default: <code>rounded</code>.</td></tr>
 <tr><td><code>--corners &lt;CORNERS&gt;</code></td><td>A rectangular frame’s corners: sharp, round, notch, chamfer or step. One of: <code>sharp</code>, <code>round</code>, <code>notch</code>, <code>chamfer</code>, <code>step</code>.</td></tr>
 <tr><td><code>--corner &lt;CORNER&gt;</code></td><td>The frame’s corner size, mm (default: a tenth of its shorter side)</td></tr>
@@ -1960,6 +2049,7 @@
 <tr><td><code>--gap &lt;GAP&gt;</code></td><td>From the outline to the first border and between borders, mm. Default: <code>5</code>.</td></tr>
 <tr><td><code>--border-corners &lt;BORDER_CORNERS&gt;</code></td><td>The borders’ own corners, inside a rectangular frame. One of: <code>sharp</code>, <code>round</code>, <code>notch</code>, <code>chamfer</code>, <code>step</code>.</td></tr>
 <tr><td><code>--double</code></td><td>Each border two grooves.</td></tr>
+<tr><td><code>--round</code></td><td>Round words, with <code>--frame oval</code>: the first line along the top of a circle, the second along its bottom, the rest straight in the middle; the frame the circle round them (docs/specs/text-on-arc.md §6)</td></tr>
 <tr><td><code>--border-width &lt;BORDER_WIDTH&gt;</code></td><td>The borders’ groove width at the surface, mm: their depth comes from the V-bit.</td></tr>
 <tr><td><code>--style &lt;STYLE&gt;</code></td><td>engraved (V-carved letters), raised (the background cleared round them) or inlay. One of: <code>engraved</code>, <code>raised</code>, <code>inlay</code>. Default: <code>engraved</code>.</td></tr>
 <tr><td><code>--relief &lt;RELIEF&gt;</code></td><td>A raised sign’s background depth, mm.</td></tr>
@@ -3282,6 +3372,8 @@
 <tr><td><code>--scale &lt;SCALE&gt;</code></td><td>Scale it about its centre by this factor (&gt; 0), on top of any scale it has. After –rotate, before –align.</td></tr>
 <tr><td><code>--width &lt;WIDTH&gt;</code></td><td>Scale it about its centre until it is this wide, mm (the height follows)</td></tr>
 <tr><td><code>--height &lt;HEIGHT&gt;</code></td><td>Scale it about its centre until it is this high, mm (the width follows)</td></tr>
+<tr><td><code>--reference &lt;REFERENCE&gt;</code></td><td>Two points “X1,Y1 X2,Y2”: scale it so their distance becomes –length, the first point staying (docs/specs/scale-and-stretch.md §2). After –rotate, before –align.</td></tr>
+<tr><td><code>--length &lt;LENGTH&gt;</code></td><td>With –reference: the length the two points’ distance becomes, mm (or with a unit)</td></tr>
 <tr><td><code>--reset</code></td><td>Back to where the DXF has it: no turn, no scale, no move.</td></tr>
 <tr><td><code>--dxf &lt;DXF&gt;</code></td><td>Which DXF of the project (as <code>dxf list</code> shows); needed when it has several.</td></tr>
 <tr><td><code>--image &lt;IMAGE&gt;</code></td><td>A picture of the project instead (as <code>image list</code> shows it): –at, –rotate and –width apply, as <code>image set</code>.</td></tr>

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Nesting - Chipload 0.39.0 user guide</title>
+        <title>Nesting - Chipload 0.40.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6e70ea5e.js";
+            window.path_to_searchindex_js = "../searchindex-fa2f3dbc.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-edc691ed.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.39.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.40.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -248,7 +248,10 @@ and keeps it unless it finds better.</li>
 <li><strong>Turns:</strong> <code>none</code>, <code>half</code> (0° or 180°), <code>quarter</code> (the default) or <code>every-15</code>, for every
 part (<code>--turns quarter</code>) or one (<code>--turns 2=none</code>). They are kept in the project.</li>
 <li><strong>Counts:</strong> <code>--count ID=N</code> cuts part ID N times: instances are added (not mirrored), or
-the highest-numbered ones that are on removed; at least one stays.</li>
+the highest-numbered ones that are on removed; at least one stays. The count covers this
+board and the other boards of its stock that took what didn’t fit: raised from 8 to 9 with
+two already on Setup 2, one more is cut, and it goes onto Setup 2 while there is room.
+Lowered, those other boards give up theirs first.</li>
 <li><strong>Mirrored instances</strong> stay mirrored; nesting turns and moves them, never mirrors them.</li>
 <li><strong>What doesn’t fit goes onto more boards,</strong> as a slicer adds plates: to the next
 <a href="../concepts/setups.html">setup</a> with the same stock and a size of its own, else to a new
