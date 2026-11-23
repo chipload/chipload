@@ -72,7 +72,10 @@ chipload part set part.chipload 2 --turns half      # part 2 turned 180° at mos
 - **Turns:** `none`, `half` (0° or 180°), `quarter` (the default) or `every-15`, for every
   part (`--turns quarter`) or one (`--turns 2=none`). They are kept in the project.
 - **Counts:** `--count ID=N` cuts part ID N times: instances are added (not mirrored), or
-  the highest-numbered ones that are on removed; at least one stays.
+  the highest-numbered ones that are on removed; at least one stays. The count covers this
+  board and the other boards of its stock that took what didn't fit: raised from 8 to 9 with
+  two already on Setup 2, one more is cut, and it goes onto Setup 2 while there is room.
+  Lowered, those other boards give up theirs first.
 - **Mirrored instances** stay mirrored; nesting turns and moves them, never mirrors them.
 - **What doesn't fit goes onto more boards,** as a slicer adds plates: to the next
   [setup](../concepts/setups.md) with the same stock and a size of its own, else to a new

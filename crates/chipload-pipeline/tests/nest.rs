@@ -363,6 +363,38 @@ fn what_doesnt_fit_goes_onto_new_boards_like_the_first() {
 }
 
 #[test]
+fn a_count_raised_step_by_step_fills_the_boards_that_took_the_rest_first() {
+    // From the user's testing: raised by one each time, the count counted only the first
+    // board, so the instances that went onto another were cut twice as many and each nest
+    // made a new board. The count is how many times the part is cut, on every board of
+    // its stock (docs/specs/nesting.md §6).
+    let mut job = part_on_board(300.0, 200.0);
+    let mut boards = Vec::new();
+    for count in 1..=6 {
+        let first = job.setups[0].id;
+        // The drawn instance at first, then what the last nest left.
+        let before = if count == 1 { 1 } else { count - 1 };
+        assert_eq!(chipload_pipeline::nest::nest_count(&job, first, 1), before);
+        job = overflowing(&job, count).job;
+        assert_eq!(job.instances_of(1).len(), count as usize, "count {count}");
+        assert_eq!(chipload_pipeline::nest::nest_count(&job, first, 1), count);
+        boards.push(job.setups.len());
+    }
+    // As many boards as raising it to six at once makes.
+    let at_once = overflowing(&part_on_board(300.0, 200.0), 6);
+    assert_eq!(job.setups.len(), at_once.job.setups.len(), "{boards:?}");
+    // Lowered, the boards that took the rest give theirs up first.
+    let lower = overflowing(&job, 2).job;
+    assert_eq!(lower.instances_of(1).len(), 2);
+    let used = lower
+        .setups
+        .iter()
+        .filter(|s| s.instances.iter().any(|i| i.enabled))
+        .count();
+    assert!(used <= 2, "{used} boards hold the two");
+}
+
+#[test]
 fn a_part_larger_than_any_board_is_switched_off_and_no_board_is_left() {
     // The part doesn't fit a 60 × 60 board at all.
     let job = part_on_board(60.0, 60.0);

@@ -120,14 +120,15 @@ impl ChiploadApp {
         } else {
             (s.stock.x, s.stock.y)
         };
-        let rows = job
-            .parts
-            .iter()
-            .filter(|p| p.enabled && job.part_on(p.id, id))
+        // Each part's count is how many times it is cut, on this board and those of its
+        // stock that took what didn't fit.
+        let rows = chipload_pipeline::nest::nest_parts(job, id)
+            .into_iter()
+            .filter_map(|part| job.part(part))
             .map(|p| NestRow {
                 part: p.id,
                 name: p.name.clone(),
-                count: job.for_setup(id).count(p.id),
+                count: chipload_pipeline::nest::nest_count(job, id, p.id),
                 turns: p.turns.unwrap_or_default(),
             })
             .collect();

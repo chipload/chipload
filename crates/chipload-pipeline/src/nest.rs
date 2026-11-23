@@ -955,41 +955,81 @@ fn set_turns(job: &mut Job, setup: u64, request: &NestRequest) -> Result<(), Pip
 /// Each part asked for cut `count` times (§6): unmirrored instances added, or the
 /// highest-numbered enabled ones removed. Disabled instances stay.
 fn set_counts(job: &mut Job, setup: u64, counts: &[(u64, u32)]) -> Result<(), PipelineError> {
+    let boards = nest_boards(job, setup);
     for &(id, count) in counts {
         let part = job
             .part(id)
-            .filter(|_| job.part_on(id, setup))
+            .filter(|_| boards.iter().any(|&b| job.part_on(id, b)))
             .ok_or_else(|| PipelineError::Job(Message::new("pipeline-no-part").arg("id", id)))?;
         if count == 0 {
             return Err(PipelineError::Job(
                 Message::new("pipeline-nest-count").arg("part", part.name.as_str()),
             ));
         }
-        let here = |job: &Job| -> usize {
-            job.setup(setup).map_or(0, |s| {
-                s.instances
-                    .iter()
-                    .filter(|i| i.part == id && i.enabled)
-                    .count()
-            })
-        };
-        while here(job) < count as usize {
+        while (nest_count(job, setup, id) as usize) < count as usize {
             let next = job.next_instance_id(id);
             if let Some(s) = job.setup_mut(setup) {
                 s.instances.push(Instance::drawn(id, next));
             }
         }
-        while here(job) > count as usize {
-            let Some(s) = job.setup_mut(setup) else {
-                break;
-            };
-            let Some(last) = s.instances.iter().rposition(|i| i.part == id && i.enabled) else {
-                break;
-            };
-            s.instances.remove(last);
+        // Fewer: the last boards that took what didn't fit give theirs up first.
+        for &board in boards.iter().skip(1).rev().chain(std::iter::once(&setup)) {
+            while (nest_count(job, setup, id) as usize) > count as usize {
+                let Some(s) = job.setup_mut(board) else {
+                    break;
+                };
+                let Some(last) = s.instances.iter().rposition(|i| i.part == id && i.enabled) else {
+                    break;
+                };
+                s.instances.remove(last);
+            }
         }
     }
     Ok(())
+}
+
+/// The boards a part's count covers when setup `setup` is nested (docs/specs/nesting.md
+/// §6): the setup first, then, when it can be nested, every other board of its stock that
+/// can, in the setups' order. What didn't fit on it went onto those, and is still cut.
+pub fn nest_boards(job: &Job, setup: u64) -> Vec<u64> {
+    let mut boards = vec![setup];
+    let Some(first) = job.setup(setup).filter(|s| nestable(job, s)) else {
+        return boards;
+    };
+    boards.extend(
+        job.setups
+            .iter()
+            .filter(|s| s.id != setup && nestable(job, s) && same_stock(&first.stock, &s.stock))
+            .map(|s| s.id),
+    );
+    boards
+}
+
+/// How many times part `part` is cut when setup `setup` is nested: its enabled instances on
+/// [`nest_boards`].
+pub fn nest_count(job: &Job, setup: u64, part: u64) -> u32 {
+    let n: usize = nest_boards(job, setup)
+        .iter()
+        .filter_map(|&b| job.setup(b))
+        .map(|s| {
+            s.instances
+                .iter()
+                .filter(|i| i.part == part && i.enabled)
+                .count()
+        })
+        .sum();
+    u32::try_from(n).unwrap_or(u32::MAX)
+}
+
+/// The parts on, with an instance on [`nest_boards`], in the project's order: the Nest
+/// window's rows.
+pub fn nest_parts(job: &Job, setup: u64) -> Vec<u64> {
+    let boards = nest_boards(job, setup);
+    job.parts
+        .iter()
+        .filter(|p| p.enabled && boards.iter().any(|&b| job.part_on(p.id, b)))
+        .map(|p| p.id)
+        .collect()
 }
 
 /// The usable area (§5): the board less the margin, within the machine's travel measured

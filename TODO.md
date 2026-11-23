@@ -63,9 +63,9 @@ done is in git and in the releases' notes on GitHub, no longer listed here.
      cancellable back to the project; New sign after *Don't save* now opens the sign;
    - ~~a polyline closed by another lost its handles~~ (the user, 2026-11-23): the clicked
      shape of a chained outline is the one edited;
-   - **Nesting overflow overlapping after raising counts step by step** (the user,
-     2026-11-23, a screenshot): not reproduced from the command line, the Nest window or
-     Nest all; waiting for the user's steps or project;
+   - ~~nesting overflow after raising counts step by step~~ (the user, 2026-11-23): a
+     part's count covers every board of its stock, so what went to Setup 2 is counted and
+     Setup 2 fills before a new board is made;
    - **Layers for drawn shapes** (the user, 2026-11-23): layers feel strange for our own
      shapes; rather a flat list, an exploded DXF becoming shapes. To talk about.
    - ~~`op remove`, `op duplicate`, `op move`~~ on the command line (found missing while

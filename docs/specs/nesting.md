@@ -160,6 +160,12 @@ The dialog and the command line can set it before nesting (decision 8):
 - **more** adds unmirrored instances, each at angle 0, placed by the nest;
 - **fewer** removes the highest-numbered instances (never instance 1).
 
+With more boards of the same stock that can be nested (nest-overflow-and-all.md §1), the
+count covers them all: the board nested and the others, which took what didn't fit on it
+and still cut it. More are added on the board nested, fewer are removed from the other
+boards first, the last one first (the user's testing, 2026-11-23: counted on one board,
+raising a count step by step cut the overflow again each time and made a new board).
+
 Disabled instances are left alone, neither placed nor counted. Counted that way, "2 of each
 side, 1 lid" is one step instead of adding instances one by one.
 
