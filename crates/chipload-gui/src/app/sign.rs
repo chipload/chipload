@@ -487,6 +487,13 @@ impl ChiploadApp {
                 });
             ui.add_space(6.0);
             sign_picture(ui, &preview.lines);
+            // A font whose letters join takes a moment: say the picture is coming.
+            if self.canvas_tools.sign_work.is_some() {
+                ui.horizontal(|ui| {
+                    ui.spinner();
+                    ui.weak(t!(ui, "sign-drawing"));
+                });
+            }
             match &preview.adds {
                 Ok(names) => {
                     if preview.count > 1 {

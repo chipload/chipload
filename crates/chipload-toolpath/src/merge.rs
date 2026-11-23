@@ -359,21 +359,48 @@ fn check_group(
         .chain(areas.iter().flat_map(Area::boundary))
         .collect();
     let margin = 2.0 * ARC_APPROX_TOL_MM;
+    // Each edge's box grown by the margin, and each loop's box: a point outside them is
+    // farther than the margin from the edge, and a loop winds round it 0 times. The same
+    // answers, without measuring every edge for every point (script letters took 0.2 s).
+    let near: Vec<(Point, Point)> = edges
+        .iter()
+        .map(|e| {
+            let ((x0, y0), (x1, y1)) = e.bounds();
+            ((x0 - margin, y0 - margin), (x1 + margin, y1 + margin))
+        })
+        .collect();
+    let within = |(lo, hi): &(Point, Point), p: Point| {
+        p.0 >= lo.0 && p.0 <= hi.0 && p.1 >= lo.1 && p.1 <= hi.1
+    };
+    let loop_boxes: Vec<Option<(Point, Point)>> = members
+        .iter()
+        .map(|&i| {
+            plines[i]
+                .extents()
+                .map(|e| ((e.min_x, e.min_y), (e.max_x, e.max_y)))
+        })
+        .collect();
     for sx in 0..=CHECK_SAMPLES {
         for sy in 0..=CHECK_SAMPLES {
             let p = (
                 lo.0 + (hi.0 - lo.0) * sx as f64 / CHECK_SAMPLES as f64,
                 lo.1 + (hi.1 - lo.1) * sy as f64 / CHECK_SAMPLES as f64,
             );
-            if edges.iter().any(|e| point_distance(e, p) <= margin) {
+            if edges
+                .iter()
+                .zip(&near)
+                .any(|(e, b)| within(b, p) && point_distance(e, p) <= margin)
+            {
                 continue;
             }
             let winding: i32 = members
                 .iter()
-                .map(|&i| {
-                    guarded(step("checking-joined-letters"), || {
+                .zip(&loop_boxes)
+                .map(|(&i, b)| match b {
+                    Some(b) if !within(b, p) => Ok(0),
+                    _ => guarded(step("checking-joined-letters"), || {
                         plines[i].winding_number(Vector2::new(p.0, p.1))
-                    })
+                    }),
                 })
                 .sum::<Result<i32, ToolpathError>>()?;
             // The non-zero rule: a hole inside its own outline winds back to 0.

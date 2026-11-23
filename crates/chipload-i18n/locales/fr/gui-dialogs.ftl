@@ -189,6 +189,7 @@ sign-signs-list = D'après une liste
 sign-signs-list-hover = La même enseigne pour chaque ligne d'une liste : plaques nominatives, plaques de porte, étiquettes. Une seule pièce les taille toutes, avec un seul changement d'outil
 sign-list-hint = ANNA BERG | SALLE 12
 sign-list-help = Une enseigne par ligne. Un | commence la deuxième ligne de l'enseigne, avec ou sans espaces autour : ANNA BERG | SALLE 12
+sign-drawing = Dessin de l'enseigne…
 sign-list-count = { $count } enseignes, en grille
 sign-list-made = { $count } enseignes faites dans une pièce : { $operations } opérations les taillent toutes. Changez un nom et son cadre suit.
 sign-refused = Impossible de créer l'enseigne.

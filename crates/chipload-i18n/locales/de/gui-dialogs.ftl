@@ -189,6 +189,7 @@ sign-signs-list = Aus einer Liste
 sign-signs-list-hover = Dasselbe Schild für jede Zeile einer Liste: Namensschilder, Türschilder, Etiketten. Ein Teil schneidet alle, mit einem Werkzeugwechsel
 sign-list-hint = ANNA BERG | RAUM 12
 sign-list-help = Ein Schild pro Zeile. Ein | beginnt die zweite Zeile des Schilds, mit oder ohne Leerzeichen davor und danach: ANNA BERG | RAUM 12
+sign-drawing = Das Schild wird gezeichnet…
 sign-list-count = { $count } Schilder, im Raster
 sign-list-made = { $count } Schilder in einem Teil gemacht: { $operations } Operationen schneiden alle. Einen Namen ändern, und sein Rahmen folgt.
 sign-refused = Das Schild konnte nicht erstellt werden.
