@@ -59,6 +59,8 @@ done is in git and in the releases' notes on GitHub, no longer listed here.
      waits (a list's only draws the signs), the list's format stays shown under it, and long lists are quick (a frame's
      box no longer chains the whole drawing; nesting tests boxes before polylines: 100
      signs 15 s → 1 s);
+   - ~~*New* with a project open shows the start screen's choices~~ (the user, 2026-11-23),
+     cancellable back to the project; New sign after *Don't save* now opens the sign;
    - ~~`op remove`, `op duplicate`, `op move`~~ on the command line (found missing while
      building; the window had them), 2026-11-22, the rules in `chipload_pipeline::operations`.
 1. **Drawing, step 2** (the review of the drawing tools, 2026-11-18; docs/specs/

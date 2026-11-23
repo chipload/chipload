@@ -272,9 +272,13 @@ impl ChiploadApp {
     /// New project dialog since the sign fits the board, and the sign's dialog on it.
     /// Cancelled, the empty project stays, as *New project* leaves it.
     pub fn new_sign_project(&mut self) {
-        if !self.guard(Pending::New) {
-            return;
+        if self.guard(Pending::NewSign) {
+            self.new_sign_project_now();
         }
+    }
+
+    /// *New sign…* once unsaved changes are saved or let go of.
+    pub(super) fn new_sign_project_now(&mut self) {
         let start = self.remembered_start();
         let first = t!(self, "app-new-project");
         self.create_project(chipload_pipeline::empty_project(), &start, first, None);

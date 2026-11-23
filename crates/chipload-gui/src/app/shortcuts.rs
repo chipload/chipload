@@ -365,7 +365,7 @@ impl ChiploadApp {
     /// Do what a shortcut asks.
     pub(super) fn act(&mut self, action: Action, ctx: &egui::Context) {
         match action {
-            Action::New => self.ask_new(),
+            Action::New => self.ask_new_choice(),
             Action::Open => self.ask_open(),
             Action::Import => self.ask_import(),
             Action::Save => {

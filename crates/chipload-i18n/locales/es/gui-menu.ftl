@@ -4,7 +4,7 @@ menu-language = Idioma
 menu-language-system = Sistema
 menu-language-review = { $language } (falta revisión)
 # File menu.
-menu-new-project = Proyecto nuevo
+menu-new-project = Nuevo…
 menu-open = Abrir…
 menu-open-recent = Abrir reciente
 # Empties the list of recent projects.

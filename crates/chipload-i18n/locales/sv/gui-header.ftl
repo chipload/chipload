@@ -31,7 +31,7 @@ header-group-draw = Rita
 header-group-operation = Operation
 # FILE: short words under icons.
 header-new = Nytt
-header-new-hover = Nytt projekt
+header-new-hover = Ett nytt projekt eller en skylt, en importerad ritning eller ett öppnat projekt: startsidans val
 header-open = Öppna
 header-import = Importera
 header-import-hover = Nytt projekt från en DXF eller SVG

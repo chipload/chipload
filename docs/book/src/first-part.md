@@ -7,7 +7,8 @@ the first steps ([below](#starting-from-a-drawing-file)).
 
 ## In the app
 
-1. **A new project:** *File > New project* (Ctrl+N).
+1. **A new project:** *New project* on the start screen; with a project open, *File > New…*
+   (Ctrl+N) shows the same choices, then *New project*.
    - The [new project dialog](drawings/import.md#the-new-project-dialog) asks for the
      material, the board's thickness and size, Z zero, the machine and the tools. Set the
      real thickness, 12 mm here: depths are measured from the board's top. Leave the board

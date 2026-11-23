@@ -221,6 +221,8 @@ impl Focus {
 enum Pending {
     Close,
     New,
+    /// *New sign…*: a new project with the sign's dialog on it.
+    NewSign,
     OpenDialog,
     ImportDialog,
     Open(PathBuf),
@@ -301,6 +303,8 @@ enum Prompt {
     Relief(Box<relief_wizard::ReliefWizard>),
     /// *New project*: the board, machine and tools (docs/specs/new-project-dialog.md).
     NewProject(Box<new_project::NewProjectDialog>),
+    /// *New* with a project open: the start screen's choices (the user, 2026-11-23).
+    Start,
 }
 
 /// A handle drag in progress: the shape as it was when the drag began, which every frame
@@ -725,6 +729,7 @@ impl ChiploadApp {
                 ctx.send_viewport_cmd(ViewportCommand::Close);
             }
             Pending::New => self.ask_new_project(),
+            Pending::NewSign => self.new_sign_project_now(),
             Pending::OpenDialog => self.open_dialog(),
             Pending::ImportDialog => self.import_dialog(),
             Pending::Open(path) => {

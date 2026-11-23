@@ -389,66 +389,7 @@ impl ChiploadApp {
                 .inner_margin(24.0)
                 .show(ui, |ui| {
                     ui.set_max_width(START_WIDTH);
-                    ui.label(crate::style::bold(
-                        ui,
-                        RichText::new("Chipload").heading().size(28.0),
-                    ));
-                    ui.weak(t!(ui, "panels-tagline"));
-                    ui.add_space(16.0);
-                    let wide = egui::vec2(START_WIDTH, 32.0);
-                    if ui
-                        .add(egui::Button::new(t!(ui, "panels-new-project")).min_size(wide))
-                        .on_hover_text(t!(ui, "panels-new-project-hover"))
-                        .clicked()
-                    {
-                        self.ask_new();
-                    }
-                    if ui
-                        .add(egui::Button::new(t!(ui, "panels-new-sign")).min_size(wide))
-                        .on_hover_text(t!(ui, "panels-new-sign-hover"))
-                        .clicked()
-                    {
-                        self.new_sign_project();
-                    }
-                    if ui
-                        .add(egui::Button::new(t!(ui, "panels-import-dxf")).min_size(wide))
-                        .on_hover_text(t!(ui, "panels-import-dxf-hover"))
-                        .clicked()
-                    {
-                        self.ask_import();
-                    }
-                    if ui
-                        .add(egui::Button::new(t!(ui, "panels-open-project")).min_size(wide))
-                        .on_hover_text(
-                            super::shortcuts::binding(super::shortcuts::Action::Open)
-                                .map(|b| super::shortcuts::keys_text(&b.keys))
-                                .unwrap_or_default(),
-                        )
-                        .clicked()
-                    {
-                        self.ask_open();
-                    }
-                    let recent: Vec<String> = self
-                        .prefs
-                        .recent
-                        .iter()
-                        .take(START_RECENT)
-                        .cloned()
-                        .collect();
-                    if !recent.is_empty() {
-                        ui.add_space(16.0);
-                        ui.label(crate::style::bold(ui, t!(ui, "panels-recent")));
-                        for path in &recent {
-                            let name = file_name(Path::new(path));
-                            if ui
-                                .add(egui::Button::new(name).frame(false))
-                                .on_hover_text(path)
-                                .clicked()
-                            {
-                                self.open_recent(path);
-                            }
-                        }
-                    }
+                    self.start_choices(ui);
                     ui.add_space(16.0);
                     ui.label(
                         RichText::new(format!("⚠ {}", t!(ui, "panels-danger")))
@@ -458,9 +399,81 @@ impl ChiploadApp {
                 });
         });
     }
+
+    /// The ways to start a project, and the recent ones: the start screen's, and *New*'s
+    /// with a project open (the user, 2026-11-23). True when one was picked.
+    pub(super) fn start_choices(&mut self, ui: &mut egui::Ui) -> bool {
+        let mut picked = false;
+        ui.label(crate::style::bold(
+            ui,
+            RichText::new("Chipload").heading().size(28.0),
+        ));
+        ui.weak(t!(ui, "panels-tagline"));
+        ui.add_space(16.0);
+        let wide = egui::vec2(START_WIDTH, 32.0);
+        if ui
+            .add(egui::Button::new(t!(ui, "panels-new-project")).min_size(wide))
+            .on_hover_text(t!(ui, "panels-new-project-hover"))
+            .clicked()
+        {
+            picked = true;
+            self.ask_new();
+        }
+        if ui
+            .add(egui::Button::new(t!(ui, "panels-new-sign")).min_size(wide))
+            .on_hover_text(t!(ui, "panels-new-sign-hover"))
+            .clicked()
+        {
+            picked = true;
+            self.new_sign_project();
+        }
+        if ui
+            .add(egui::Button::new(t!(ui, "panels-import-dxf")).min_size(wide))
+            .on_hover_text(t!(ui, "panels-import-dxf-hover"))
+            .clicked()
+        {
+            picked = true;
+            self.ask_import();
+        }
+        if ui
+            .add(egui::Button::new(t!(ui, "panels-open-project")).min_size(wide))
+            .on_hover_text(
+                super::shortcuts::binding(super::shortcuts::Action::Open)
+                    .map(|b| super::shortcuts::keys_text(&b.keys))
+                    .unwrap_or_default(),
+            )
+            .clicked()
+        {
+            picked = true;
+            self.ask_open();
+        }
+        let recent: Vec<String> = self
+            .prefs
+            .recent
+            .iter()
+            .take(START_RECENT)
+            .cloned()
+            .collect();
+        if !recent.is_empty() {
+            ui.add_space(16.0);
+            ui.label(crate::style::bold(ui, t!(ui, "panels-recent")));
+            for path in &recent {
+                let name = file_name(Path::new(path));
+                if ui
+                    .add(egui::Button::new(name).frame(false))
+                    .on_hover_text(path)
+                    .clicked()
+                {
+                    picked = true;
+                    self.open_recent(path);
+                }
+            }
+        }
+        picked
+    }
 }
 
 /// Width of the start screen's card.
-const START_WIDTH: f32 = 320.0;
+pub(super) const START_WIDTH: f32 = 320.0;
 /// Recent projects shown on the start screen (all are under File > Open recent).
 const START_RECENT: usize = 6;

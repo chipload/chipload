@@ -1,7 +1,7 @@
 menu-language = Язык
 menu-language-system = Системный
 menu-language-review = { $language } (нужна проверка)
-menu-new-project = Новый проект
+menu-new-project = Создать…
 menu-open = Открыть…
 menu-open-recent = Недавние проекты
 menu-clear-list = Очистить список

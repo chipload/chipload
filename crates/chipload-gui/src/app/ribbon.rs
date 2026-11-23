@@ -32,7 +32,7 @@ fn file_group(app: &mut ChiploadApp, ui: &mut egui::Ui) {
         .on_hover_text(hover_keys(&t!(ui, "header-new-hover"), Action::New))
         .clicked()
     {
-        app.ask_new();
+        app.ask_new_choice();
     }
     let label = t!(ui, "header-open");
     if ribbon_button(ui, Icon::Open, &label, true, false)

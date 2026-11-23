@@ -103,7 +103,7 @@ impl ChiploadApp {
             .button(with_keys(&t!(ui, "menu-new-project"), Action::New))
             .clicked()
         {
-            self.ask_new();
+            self.ask_new_choice();
         }
         if ui
             .button(with_keys(&t!(ui, "menu-open"), Action::Open))

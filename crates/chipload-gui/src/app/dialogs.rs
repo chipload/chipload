@@ -61,6 +61,40 @@ impl ChiploadApp {
         }
     }
 
+    /// *New* (File menu, the ribbon, Ctrl+N): with a project open, the start screen's
+    /// choices in a dialog, which can be cancelled back to the project (the user,
+    /// 2026-11-23); without one, the start screen shows them already: a new project.
+    pub(super) fn ask_new_choice(&mut self) {
+        if self.edit.is_some() {
+            self.dialogs.prompt = Some(Prompt::Start);
+        } else {
+            self.ask_new();
+        }
+    }
+
+    /// The start screen's choices over the open project; each choice asks about unsaved
+    /// changes as it does from the start screen.
+    fn start_prompt(&mut self, ctx: &egui::Context) {
+        let mut picked = false;
+        let mut cancel = false;
+        let modal = egui::Modal::new(egui::Id::new("new-start")).show(ctx, |ui| {
+            ui.set_max_width(super::panels::START_WIDTH);
+            picked = self.start_choices(ui);
+            ui.add_space(12.0);
+            cancel = ui.button(t!(ui, "common-cancel")).clicked();
+        });
+        if picked {
+            // The choice has set what comes next (its dialog, or none).
+            if matches!(self.dialogs.prompt, Some(Prompt::Start)) {
+                self.dialogs.prompt = None;
+            }
+        } else if cancel || modal.should_close() {
+            self.dialogs.prompt = None;
+        } else {
+            self.dialogs.prompt = Some(Prompt::Start);
+        }
+    }
+
     pub(super) fn ask_open(&mut self) {
         if self.guard(Pending::OpenDialog) {
             self.open_dialog();
@@ -270,6 +304,7 @@ impl ChiploadApp {
             Prompt::TurnCut(state) => self.turn_cut_prompt(ctx, state),
             Prompt::Relief(wizard) => self.relief_prompt(ctx, wizard),
             Prompt::NewProject(dialog) => self.new_project_prompt(ctx, *dialog),
+            Prompt::Start => self.start_prompt(ctx),
             Prompt::PxPerInch(path, purpose, mut typed) => {
                 let mut chosen = None;
                 egui::Window::new(t!(ctx, "dialogs-px-title"))

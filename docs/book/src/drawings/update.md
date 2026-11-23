@@ -20,7 +20,7 @@ part.chipload --from part.dxf`, takes in the new version and keeps the operation
 - **Stock:** the stock isn't changed. If the drawing now reaches past it, the report says
   so.
 
-An empty project (*File > New project*, `chipload new`) takes its first DXF the same way:
+An empty project (*New project* on the start screen or under *File > New…*, `chipload new`) takes its first DXF the same way:
 *Add DXF*, or *File > Add DXF or SVG to project…*.
 
 A DXF saved by a program that gives every entity a new handle on each save makes every

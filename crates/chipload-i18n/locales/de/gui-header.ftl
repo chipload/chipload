@@ -31,7 +31,7 @@ header-group-draw = Zeichnen
 header-group-operation = Bearbeitung
 # FILE: short words under icons.
 header-new = Neu
-header-new-hover = Neues Projekt
+header-new-hover = Ein neues Projekt oder Schild, eine importierte Zeichnung oder ein geöffnetes Projekt: die Auswahl des Startbildschirms
 header-open = Öffnen
 header-import = Import
 header-import-hover = Neues Projekt aus einer DXF oder SVG

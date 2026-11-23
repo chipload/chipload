@@ -301,3 +301,45 @@ fn signs_from_a_list_are_made_in_one_part_and_the_preview_counts_them() {
     let names: Vec<&str> = job.operations.iter().map(|op| op.name()).collect();
     assert_eq!(names, ["Letters", "Borders", "Cut out"]);
 }
+
+#[test]
+fn new_with_a_project_open_offers_the_start_screens_choices() {
+    // The user, 2026-11-23: New shows what the start screen does, not the board at once.
+    let mut harness = window();
+    harness.state_mut().ask_new_choice();
+    harness.run_steps(2);
+    assert!(matches!(
+        harness.state().dialogs.prompt,
+        Some(Prompt::Start)
+    ));
+    click(&mut harness, "Cancel");
+    assert!(harness.state().dialogs.prompt.is_none());
+    assert!(harness.state().edit.is_some(), "the project stays");
+    harness.state_mut().ask_new_choice();
+    harness.run_steps(2);
+    click(&mut harness, "New sign…");
+    // The project has unsaved changes: asked first, then the sign, not the board.
+    assert!(matches!(
+        harness.state().dialogs.prompt,
+        Some(Prompt::Discard(Pending::NewSign))
+    ));
+    click(&mut harness, "Don't save");
+    assert!(matches!(
+        harness.state().dialogs.prompt,
+        Some(Prompt::Sign(_))
+    ));
+    harness.state_mut().dialogs.prompt = None;
+    harness.state_mut().ask_new_choice();
+    harness.run_steps(2);
+    click(&mut harness, "New project");
+    // The sign's new project isn't saved yet: asked first, then the board.
+    assert!(matches!(
+        harness.state().dialogs.prompt,
+        Some(Prompt::Discard(Pending::New))
+    ));
+    click(&mut harness, "Don't save");
+    assert!(matches!(
+        harness.state().dialogs.prompt,
+        Some(Prompt::NewProject(_))
+    ));
+}

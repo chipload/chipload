@@ -4,7 +4,7 @@ menu-language = Språk
 menu-language-system = System
 menu-language-review = { $language } (granskning önskas)
 # File menu.
-menu-new-project = Nytt projekt
+menu-new-project = Nytt…
 menu-open = Öppna…
 menu-open-recent = Öppna senaste
 # Empties the list of recent projects.
